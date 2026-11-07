@@ -28,7 +28,7 @@ Nyisd meg a Claude Desktopot, menj a Code fülre, és válassz egy új, üres ma
 
 ```
 Telepítsd nekem a Mentat asszisztenst ebbe a mappába.
-A lépések itt vannak: https://raw.githubusercontent.com/lipi4242/mentat/v0.5.0/INSTALL.hu.md
+A lépések itt vannak: https://raw.githubusercontent.com/lipi4242/mentat/v0.5.1/INSTALL.hu.md
 Minden lépés előtt mondd el, mit csinálsz.
 ```
 

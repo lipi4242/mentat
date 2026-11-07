@@ -128,3 +128,41 @@ class OomHelperPreferenceTest(unittest.TestCase):
         self.assertFalse(liveness.write_oom_adj(4242, -600))
         self.assertEqual(self.calls, [])
         self.assertFalse(any("tee" in c for call in self.calls for c in call))
+
+
+class OomHelperScriptTest(unittest.TestCase):
+    """A fleet/bin/oom-protect a saját argumentumait ellenőrzi (rootként fut)."""
+    HELPER = os.path.join(os.path.dirname(__file__), "..", "..", "bin", "oom-protect")
+
+    def run_helper(self, *args):
+        import subprocess
+        return subprocess.run(["sh", self.HELPER, *args], capture_output=True, text=True).returncode
+
+    def test_rejects_bad_arguments(self):
+        for args in [(), ("1",), ("x1", "-600"), ("1", "abc"), ("1", "-"), ("1", "-2000"), ("1", "5000")]:
+            self.assertEqual(self.run_helper(*args), 2, args)
+
+    def test_refuses_a_process_that_is_not_an_agent(self):
+        self.assertEqual(self.run_helper(str(os.getpid()), "-600"), 3)
+
+    def test_a_process_that_only_looks_like_an_agent_is_refused(self):
+        # A cmdline utánozható: egy python-processz „claude … --remote-control x”
+        # argumentumokkal átmegy a mintán, de a futó bináris nem claude (#39).
+        import subprocess
+        import sys as _sys
+        fake = subprocess.Popen([_sys.executable, "-c", "import time; time.sleep(30)",
+                                 "claude", "--remote-control", "x"])
+        try:
+            r = subprocess.run(["sh", self.HELPER, str(fake.pid), "-600"],
+                               capture_output=True, text=True)
+            self.assertEqual(r.returncode, 3)
+            if os.path.isdir("/proc"):
+                self.assertIn("nem claude", r.stderr)
+        finally:
+            fake.kill(); fake.wait()
+
+    def test_missing_helper_is_named_in_the_log_line(self):
+        line = liveness.format_oom({"protected": 0, "oom_failed": 1, "helper_missing": True})
+        self.assertIn(liveness.OOM_HELPER, line)
+        self.assertIn("sudo install", line)
+        self.assertIn("sudo -n tiltva", liveness.format_oom({"protected": 0, "oom_failed": 1}))

@@ -151,6 +151,33 @@ class TestInstallFlow(Base):
         self.assertIn("systemctl --user stop probe.service", self.fb.calls())
         self.assertIn("systemctl --user disable probe.service", self.fb.calls())
 
+    def test_dying_old_process_seen_first_is_not_a_pid_change(self):
+        # 11-07, éles box: a régi claude (pid 5) még élt az első méréskor,
+        # az új (pid 9) végig futott — a telepítés mégis „azonnal kilépett"-tel bukott.
+        def proc(pid, started):
+            return {"signals": {"process": {"state": "up", "detail": "",
+                                            "data": {"pid": pid, "started_s": started}}}}
+        r = self.install(now=lambda: 1000.0,
+                         measure=measure_seq(proc(5, 10.0), proc(9, 1001.0), proc(9, 1001.0)))
+        self.assertEqual(r["status"], "ok", r["problems"])
+
+    def test_old_process_that_never_goes_away_is_still_a_failure(self):
+        old = {"signals": {"process": {"state": "up", "detail": "",
+                                       "data": {"pid": 5, "started_s": 10.0}}}}
+        r = self.install(now=lambda: 1000.0, measure=measure_seq(old))
+        self.assertEqual(r["status"], "failed")
+
+    def test_failure_before_any_restart_leaves_the_running_agent_alone(self):
+        # 11-07, éles box: unit_source=file, a forrás hiányzott → FileNotFoundError az
+        # install_unit-ban, és a rollback mégis újraindította a futó ágenst.
+        import os
+        from unittest import mock
+        self.fb.set_active("probe.service")
+        with mock.patch.dict(os.environ, {"FLEET_REGISTRY": str(self.reg)}):
+            r = self.install(entry=_entry(unit_source="file", unit="probe.service"))
+        self.assertEqual(r["status"], "failed")
+        self.assertNotIn("systemctl --user restart probe.service", self.fb.calls())
+
     def test_never_comes_up_is_failure(self):
         r = self.install(measure=measure_seq(_proc("down")))
         self.assertEqual(r["status"], "failed")

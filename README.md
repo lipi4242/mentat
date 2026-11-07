@@ -28,7 +28,7 @@ Open Claude Desktop, go to the Code tab and choose a new, empty folder. Paste:
 
 ```
 Install the Mentat assistant for me in this folder.
-The steps are here: https://raw.githubusercontent.com/lipi4242/mentat/v0.5.0/INSTALL.md
+The steps are here: https://raw.githubusercontent.com/lipi4242/mentat/v0.5.1/INSTALL.md
 Tell me each step before you do it.
 ```
 

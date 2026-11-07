@@ -1,29 +1,27 @@
 {
   "component": "mentat",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "date": "2026-11-07",
-  "severity": "minor",
+  "severity": "patch",
   "security": false,
-  "breaking": true,
+  "breaking": false,
   "migrations_from": [
-    "0.4",
-    "0.3"
+    "0.5"
   ],
   "you_need_to": [
-    "Mentat is now one repository: https://github.com/lipi4242/mentat. Fetch the 0.5.0 tools from https://raw.githubusercontent.com/lipi4242/mentat/v0.5.0/ (the old addresses keep serving 0.4.x only).",
-    "If you use the engine: clone once with git clone --depth 1 --branch v0.5.0 https://github.com/lipi4242/mentat ~/src/mentat, re-sync with ~/src/mentat/engine/sync-to.sh <your-repo> (add the packs you use), then python3 -m anytime_engine.selftest. The old ~/src/anytime-engine clone is no longer used.",
-    "If you wrote your own concern pack, widen its ANYTIME_PLUGIN engine range to include 0.5 (for example \">=0.4,<0.6\") first: the 0.5 engine refuses a pack whose range stops at 0.5.",
-    "If you run the fleet: update the checkout to ~/src/mentat and run fleet upgrade <repo>; it replaces the fleet@fleet-leader plugin with fleet@mentat (claude plugin marketplace add lipi4242/mentat)."
+    "Update the server checkout in one step: run fleet box-upgrade --to v0.5.1 --dry-run to see the plan, then the same command without --dry-run. It takes a snapshot, upgrades one agent first, skips busy agents and rolls back on its own if a check fails.",
+    "On a server, give every agent the backlog command: ln -s ~/src/mentat/fleet/bin/mentat-todo ~/.local/bin/ (it takes the agent's name from its unit).",
+    "If your agent uses the backlog, re-sync the engine with ~/src/mentat/engine/sync-to.sh <your-repo> --pack todo, then python3 -m anytime_engine.selftest."
   ],
-  "changelog": "CHANGELOG.md#050",
+  "changelog": "CHANGELOG.md#051",
   "requires_if_present": {
     "engine": ">=0.5.0,<0.6"
   },
   "components": {
-    "engine": "0.5.0",
-    "fleet_cli": "1.3.0",
+    "engine": "0.5.1",
+    "fleet_cli": "1.4.0",
     "bridge": "2.1.0",
-    "plugin": "1.6.0",
+    "plugin": "1.6.1",
     "admin": "0.5.0"
   },
   "files": {

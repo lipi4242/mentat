@@ -67,6 +67,14 @@ class HookProblems(unittest.TestCase):
         self.assertTrue(any("fail-open" in p for p in r["problems"]))
         self.assertTrue(any("2.1.200" in p for p in r["problems"]))
 
+    def test_bridge_version_drift_is_a_warning_not_red(self):
+        kw = dict(unit_active="active", unit_enabled="enabled", drop_in=True, locked=False)
+        e = _entry(bridge={"unit": "x-telegram-bridge.service"})
+        r = doctor.assess(e, _m(), {}, bridge_installed="2.0.1", bridge_current="2.1.0", **kw)
+        self.assertTrue(r["ok"], r)
+        self.assertTrue(any("híd-drift" in w for w in r["warnings"]))
+        self.assertIn("⚠️", doctor.format_report([r]))
+
 
 if __name__ == "__main__":
     unittest.main()

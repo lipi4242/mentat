@@ -3,6 +3,71 @@
   "_doc": "One entry per release step. A change moves one or more catalog capabilities (reference/manifest/capabilities/*.json): new | extended | improved | removed. Each change is one CHANGELOG bullet carrying <!-- cap: <id> -->. Check and render: python3 reference/manifest/mentat_caplog.py check | render md --lang en|hu | render json.",
   "releases": [
     {
+      "version": "0.5.1",
+      "date": null,
+      "components": {
+        "brain": "0.5.1",
+        "engine": "0.5.1",
+        "fleet": "0.5.1"
+      },
+      "changes": [
+        {
+          "id": "box-upgrade",
+          "component": "brain",
+          "title": {
+            "en": "One command to upgrade a server",
+            "hu": "Egy paranccsal frissíthető a szerver"
+          },
+          "summary": {
+            "en": "fleet box-upgrade --to vX.Y.Z plans, snapshots, upgrades a canary agent first, skips busy agents, checks the result and rolls back on its own.",
+            "hu": "A fleet box-upgrade --to vX.Y.Z tervet készít, pillanatképet ment, előbb egy kanári ágenst frissít, kihagyja a dolgozó ágenseket, ellenőriz, és hiba esetén magától visszaáll."
+          },
+          "capabilities": [
+            {
+              "id": "fleet",
+              "change": "extended"
+            }
+          ]
+        },
+        {
+          "id": "mentat-todo",
+          "component": "brain",
+          "title": {
+            "en": "mentat-todo: the backlog command for every agent on a server",
+            "hu": "mentat-todo: a backlog-parancs a szerver minden ágensének"
+          },
+          "summary": {
+            "en": "Every agent on a server gets the backlog command without a copy of the engine; the agent's name comes from its unit.",
+            "hu": "A szerver minden ágense megkapja a backlog-parancsot a motor másolata nélkül; az ágens neve az egységéből jön."
+          },
+          "capabilities": [
+            {
+              "id": "engine.todo",
+              "change": "extended"
+            }
+          ]
+        },
+        {
+          "id": "fleet-steadier",
+          "component": "brain",
+          "title": {
+            "en": "Fewer false alarms on a server",
+            "hu": "Kevesebb téves riasztás a szerveren"
+          },
+          "summary": {
+            "en": "Install no longer fails falsely on restart, a bridge that is behind is a to-do instead of an error, and the out-of-memory helper ships in the repository.",
+            "hu": "A telepítés nem hibázik tévesen újraindításkor, a lemaradt híd teendő, nem hiba, és az OOM-védelem segédprogramja a repóban van."
+          },
+          "capabilities": [
+            {
+              "id": "fleet",
+              "change": "improved"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "version": "0.5.0",
       "date": null,
       "components": {"brain": "0.5.0", "engine": "0.5.0", "fleet": "0.5.0"},

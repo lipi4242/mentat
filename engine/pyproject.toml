@@ -1,6 +1,6 @@
 [project]
 name = "mentat-engine"
-version = "0.5.0"
+version = "0.5.1"
 description = "Concern-based proactive orchestrator engine (shared core for Mentat agents)"
 requires-python = ">=3.10"
 dependencies = []

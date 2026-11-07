@@ -33,10 +33,14 @@ def snapshot(root: Path) -> dict[str, tuple[int, int]]:
 
 
 def changed(before: dict, after: dict) -> list[str]:
-    """What the run changed under GUARDED. `state/**/*.lock` is the live box's (the
-    fleet-reconcile timer rewrites reconcile.lock), not a test write: ignored."""
+    """What the run changed under GUARDED. The live box's own writers are not test
+    writes and are ignored: `state/**/*.lock` (the fleet-reconcile timer rewrites
+    reconcile.lock), `maintenance/*` (an operator's `fleet lock`) and `auth-ok/*`
+    (the reconcile's auth stamp). 11-07: a kapu a box élő átállása közben futott,
+    és ezeket a test írásának vélte — a fleet-sáv minden PR-je piros lett."""
     def live(k: str) -> bool:
-        return k.startswith("state/") and k.endswith(".lock")
+        return ((k.startswith("state/") and k.endswith(".lock"))
+                or k.split("/", 1)[0] in ("maintenance", "auth-ok"))
     return sorted(k for k in set(after) | set(before) if after.get(k) != before.get(k) and not live(k))
 
 

@@ -307,6 +307,8 @@ def build_parser() -> argparse.ArgumentParser:
     registry_set.add_parser(sub)
     from fleet import plugin_install   # a /fleet:* plugin local scope-pal (2026-10-31)
     plugin_install.add_parser(sub)
+    from fleet import box_upgrade   # a box egy parancsos frissítése egy tagre (#12, 2026-11-07)
+    box_upgrade.add_parser(sub)
     return p
 
 

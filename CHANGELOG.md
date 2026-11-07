@@ -3,6 +3,51 @@
 Every release also ships a machine-readable `release.json` at the root of
 its tag (see `reference/mentat-json.md`, section 4).
 
+## 0.5.1
+
+A small release for people who run Mentat on a server: upgrading a box is now one command, and
+the backlog has a command line for every agent. Nothing breaks when you skip it.
+
+- **One command to upgrade a server.** <!-- cap: box-upgrade -->
+  - `fleet box-upgrade --to vX.Y.Z` shows the plan first (`--dry-run`), takes a snapshot, switches
+    the checkout (an old directory or a tag), upgrades one agent as a canary before the rest,
+    skips agents that are busy or dormant, updates the Telegram bridge only when it differs, checks the
+    result and rolls back on its own if a check fails. Each run leaves a receipt in
+    `~/.config/fleet/upgrades.log`.
+- **`mentat-todo`: the backlog command for every agent on a server.** <!-- cap: mentat-todo -->
+  - It works without copying the engine into each agent's folder, and takes the agent's name
+    from its unit. Link it once: `ln -s ~/src/mentat/fleet/bin/mentat-todo ~/.local/bin/`.
+  - `engine/sync-to.sh <your-repo> --pack todo` copies the backlog pack into an agent folder.
+    On a server the pack finds its address, name and token in `~/.config/todo` on its own, the
+    same place `mentat-todo` reads.
+  - `item list` lists backlog items by project, stage, PM, developer or ball, and
+    `item new --parent` takes an item key (`WEB-12`) as well as its id.
+- **Fewer false alarms on a server.** <!-- cap: fleet-steadier -->
+  - `fleet install` no longer reports a failed restart when the old process was still shutting
+    down; the new one is measured, not the dying one.
+  - `fleet doctor` shows a bridge that is behind as a to-do (warning), not as an error, and
+    flags a bridge whose running process is older than its installed code.
+  - A failed `fleet install` restarts the previous unit only if it had restarted it.
+  - The plugin's secret guard no longer blocks code that only names a field such as
+    `owner_token`, or a sentence that mentions a token; file names like `.env` or `x.token`
+    are still blocked. The secret inventory no longer lists an agent's runtime state files
+    (`data/state/*.json`) unless they hold a secret-like field.
+  - The out-of-memory protection helper `fleet/bin/oom-protect` is now part of the checkout, and
+    when it is missing the log names it and the command to install it.
+
+Release tooling, for people who build releases: `publish.sh` is executable, and the smoke test
+also works on a plain git clone. The release test stops when the private-name list is missing;
+set `MENTAT_ALLOW_EMPTY_NAMES=1` to skip the check on a development machine. Every component gate
+runs the private-name check on the tree it ships.
+
+### Upgrading from 0.5.0
+
+Server: `fleet box-upgrade --to v0.5.1 --dry-run`, read the plan, then run it without
+`--dry-run`. To give the agents the backlog command, link `mentat-todo` as above. If an agent
+uses the backlog, re-sync its engine with `~/src/mentat/engine/sync-to.sh <your repo> --pack todo`
+and run `python3 -m anytime_engine.selftest`. Other installs: update from
+`https://raw.githubusercontent.com/lipi4242/mentat/v0.5.1/INSTALL.md`; your notes do not change.
+
 ## 0.5.0
 
 Mentat is now one product: one repository, one version, one install. The brain, the engine,
@@ -24,7 +69,7 @@ changelog for all of them. The engine, fleet and admin changelogs up to 0.4.x ar
     The old repositories stay readable with their tags, so an install that points at them keeps
     working, but they get no new releases.
   - The three-line install prompt now points at
-    `https://raw.githubusercontent.com/lipi4242/mentat/v0.5.0/INSTALL.md`. The engine, the fleet
+    `https://raw.githubusercontent.com/lipi4242/mentat/v0.5.1/INSTALL.md`. The engine, the fleet
     and the admin all come from one checkout of the same tag (`~/src/mentat`), so their versions
     can no longer drift apart.
   - The product version is the only version you need to know. The engine's version follows it,
@@ -55,11 +100,11 @@ changelog for all of them. The engine, fleet and admin changelogs up to 0.4.x ar
 ### Upgrading from 0.4.x
 
 Brain: ask your colleague to update Mentat to 0.5.0 from
-`https://raw.githubusercontent.com/lipi4242/mentat/v0.5.0/INSTALL.md`. It fetches the 0.5.0
+`https://raw.githubusercontent.com/lipi4242/mentat/v0.5.1/INSTALL.md`. It fetches the 0.5.0
 tools; your notes do not change.
 
 Engine: clone the release once
-(`git clone --depth 1 --branch v0.5.0 https://github.com/lipi4242/mentat ~/src/mentat`) and
+(`git clone --depth 1 --branch v0.5.1 https://github.com/lipi4242/mentat ~/src/mentat`) and
 re-run `~/src/mentat/engine/sync-to.sh <your agent folder>` with the packs you use. A pack of
 your own that declares `"<0.5"` is refused; widen it to `"<0.6"` and re-sync. The old
 `~/src/anytime-engine` copy is no longer used.

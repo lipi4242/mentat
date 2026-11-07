@@ -2,6 +2,17 @@
 
 Generated from `capability-log.json` - do not edit by hand.
 
+## 0.5.1 (not released yet)
+
+### Proactivity and scheduling
+
+- mentat-todo: the backlog command for every agent on a server. Every agent on a server gets the backlog command without a copy of the engine; the agent's name comes from its unit. (Extended: `engine.todo`)
+
+### Operation and flexibility
+
+- One command to upgrade a server. fleet box-upgrade --to vX.Y.Z plans, snapshots, upgrades a canary agent first, skips busy agents, checks the result and rolls back on its own. (Extended: `fleet`)
+- Fewer false alarms on a server. Install no longer fails falsely on restart, a bridge that is behind is a to-do instead of an error, and the out-of-memory helper ships in the repository. (Improved: `fleet`)
+
 ## 0.5.0 (not released yet)
 
 ### Proactivity and scheduling

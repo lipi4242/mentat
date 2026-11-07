@@ -91,14 +91,15 @@ def find_agent_process(entry: dict, procs: list[dict]) -> dict | None:
     A jel: a bináris + `--remote-control <rc_name>`. A wrapper (sh, tmux)
     argv-je is tartalmazza a mintát, ezért a binárisra is szűrünk."""
     want = ["--remote-control", entry["rc_name"]]
+    hits = []
     for p in procs:
         argv = p["argv"]
         if not is_agent_cmdline(argv):
             continue
-        for i in range(len(argv) - 1):
-            if argv[i] == want[0] and argv[i + 1] == want[1]:
-                return p
-    return None
+        if any(argv[i] == want[0] and argv[i + 1] == want[1] for i in range(len(argv) - 1)):
+            hits.append(p)
+    # Újraindításkor egy pillanatig a régi és az új claude is él: a legfrissebb az ágens.
+    return max(hits, key=lambda p: (p.get("started_s") or 0, p["pid"])) if hits else None
 
 
 def process_signal(entry: dict, procs: list[dict] | None = None) -> Signal:

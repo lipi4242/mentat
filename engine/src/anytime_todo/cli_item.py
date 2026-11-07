@@ -3,6 +3,8 @@
     item new --project WEB --title T [--description D] [--priority 0-4] [--estimate N]
              [--pm HANDLE] [--parent REF] [--quote "exact words"] [--quote-ref WHERE]
              [--ac "Done when …"]... [--idem K]
+    item list [--project WEB] [--stage issued,taken,review] [--pm H] [--dev H] [--ball H]
+              [--older-than DAYS]
     item show REF [--form [--lang hu|en]]      # REF = WEB-12 or the item id
     item edit REF [--title …] [--description …] [--priority N] [--estimate N] [--pm H]
              [--quote …] [--quote-ref …] [--rev N]
@@ -15,6 +17,7 @@ drop) are in cli_item_flow.py. --rev is always the item's rev, also for an AC.
 from __future__ import annotations
 
 import argparse
+import re
 from typing import Any
 
 from . import cli_item_flow, form, work
@@ -46,6 +49,10 @@ def add(sub) -> None:
     n.add_argument("--parent")
     n.add_argument("--ac", action="append", default=[], help="an acceptance criterion (repeat)")
     work.add_idem(n)
+    ls = p.add_parser("list", help="items by project/stage/pm/dev/ball (GET /items)")
+    for opt in ("--project", "--stage", "--pm", "--dev", "--ball"):
+        ls.add_argument(opt)
+    ls.add_argument("--older-than", type=int, help="days since the last move (issued: since issue)")
     s = p.add_parser("show")
     s.add_argument("ref")
     s.add_argument("--form", action="store_true", help="print the AC form to fill for submit")
@@ -79,6 +86,9 @@ def get(c, ref: str) -> dict[str, Any]:
     return item
 
 
+_KEY = re.compile(r"^[A-Z][A-Z0-9]*-[0-9]+$")
+
+
 def _spec(a: argparse.Namespace) -> dict[str, Any]:
     out = {dst: work.text(getattr(a, src, None), src.replace("_", "-")) for src, dst in SPEC.items()}
     out.update(priority=a.priority, estimate=a.estimate)
@@ -89,9 +99,15 @@ def run(a: argparse.Namespace) -> int:
     c, _ = work.client()
     if a.verb == "new":
         acs = [work.required(t, "ac") for t in a.ac]
-        body = {"project": a.project, **_spec(a), "parent": a.parent, "acs": acs or None}
+        # --parent kulcsot (WEB-12) vagy id-t is elfogad: a szerver csak id-t ismer (422 különben)
+        parent = get(c, a.parent)["id"] if a.parent and _KEY.match(a.parent) else a.parent
+        body = {"project": a.project, **_spec(a), "parent": parent, "acs": acs or None}
         body["idem_key"] = work.idem(a.idem, "item", body)
         return work.show(c.send("POST", "/items", body))
+    if a.verb == "list":
+        q = {k: v for k in ("project", "stage", "pm", "dev", "ball", "older_than")
+             if (v := getattr(a, k)) is not None}
+        return work.show(c.get_json("/items", q))
     item = get(c, a.ref)
     if a.verb == "show":
         if a.form:

@@ -133,6 +133,13 @@ class TestRound(ItemCase):
 
 
 class TestSpec(ItemCase):
+    def test_list_passes_the_filters_to_get_items(self):
+        rc, out = self.cli("item", "list", "--project", "WEB", "--stage", "taken")
+        self.assertEqual(rc, 0, out)
+        self.assertIn("WEB-7", out)
+        rc, out = self.cli("item", "list", "--stage", "issued")
+        self.assertNotIn("WEB-7", out)
+
     def test_new_item_sends_project_acs_and_a_stable_idem(self):
         argv = ("item", "new", "--project", "WEB", "--title", "Labda", "--ac", "Kész, ha a",
                 "--quote", "kinél a labda?", "--priority", "2")
@@ -142,6 +149,12 @@ class TestSpec(ItemCase):
         self.assertEqual(a["idem_key"], b["idem_key"])
         self.assertEqual((a["project"], a["acs"], a["request_quote"], a["priority"]),
                          ("WEB", ["Kész, ha a"], "kinél a labda?", 2))
+
+    def test_new_item_parent_by_key_is_sent_as_the_id(self):
+        self.assertEqual(self.cli("item", "new", "--project", "WEB", "--title", "gyerek",
+                                  "--parent", "WEB-7")[0], 0)
+        (_, _, body), = self.sent("items")
+        self.assertEqual(body["parent"], "I1")
 
     def test_ac_edit_uses_the_item_rev_and_keeps_the_ac_id(self):
         self.srv.items["I1"]["rev"] = 4

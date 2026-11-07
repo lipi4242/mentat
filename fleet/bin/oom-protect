@@ -1,0 +1,32 @@
+#!/bin/sh
+# oom-protect PID VALUE — egy ágens-claude oom_score_adj-ját írja (rootként, sudo-val).
+#
+# A reconcile `sudo -n /usr/local/sbin/oom-protect <pid> -600`-zal hívja (liveness.py).
+# A jogot EZ a program kapja, nem a tee: a saját argumentumait ellenőrzi (FL-02).
+# Csak akkor ír, ha a PID egy claude-processz `--remote-control` argumentummal,
+# és az érték -1000..1000 közé esik. Telepítés (egyszer, boxonként):
+#   sudo install -o root -g root -m 0755 ~/src/mentat/fleet/bin/oom-protect /usr/local/sbin/oom-protect
+set -eu
+PATH=/usr/sbin:/usr/bin:/sbin:/bin
+[ $# -eq 2 ] || { echo "usage: oom-protect PID VALUE" >&2; exit 2; }
+pid=$1; val=$2
+case $pid in ''|*[!0-9]*) echo "oom-protect: rossz PID" >&2; exit 2;; esac
+case $val in -) echo "oom-protect: rossz érték" >&2; exit 2;; esac
+case ${val#-} in ''|*[!0-9]*) echo "oom-protect: rossz érték" >&2; exit 2;; esac
+[ "$val" -ge -1000 ] && [ "$val" -le 1000 ] || { echo "oom-protect: -1000..1000" >&2; exit 2; }
+cmd=$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null) || { echo "oom-protect: nincs ilyen processz" >&2; exit 3; }
+case $cmd in
+  *claude*--remote-control*) ;;
+  *) echo "oom-protect: nem ágens-processz" >&2; exit 3;;
+esac
+# A cmdline utánozható (Rilí, 11-07): a processz a hívó felhasználóé legyen
+# (sudo alatt SUDO_UID), és a futó bináris egy claude-telepítés legyen.
+owner=$(stat -c %u "/proc/$pid" 2>/dev/null) || { echo "oom-protect: nincs ilyen processz" >&2; exit 3; }
+caller=${SUDO_UID:-$(id -u)}
+[ "$owner" = "$caller" ] || { echo "oom-protect: a processz nem a hívóé" >&2; exit 3; }
+exe=$(readlink -f "/proc/$pid/exe" 2>/dev/null) || exe=""
+case $exe in
+  */claude|*/claude/*) ;;
+  *) echo "oom-protect: a futó bináris nem claude" >&2; exit 3;;
+esac
+printf '%s\n' "$val" > "/proc/$pid/oom_score_adj"

@@ -24,12 +24,12 @@ The fleet is part of [Mentat](../README.md). You need it only if you want your c
 Easiest: ask your Mentat colleague to set this up on your server; it runs these steps for you. By hand, on the Linux server (needs `systemd --user`, `tmux`, the `claude` CLI, Python 3 and Node.js 18+), from the one Mentat checkout:
 
 ```sh
-git clone --depth 1 --branch v0.5.0 https://github.com/lipi4242/mentat ~/src/mentat
+git clone --depth 1 --branch v0.5.1 https://github.com/lipi4242/mentat ~/src/mentat
 mkdir -p ~/.local/bin && ln -sf ~/src/mentat/fleet/bin/fleet ~/.local/bin/fleet
 cd ~/my-agent-repo && fleet init my-agent && fleet setup my-agent
 ```
 
-If `~/src/mentat` is already there (the engine uses the same checkout), skip the clone and run `git -C ~/src/mentat fetch --tags && git -C ~/src/mentat checkout v0.5.0`.
+If `~/src/mentat` is already there (the engine uses the same checkout), skip the clone and run `git -C ~/src/mentat fetch --tags && git -C ~/src/mentat checkout v0.5.1`.
 
 `fleet setup` exits 0 when the agent is healthy, 3 when it runs but is not proven yet, and 1 on an error, with the one command that fixes it. It also adds the fleet's Claude Code skills to the agent. To add them by hand: `claude plugin marketplace add lipi4242/mentat`, then `claude plugin install fleet@mentat`. Details: [the fleet guide](docs/workflows/fleet-guide.md).
 

@@ -25,13 +25,16 @@ from fleet.install import UNIT_DIR
 from fleet.reconcile import load_state, decide, reconcile
 
 
-def _report(agent: str, facts: list, problems: list, s: dict, j: dict | None = None) -> dict:
-    """Az összesítés: a jelek ítélete és a nem-jel problémák közül a legrosszabb."""
+def _report(agent: str, facts: list, problems: list, s: dict, j: dict | None = None,
+            warnings: list | None = None) -> dict:
+    """Az összesítés: a jelek ítélete és a nem-jel problémák közül a legrosszabb.
+    A `warnings` teendő, nem üzemzavar (híd verzió-drift): az ágens
+    dolgozik, ezért nem rontja az egészséget — külön sorban látszik (⚠️)."""
     j = j or {"health": HEALTHY, "pending": [], "unknown": [], "unhealthy": []}
     health = worst([j["health"]] + ([UNHEALTHY] if problems else []))
     return {"agent": agent, "ok": health == HEALTHY, "health": health, "facts": facts,
-            "problems": j["unhealthy"] + problems, "pending": j["pending"],
-            "unknown": j["unknown"], "signals": s}
+            "problems": j["unhealthy"] + problems, "warnings": list(warnings or []),
+            "pending": j["pending"], "unknown": j["unknown"], "signals": s}
 
 
 def _workdir(entry: dict) -> Path:
@@ -53,10 +56,13 @@ def assess(entry: dict, m: dict, st: dict, *, unit_active: str | None,
            bridge_current: str, locked: bool, pane_dialog: str | None = None,
            now: float | None = None, hook_problems: list[str] = (),
            claude_problem: str | None = None, claude_unknown: str | None = None,
-           env_check: tuple = (None, None), outward: dict | None = None) -> dict:
-    """Pure: egészség (health.py) + a tények listája."""
+           env_check: tuple = (None, None), outward: dict | None = None,
+           bridge_stale: str | None = None) -> dict:
+    """Pure: egészség (health.py) + a tények listája. A híd verzió-driftje teendő
+    (`warnings`), nem üzemzavar; a fail-open hook (F-39) szándékosan piros."""
     facts = []
     problems = []
+    warnings = []
     s = m["signals"]
     if is_dormant(entry):
         running = s["process"]["state"] == "up" or unit_active == "active"
@@ -79,8 +85,10 @@ def assess(entry: dict, m: dict, st: dict, *, unit_active: str | None,
         problems.append("hiányzik a session-gate drop-in")
     if entry.get("bridge", {}).get("unit"):
         facts.append(f"híd: telepítve {bridge_installed or '-'} · repó {bridge_current}")
+        if bridge_stale:
+            problems.append(bridge_stale)
         if bridge_installed != bridge_current:
-            problems.append(f"híd-drift: {bridge_installed} ≠ {bridge_current}")
+            warnings.append(f"híd-drift: {bridge_installed} ≠ {bridge_current} (`fleet bridge install {entry['agent']}`)")
     if st.get("quarantined"):
         problems.append("KARANTÉN — ember oldja fel")
     from fleet.budget import exhausted_line
@@ -95,7 +103,7 @@ def assess(entry: dict, m: dict, st: dict, *, unit_active: str | None,
     rss = s["process"]["data"].get("rss_mb")
     if rss:
         facts.append(f"memória: {rss} MB")
-    rep = _report(entry["agent"], facts, problems, s, j)
+    rep = _report(entry["agent"], facts, problems, s, j, warnings)
     for unk in (claude_unknown, env_check[1]):  # N2: not measurable is not green
         if not unk:
             continue
@@ -103,6 +111,15 @@ def assess(entry: dict, m: dict, st: dict, *, unit_active: str | None,
         rep["health"] = worst([rep["health"], UNKNOWN_H])
         rep["ok"] = rep["health"] == HEALTHY
     return rep
+
+
+def _bridge_stale(entry: dict) -> str | None:
+    unit = (entry.get("bridge") or {}).get("unit")
+    if not unit:
+        return None
+    from fleet import bridge_fresh
+    return bridge_fresh.problem(unit, Path.home() / ".config" / entry["agent"] / "sub-etha",
+                                signals._proc_records())
 
 
 def hook_problems_for(entry: dict) -> list[str]:
@@ -146,7 +163,8 @@ def doctor(agent: str | None = None, fix: bool = False) -> list[dict]:
                      claude_problem=claude_problem, claude_unknown=claude_unknown,
                      env_check=envjel.check(m["signals"]["process"]["data"].get("pid"))
                      if m["signals"]["process"]["state"] == "up" else (None, None),
-                     outward=outward_hold_box.read(_workdir(e)) if e.get("workdir") else None)
+                     outward=outward_hold_box.read(_workdir(e)) if e.get("workdir") else None,
+                     bridge_stale=_bridge_stale(e))
         out.append(rep)
     if fix and agent:
         from fleet import reconcile as rc
@@ -178,11 +196,15 @@ def format_report(reports: list[dict]) -> str:
     lines = []
     for r in reports:
         health = r.get("health", HEALTHY if r["ok"] else UNHEALTHY)
-        lines.append(f"{MARK[health]} {r['agent']} — {health}")
+        warn = r.get("warnings", [])
+        mark = "⚠️" if health == HEALTHY and warn else MARK[health]
+        lines.append(f"{mark} {r['agent']} — {health}" + (f" · {len(warn)} teendő" if warn else ""))
         for f in r["facts"]:
             lines.append(f"     {f}")
         for p in r["problems"]:
             lines.append(f"   ! {p}")
+        for p in r.get("warnings", []):
+            lines.append(f"   ⚠ {p}")
         for p in r.get("pending", []):
             lines.append(f"   … még nem dőlt el: {p}")
         for p in r.get("unknown", []):

@@ -17,7 +17,7 @@ Ha a `.mentat/bin/mentat_cli.py` hiányzik, töltsd le (nincs commitolva):
 
 ```bash
 mkdir -p .mentat/bin
-for f in mentat_manifest.py mentat_rules.py mentat_roles.py mentat_cli.py; do curl -fsSL https://raw.githubusercontent.com/lipi4242/mentat/v0.5.0/reference/manifest/$f -o .mentat/bin/$f; done
+for f in mentat_manifest.py mentat_rules.py mentat_roles.py mentat_cli.py; do curl -fsSL https://raw.githubusercontent.com/lipi4242/mentat/v0.5.1/reference/manifest/$f -o .mentat/bin/$f; done
 ```
 
 Aztán a repó gyökeréből:

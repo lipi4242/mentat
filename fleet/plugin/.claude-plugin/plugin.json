@@ -1,6 +1,6 @@
 {
   "name": "fleet",
-  "version": "1.6.0",
+  "version": "1.6.1",
   "description": "Always-on ágensflotta tagsági skilljei: roster, request, doctor, new-agent, runtime, merge-agents (ágens kivezetése/beolvasztása/frissítése — retire/merge/upgrade an agent); identitás-kapu (F-41): a felhasználó azonosítója nem megy harmadik félnek kérdés nélkül; nem-akadó jóváhagyás: felügyelet nélkül (flotta-ágens) az engedélykérés nem vár örökké, a modell javaslatot kap; titok-kapu: kulcsfájl, más ágens átirata és a környezet nem kerülhet a kontextusba.",
   "author": {
     "name": "Mentat"

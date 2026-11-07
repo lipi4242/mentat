@@ -1,10 +1,13 @@
 #!/usr/bin/env bash
 # Sync the canonical Mentat engine (engine/ of the Mentat repo) into a consumer agent repo (vendored copy).
-# Usage: sync-to.sh /path/to/agent-repo [--pack calendar|cases|bekotes]... [--allow-downgrade] [--only-pack]
+# Usage: sync-to.sh /path/to/agent-repo [--pack calendar|cases|bekotes|todo]... [--allow-downgrade] [--only-pack]
 #   --pack calendar     also vendor the optional anytime_calendar pack
 #   --pack cases        also vendor the cases concern pack (anytime_cases) and list
 #                       it in mentat.json components.engine.plugins. A pack already
 #                       listed there is vendored without the flag.
+#   --pack todo         also vendor the todo pack (anytime_todo: repeating duties, cases,
+#                       backlog items, the agent CLI `python3 -m anytime_todo.cli`) and
+#                       list it in mentat.json components.engine.plugins
 #   --pack bekotes      also vendor the bekotes pack (anytime_bekotes) and list it in
 #                       mentat.json components.engine.plugins; kept on re-sync like cases.
 #   --allow-downgrade   permit syncing an OLDER engine over a newer copy (a
@@ -21,7 +24,7 @@
 set -euo pipefail
 
 HERE="$(cd "$(dirname "$0")" && pwd)"
-TARGET_REPO="${1:?Usage: sync-to.sh /path/to/agent-repo [--pack calendar|cases|bekotes]... [--allow-downgrade] [--only-pack]}"
+TARGET_REPO="${1:?Usage: sync-to.sh /path/to/agent-repo [--pack calendar|cases|bekotes|todo]... [--allow-downgrade] [--only-pack]}"
 shift
 # Absolute, physical path: the script cd's into the source below, so a relative
 # "." would point somewhere else by the time the VERSION stamp is written.
@@ -35,13 +38,13 @@ while [ $# -gt 0 ]; do
   case "$1" in
     --pack)
       case "${2:-}" in
-        calendar|cases|bekotes) PACKS+=("$2"); shift 2 ;;
-        *) echo "ERROR: unknown pack: '${2:-}' (known: calendar, cases, bekotes)" >&2; exit 2 ;;
+        calendar|cases|bekotes|todo) PACKS+=("$2"); shift 2 ;;
+        *) echo "ERROR: unknown pack: '${2:-}' (known: calendar, cases, bekotes, todo)" >&2; exit 2 ;;
       esac ;;
     --allow-downgrade) ALLOW_DOWNGRADE=1; shift ;;
     --only-pack)
       ONLY_PACK=1; shift
-      case "${1:-}" in calendar|cases|bekotes) PACKS+=("$1"); shift ;; esac ;;
+      case "${1:-}" in calendar|cases|bekotes|todo) PACKS+=("$1"); shift ;; esac ;;
     *) echo "ERROR: unknown argument: $1" >&2; exit 2 ;;
   esac
 done
@@ -56,7 +59,7 @@ fi
 # A concern pack the agent already chose (mentat.json engine.plugins) comes along,
 # so a re-sync never leaves a listed pack behind or a stale copy of it in place.
 # (--only-pack: only the packs named on the command line.)
-[ "$ONLY_PACK" = "1" ] || for chosen in cases bekotes; do
+[ "$ONLY_PACK" = "1" ] || for chosen in cases bekotes todo; do
   if python3 -c "
 import json,sys
 try: p=json.load(open(sys.argv[1]))['components']['engine']['plugins']
@@ -101,7 +104,7 @@ fi
 # (a half install — files copied, no VERSION, no mentat.json entry — is worse
 # than none: nothing verifies and the next run sees a "vendored" copy).
 BACKUP="$(mktemp -d)"
-ITEMS="anytime_engine anytime_calendar anytime_cases anytime_bekotes mentat.json .mentat/local.json"
+ITEMS="anytime_engine anytime_calendar anytime_cases anytime_bekotes anytime_todo mentat.json .mentat/local.json"
 for item in $ITEMS; do
   if [ -e "$TARGET_REPO/$item" ]; then
     mkdir -p "$BACKUP/had/$(dirname "$item")"; cp -a "$TARGET_REPO/$item" "$BACKUP/had/$item"
@@ -151,6 +154,8 @@ for pack in ${PACKS[@]+"${PACKS[@]}"}; do
            PLUGIN_ARGS+=(--plugin anytime_cases) ;;
     bekotes) src="$HERE/src/anytime_bekotes"; dst="$TARGET_REPO/anytime_bekotes"
              PLUGIN_ARGS+=(--plugin anytime_bekotes) ;;
+    todo) src="$HERE/src/anytime_todo"; dst="$TARGET_REPO/anytime_todo"
+          PLUGIN_ARGS+=(--plugin anytime_todo) ;;
   esac
   [ -d "$src" ] || { echo "ERROR: pack source missing: $src" >&2; exit 1; }
   mkdir -p "$dst"

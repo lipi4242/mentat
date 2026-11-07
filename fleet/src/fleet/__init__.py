@@ -11,7 +11,7 @@ from pathlib import Path
 #: A csomag verziója. Ugyanez a szám él a plugin manifestjében és a
 #: `bridge/VERSION`-ben csak akkor egyezik, ha a release-tuple azt mondja —
 #: a három réteg külön verziózódik, a `fleet release` írja össze őket.
-__version__ = "1.3.0"
+__version__ = "1.4.0"
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 TEMPLATES_DIR = REPO_ROOT / "templates"

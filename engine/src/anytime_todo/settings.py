@@ -9,6 +9,9 @@ First wins, per setting:
     token   TODO_TOKEN_FILE (a file holding only the token, mode 0600)
             | the admin connection's token: $<admin.token_env>, or that key
               in the repo's .env (written by the admin's `npm run connect`)
+On a fleet box (FLEET_AGENT set by the unit) each setting that is still missing comes
+from the box convention `fleet/bin/mentat-todo` also uses: ~/.config/todo/env (TODO_API=),
+~/.config/todo/handles ("agent=handle", else the agent name), ~/.config/todo/<handle>.token.
 
 No api or no handle = not configured: the pack stays silent (load() -> None).
 Configured but no usable token = TodoConfigError, reported like an API error.
@@ -86,8 +89,30 @@ def load(root: Path) -> Settings | None:
     if not api and admin.get("url") and "todo" in (admin_comp.get("plugins") or []):
         api = str(admin["url"]).rstrip("/") + API_PATH
     handle = os.environ.get("TODO_HANDLE") or (comps.get("engine") or {}).get("todo_handle")
+    token_file = os.environ.get("TODO_TOKEN_FILE") or None
+    box = _box(handle)
+    api, handle = api or box.get("api"), handle or box.get("handle")
+    if not token_file and not admin.get("token_env"):
+        token_file = box.get("token_file")
     if not api or not handle:
         return None
     return Settings(api=str(api).rstrip("/"), handle=str(handle), root=root,
-                    token_file=os.environ.get("TODO_TOKEN_FILE") or None,
-                    token_env=admin.get("token_env") or None)
+                    token_file=token_file, token_env=admin.get("token_env") or None)
+
+
+def _box(handle: str | None) -> dict:
+    """The fleet box convention (only under a fleet unit: FLEET_AGENT is set)."""
+    agent = os.environ.get("FLEET_AGENT")
+    if not agent:
+        return {}
+    cfg = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "todo"
+    if not cfg.is_dir():
+        cfg = Path.home() / ".config" / "todo"
+    out: dict = {"api": _dotenv(cfg / "env", "TODO_API")}
+    if not handle:
+        handle = _dotenv(cfg / "handles", agent) or agent
+        out["handle"] = handle
+    tok = cfg / f"{handle}.token"
+    if tok.is_file():
+        out["token_file"] = str(tok)
+    return out

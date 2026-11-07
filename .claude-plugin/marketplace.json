@@ -5,14 +5,14 @@
   },
   "metadata": {
     "description": "Mentat: the fleet plugin for always-on agents (roster, requests, doctor, new agent, runtime).",
-    "version": "1.6.0"
+    "version": "1.6.1"
   },
   "plugins": [
     {
       "name": "fleet",
       "source": "./fleet/plugin",
       "description": "Fleet membership for an always-on agent: roster, request, doctor, new-agent, runtime, plus the identity, secret and non-blocking permission hooks. `fleet join` adds the rules file to the agent's repo.",
-      "version": "1.6.0",
+      "version": "1.6.1",
       "category": "productivity"
     }
   ]

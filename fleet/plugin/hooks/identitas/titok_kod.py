@@ -12,6 +12,10 @@ import re
 from titok_minta import name_hit, secret
 from vedett_ut import STRINGS
 
+#: Azonosító alakú literál (`owner_token`, `api_key`): mezőnév vagy változónév, nem fájlnév — csak akkor
+#: tilt, ha ilyen nevű fájl tényleg ott van a cwd-ben (élő hiba, 2026-11-07: a heartbeat `owner_token` mezője).
+IDENT = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+
 PROC = re.compile(r"/proc/[^\s'\"]*/environ")
 ENVDUMP = re.compile(r"/proc/[^\s'\"]*/environ|\bprint\(\s*(dict\()?os\.environ\s*\)?\)|"
                      r"json\.dumps\(\s*(dict\()?os\.environ|JSON\.stringify\(\s*process\.env\s*\)|"
@@ -31,6 +35,11 @@ def code(text, cwd, lel):
             if why:
                 return why
         elif name_hit(os.path.basename(lit)):
+            # Azonosító (`owner_token`) vagy szóközös szabad szöveg („a Linear app-token kivezetése”):
+            # mezőnév vagy mondat, nem fájlnév — csak akkor tilt, ha ilyen nevű fájl tényleg van.
+            if (IDENT.match(lit) or any(c.isspace() for c in lit)) and \
+                    not os.path.lexists(os.path.join(cwd or ".", lit)):
+                continue
             return "kulcsfájl-név a kódban"
     return None
 

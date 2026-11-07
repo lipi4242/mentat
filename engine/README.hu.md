@@ -26,11 +26,11 @@ A legegyszerűbb: kérd meg a Mentat-kollégádat, hogy adja hozzá a motort, ő
 
 ```
 Telepítsd a Mentat motort ebbe a repóba. Futtasd pontosan ezt:
-  git clone --depth 1 --branch v0.5.0 https://github.com/lipi4242/mentat ~/src/mentat
+  git clone --depth 1 --branch v0.5.1 https://github.com/lipi4242/mentat ~/src/mentat
   ~/src/mentat/engine/sync-to.sh . --pack cases
   python3 -m anytime_engine.selftest -q
 Ha a ~/src/mentat már létezik, a klón helyett futtasd: git -C ~/src/mentat fetch --tags,
-majd git -C ~/src/mentat checkout v0.5.0.
+majd git -C ~/src/mentat checkout v0.5.1.
 Utána kérdezd meg az időzónámat, és hogy hová menjenek az emlékeztetők (fájl vagy Telegram), és futtasd:
 python3 -m anytime_engine.setup --tz <tz> --deliver <file|telegram> --lang hu, az igenem után --install-lal.
 ```

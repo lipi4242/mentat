@@ -16,7 +16,7 @@ for f in bekotes/bekotes.py bekotes/leltar.py bekotes/fajlszuro.py bekotes/linea
   bekotes/szerepek/kiado.hu.md bekotes/szerepek/kiado.en.md manifest/mentat_manifest.py manifest/mentat_rules.py \
   manifest/mentat_cli.py manifest/mentat_roles.py; do
   if [ -n "$REF" ]; then cp "$REF/$f" ".mentat/bin/bekotes/${f#*/}" || echo "ERROR: $f"
-  else curl -fsSL "https://raw.githubusercontent.com/lipi4242/mentat/v0.5.0/reference/$f" -o ".mentat/bin/bekotes/${f#*/}" || echo "ERROR: $f"; fi
+  else curl -fsSL "https://raw.githubusercontent.com/lipi4242/mentat/v0.5.1/reference/$f" -o ".mentat/bin/bekotes/${f#*/}" || echo "ERROR: $f"; fi
 done
 cp .mentat/bin/bekotes/mentat_*.py .mentat/bin/
 ```

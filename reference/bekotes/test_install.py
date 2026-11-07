@@ -83,7 +83,7 @@ class Szerepek(unittest.TestCase):
         out = json.loads(r.stdout)["hookSpecificOutput"]
         self.assertEqual((r.returncode, out["permissionDecision"]), (0, "deny"))
         self.assertIn(HINT, out["permissionDecisionReason"])
-        fetch = "curl -fsSL https://raw.githubusercontent.com/lipi4242/mentat/v0.5.0/release.json -o y"
+        fetch = "curl -fsSL https://raw.githubusercontent.com/lipi4242/mentat/v0.5.1/release.json -o y"
         r = self.hook("PreToolUse", {"session_id": "s1", "tool_name": "Bash", "tool_input": {"command": fetch}})
         self.assertEqual((r.returncode, r.stdout), (0, ""))
         r = self.hook("SessionStart", {"session_id": "s1"})

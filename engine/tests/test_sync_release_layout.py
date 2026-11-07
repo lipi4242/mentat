@@ -13,7 +13,7 @@ if not (ENGINE / "sync-to.sh").is_file():  # the vendored copy in an agent repo 
 
 
 class SyncReleaseLayout(unittest.TestCase):
-    def _run(self, keep_next_to_script: bool, at_root: bool):
+    def _run(self, keep_next_to_script: bool, at_root: bool, extra=()):
         tmp = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, tmp, True)
         eng = tmp / "mentat" / "engine"
@@ -29,7 +29,9 @@ class SyncReleaseLayout(unittest.TestCase):
         agent = tmp / "agent"
         agent.mkdir()
         subprocess.run(["git", "init", "-q", str(agent)], check=True)
-        r = subprocess.run(["bash", str(eng / "sync-to.sh"), str(agent)], capture_output=True, text=True,
+        if extra:  # egy valódi ágens-repónak van mentat.json-ja; a csomag ebbe listázódik
+            (agent / "mentat.json").write_text('{"schema": 1, "components": {"brain": {"root": "agy"}, "engine": {}}}')
+        r = subprocess.run(["bash", str(eng / "sync-to.sh"), str(agent), *extra], capture_output=True, text=True,
                            env={"PATH": "/usr/bin:/bin:/usr/local/bin:/opt/homebrew/bin", "HOME": str(tmp)})
         return r, agent
 
@@ -42,6 +44,16 @@ class SyncReleaseLayout(unittest.TestCase):
     def test_missing_license_everywhere_fails_loudly(self):
         r, _ = self._run(keep_next_to_script=False, at_root=False)
         self.assertNotEqual(r.returncode, 0)
+
+    def test_todo_pack_is_vendored_and_listed(self):
+        # 11-07: a 0.5.0 backlogja (anytime_todo) nem volt vendorolható, mert a
+        # sync-to.sh csak a calendar/cases/bekotes csomagot ismerte.
+        r, agent = self._run(keep_next_to_script=False, at_root=True, extra=("--pack", "todo"))
+        self.assertEqual(r.returncode, 0, r.stderr[-800:])
+        self.assertTrue((agent / "anytime_todo" / "cli.py").is_file())
+        import json
+        eng = json.loads((agent / "mentat.json").read_text())["components"]["engine"]
+        self.assertIn("anytime_todo", eng["plugins"])
 
 
 if __name__ == "__main__":

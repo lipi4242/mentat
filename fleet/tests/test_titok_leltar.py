@@ -19,7 +19,7 @@ PEM = ("-----BEGIN " "OPENSSH PRIVATE KEY-----\nAAAAhamisHAMIShamis\n-----END " 
 
 def make_box() -> Path:
     home = Path(tempfile.mkdtemp())
-    for d in (".config/szervezo", ".config/vilma", ".claude-szervezo/projects/p", "szervezo/.mentat", "szervezo/src",
+    for d in (".config/szervezo", ".config/vilma", ".claude-szervezo/projects/p", "szervezo/.mentat", "szervezo/src", "szervezo/data/state",
               ".config/systemd/user", "elsewhere"):
         (home / d).mkdir(parents=True)
     files = {".config/szervezo/szervezo.env": f"SZ_TOKEN={FAKE}\nexport CHAT_ID='-100'\n",
@@ -33,12 +33,17 @@ def make_box() -> Path:
              "szervezo/.mentat/connect.json": json.dumps({"token": FAKE}),
              "szervezo/src/token_utils.py": "print('kód, nem titok')\n",
              "szervezo/README.md": "nem titok\n",
+             "szervezo/data/state/last-tick.json": json.dumps({"trigger": "hourly", "at": "2026-11-07T10:00"}),
+             "szervezo/data/state/orchestrator-heartbeat.json": json.dumps({"pid": 1, "owner_token": "abc"}),
+             "szervezo/data/state/leaked.json": json.dumps({"api_key": FAKE}),
              "elsewhere/bridge.env": f"TELEGRAM_BOT_TOKEN={FAKE}\n",
              ".config/systemd/user/szervezo-telegram-bridge.service":
                  "[Service]\nEnvironmentFile=%h/elsewhere/bridge.env\n"}
     for rel, text in files.items():
         (home / rel).write_text(text)
-    os.chmod(home / ".config/szervezo/adat.bin", 0o600)
+    for rel in (".config/szervezo/adat.bin", "szervezo/data/state/last-tick.json",
+                "szervezo/data/state/orchestrator-heartbeat.json", "szervezo/data/state/leaked.json"):
+        os.chmod(home / rel, 0o600)
     return home
 
 
@@ -63,6 +68,11 @@ class Scan(unittest.TestCase):
         self.assertEqual(self.by["bridge.env"]["where"], "unit EnvironmentFile")
         self.assertNotIn("token_utils.py", self.by)
         self.assertNotIn("README.md", self.by)
+
+    def test_allapot_json_nem_titok_de_a_kulcsos_igen(self):
+        self.assertNotIn("last-tick.json", self.by)
+        self.assertNotIn("orchestrator-heartbeat.json", self.by)
+        self.assertIn("leaked.json", self.by)          # 0600 állapotfájl titok-mezővel: marad
 
     def test_atirat_osztaly(self):
         at = [f["path"] for f in self.inv["files"] if f["class"] == "atirat"]

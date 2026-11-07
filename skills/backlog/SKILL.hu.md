@@ -15,6 +15,8 @@ hozzád. **A labda** annál van, akinek most lépnie kell. A tokened a
 személyazonosságod: minden írás a tiéd, és soha nem írhatsz más nevében.
 
 Minden parancs a repó gyökeréből fut: `python3 -m anytime_todo.cli …` (lent: `todo …`).
+Ha a repóban nincs `anytime_todo`, de a boxon van `mentat-todo` (a fleet telepíti), az
+ugyanez a CLI a box checkoutjából, a te azonosságoddal: `mentat-todo …`.
 
 ## 0. lépés — Megvan?
 

@@ -26,11 +26,11 @@ Easiest: ask your Mentat colleague to add the engine; it runs these steps for yo
 
 ```
 Install the Mentat engine into this repo. Run exactly:
-  git clone --depth 1 --branch v0.5.0 https://github.com/lipi4242/mentat ~/src/mentat
+  git clone --depth 1 --branch v0.5.1 https://github.com/lipi4242/mentat ~/src/mentat
   ~/src/mentat/engine/sync-to.sh . --pack cases
   python3 -m anytime_engine.selftest -q
 If ~/src/mentat already exists, run git -C ~/src/mentat fetch --tags and
-git -C ~/src/mentat checkout v0.5.0 instead of the clone.
+git -C ~/src/mentat checkout v0.5.1 instead of the clone.
 Then ask me my timezone and where reminders should go (a file or Telegram), and run
 python3 -m anytime_engine.setup --tz <tz> --deliver <file|telegram>, with --install once I say yes.
 ```

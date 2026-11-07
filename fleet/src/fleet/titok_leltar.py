@@ -33,9 +33,28 @@ def candidate(p: Path) -> bool:
         private = (p.stat().st_mode & 0o077) == 0
     except OSError:
         return False
-    if STRONG.match(name) or private:
+    if STRONG.match(name):
         return True
-    return Path(name).suffix.lower() not in CODE_EXT and bool(WORD.search(name))
+    if Path(name).suffix.lower() not in CODE_EXT and WORD.search(name):
+        return True
+    return private and not state_json(p)
+
+
+#: A futásidejű állapot lease-azonosítója, nem hitelesítő (heartbeat `owner_token`).
+LEASE_FIELDS = {"owner_token", "lease_token"}
+
+
+def state_json(p: Path) -> bool:
+    """`data/state/*.json`: az atomikus írás (mkstemp) miatt 0600, de futásidejű állapot
+    (tick-idő, heartbeat). Csak akkor nem titok, ha JSON, és nincs benne titok-jellegű mező
+    a lease-azonosítón kívül (11-07: a leltár a last-tick.json-t és a heartbeatet is tiltotta)."""
+    if p.suffix != ".json" or p.parent.name != "state" or p.parent.parent.name != "data":
+        return False
+    try:
+        cls, data = F.kind(p.read_bytes()[:F.MAX])
+    except OSError:
+        return False
+    return cls == "json" and not any(F.SECRET_FIELD.search(k) for k in data if k not in LEASE_FIELDS)
 
 
 def json_with_secret(p: Path) -> bool:

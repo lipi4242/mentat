@@ -2,6 +2,17 @@
 
 A `capability-log.json`-ból generált fájl, kézzel ne írd.
 
+## 0.5.1 (még nincs kiadva)
+
+### Proaktivitás és ütemezés
+
+- mentat-todo: a backlog-parancs a szerver minden ágensének. A szerver minden ágense megkapja a backlog-parancsot a motor másolata nélkül; az ágens neve az egységéből jön. (Bővült: `engine.todo`)
+
+### Működés és rugalmasság
+
+- Egy paranccsal frissíthető a szerver. A fleet box-upgrade --to vX.Y.Z tervet készít, pillanatképet ment, előbb egy kanári ágenst frissít, kihagyja a dolgozó ágenseket, ellenőriz, és hiba esetén magától visszaáll. (Bővült: `fleet`)
+- Kevesebb téves riasztás a szerveren. A telepítés nem hibázik tévesen újraindításkor, a lemaradt híd teendő, nem hiba, és az OOM-védelem segédprogramja a repóban van. (Javult: `fleet`)
+
 ## 0.5.0 (még nincs kiadva)
 
 ### Proaktivitás és ütemezés

@@ -373,7 +373,7 @@ def oom_sweep() -> dict:
     ugyanazt a nullát adta — egy boxon napokig így futott: az ágensek
     `oom_score_adj` értéke 200 maradt (a cél -600), mert a `sudo -n` tiltva
     volt, miközben a napló nyugalmat jelentett."""
-    report = {"protected": 0, "oom_failed": 0}
+    report = {"protected": 0, "oom_failed": 0, "helper_missing": not Path(OOM_HELPER).exists()}
     for pid in claude_pids():
         if not needs_oom_protect(read_oom_adj(pid)):
             continue
@@ -385,8 +385,13 @@ def oom_sweep() -> dict:
 
 
 def format_oom(r: dict) -> str:
+    if r.get("oom_failed") and r.get("helper_missing"):
+        why = (f"nincs {OOM_HELPER} — telepítés: sudo install -o root -g root -m 0755 "
+               "~/src/mentat/fleet/bin/oom-protect " + OOM_HELPER)
+    else:
+        why = "sudo -n tiltva?"
     return (f"OOM-védelem: {r['protected']} beírva"
-            + (f", {r['oom_failed']} NEM SIKERÜLT (sudo -n tiltva?)" if r.get("oom_failed") else ""))
+            + (f", {r['oom_failed']} NEM SIKERÜLT ({why})" if r.get("oom_failed") else ""))
 
 
 def main() -> int:

@@ -47,6 +47,11 @@ class TestProcess(unittest.TestCase):
         p = signals.find_agent_process(_entry(), _procs())
         self.assertEqual(p["pid"], 11)
 
+    def test_restart_overlap_picks_the_newest_claude(self):
+        procs = _procs() + [{"pid": 9, "ppid": 1, "argv": _procs()[1]["argv"], "rss_mb": 50,
+                             "started_s": NOW - 1}]
+        self.assertEqual(signals.find_agent_process(_entry(), procs)["pid"], 9)
+
     def test_missing_rc_name_is_down_and_no_proc_is_unknown(self):
         self.assertEqual(signals.process_signal(_entry(rc_name="nope"), _procs()).state, "down")
         self.assertEqual(signals.process_signal(_entry(), []).state, signals.UNKNOWN)

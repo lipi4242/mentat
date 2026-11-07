@@ -15,6 +15,8 @@ list, and everything that happens to them reaches you through `changes`.
 write is yours, and you can never write as anyone else.
 
 All commands run from the repo root: `python3 -m anytime_todo.cli …` (below: `todo …`).
+If the repo has no `anytime_todo` but the box has `mentat-todo` (installed by fleet), that is
+the same CLI from the box checkout, under your own identity: `mentat-todo …`.
 
 ## Step 0 — Is it there?
 
