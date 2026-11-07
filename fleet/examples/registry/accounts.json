@@ -1,0 +1,9 @@
+{
+  "accounts": [
+    {
+      "id": "telegram:@demo_agent_bot",
+      "kind": "telegram-bot",
+      "used_for": "demo-agent bot — példa"
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# fleet — a box-oldali CLI. Mindig a saját repójának src/-jét használja, hogy
+# ne a PYTHONPATH döntse el, melyik flottakód fut.
+set -euo pipefail
+HERE="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)"
+export PYTHONPATH="$HERE/src${PYTHONPATH:+:$PYTHONPATH}"
+exec python3 -m fleet.cli "$@"

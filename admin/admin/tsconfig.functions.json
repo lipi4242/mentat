@@ -1,0 +1,14 @@
+{
+  "// ": "Pages Functions are a separate compile context: Workers runtime types, no DOM (the two would clash on fetch/Request).",
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "lib": ["ES2022"],
+    "types": ["@cloudflare/workers-types"],
+    "strict": true,
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": ["functions"]
+}

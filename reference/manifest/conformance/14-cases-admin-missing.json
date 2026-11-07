@@ -1,0 +1,66 @@
+{
+  "description": "Admin chosen as the cases store but not connected: an error, no fallback to markdown.",
+  "manifest": {
+    "schema": 1,
+    "agent": {
+      "name": "my-agent",
+      "language": "en"
+    },
+    "components": {
+      "brain": {
+        "root": "brain"
+      },
+      "engine": {
+        "path": "anytime_engine",
+        "plugins": [
+          "agent.concerns"
+        ],
+        "schedule_owner": "engine"
+      },
+      "fleet": {},
+      "admin": {
+        "plugins": [
+          "cases"
+        ]
+      }
+    },
+    "cases": {
+      "backend": "admin"
+    }
+  },
+  "local": {
+    "schema": 1,
+    "installed": {
+      "brain": "0.2.0",
+      "engine": "0.3.0",
+      "fleet": "1.1.0"
+    },
+    "fleet": {
+      "agent_id": "my-agent",
+      "host": "my-box"
+    }
+  },
+  "expect": {
+    "diagnostic_only": false,
+    "errors": [
+      {
+        "code": "cases_backend_unavailable",
+        "at": "cases.backend"
+      }
+    ],
+    "present": {
+      "brain": true,
+      "engine": true,
+      "fleet": true,
+      "admin": false
+    },
+    "synergies": {
+      "brain+engine": true,
+      "brain+fleet": true,
+      "engine+fleet": true,
+      "brain+admin": false,
+      "engine+admin": false,
+      "fleet+admin": false
+    }
+  }
+}

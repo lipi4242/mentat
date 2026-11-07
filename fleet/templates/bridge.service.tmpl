@@ -1,0 +1,23 @@
+# templates/bridge.service.tmpl — sub-etha bridge unit. MemoryMax: a 3.8G boxon
+# 7 poller fut; egy megfuto hid a sajat cgroupjaban hal meg, nem az agensekeben.
+[Unit]
+Description=@@AGENT@@ — sub-etha Telegram bridge (getUpdates -> tmux inject)
+Documentation=https://core.telegram.org/bots/api#getupdates
+After=network-online.target @@UNIT_AFTER@@
+Wants=network-online.target
+PartOf=@@UNIT_AFTER@@
+
+[Service]
+Type=simple
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+UnsetEnvironment=ANTHROPIC_API_KEY CLAUDE_API_KEY
+EnvironmentFile=@@ENV_FILE@@
+Environment=BRIDGE_STATE_DIR=@@STATE_DIR@@
+ExecStart=/usr/bin/node @@STATE_DIR@@/sub-etha/bridge.mjs
+MemoryMax=96M
+Restart=always
+RestartSec=5
+ExecStartPre=/bin/sleep 12
+
+[Install]
+WantedBy=default.target

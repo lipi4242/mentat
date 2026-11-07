@@ -1,0 +1,71 @@
+{
+  "description": "The committed file must not carry an endpoint.",
+  "manifest": {
+    "schema": 1,
+    "agent": {
+      "name": "my-agent",
+      "language": "en"
+    },
+    "components": {
+      "brain": {
+        "root": "brain"
+      },
+      "engine": {
+        "path": "anytime_engine",
+        "plugins": [
+          "agent.concerns"
+        ],
+        "schedule_owner": "engine"
+      },
+      "fleet": {},
+      "admin": {
+        "plugins": [
+          "cases"
+        ],
+        "url": "https://admin.example.com"
+      }
+    },
+    "cases": {
+      "backend": "markdown"
+    }
+  },
+  "local": {
+    "schema": 1,
+    "installed": {
+      "brain": "0.2.0",
+      "engine": "0.3.0",
+      "fleet": "1.1.0"
+    },
+    "fleet": {
+      "agent_id": "my-agent",
+      "host": "my-box"
+    },
+    "admin": {
+      "url": "http://localhost:8787",
+      "token_env": "MENTAT_ADMIN_TOKEN"
+    }
+  },
+  "expect": {
+    "diagnostic_only": false,
+    "errors": [
+      {
+        "code": "endpoint_in_manifest",
+        "at": "components.admin.url"
+      }
+    ],
+    "present": {
+      "brain": true,
+      "engine": true,
+      "fleet": true,
+      "admin": false
+    },
+    "synergies": {
+      "brain+engine": true,
+      "brain+fleet": true,
+      "engine+fleet": true,
+      "brain+admin": false,
+      "engine+admin": false,
+      "fleet+admin": false
+    }
+  }
+}

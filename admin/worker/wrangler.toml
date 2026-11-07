@@ -1,0 +1,33 @@
+# PRODUCT config, safe for a fresh clone and for local `wrangler dev`.
+# It carries no instance data: no account_id, no real database_id, no real
+# domain or e-mail address. A deployment never uses this file directly —
+# `npm run deploy` renders config/rendered/wrangler.toml from it plus the
+# instance file (see config/instance.example.json and the README).
+#
+# `local-dev-only` is not a real D1 id, so a plain `wrangler deploy` of this
+# file fails at the binding instead of shipping example values.
+name = "mentat-admin-api"
+main = "src/index.ts"
+compatibility_date = "2026-04-01"
+# better-auth needs node:crypto / node:async_hooks at runtime
+compatibility_flags = ["nodejs_compat"]
+
+[[d1_databases]]
+binding = "DB"
+database_name = "mentat-admin-db"
+database_id = "local-dev-only"
+
+# Local-dev values. The rendered deploy config replaces this whole section
+# with the instance file's `worker.vars` (+ INSTANCE_TITLE from `title`).
+[vars]
+INSTANCE_TITLE = "Mentat Admin (dev)"
+ALLOWED_ORIGINS = "http://localhost:5173"
+ADMIN_EMAILS = "admin@example.com"
+OTP_SENDER = "admin@example.com"
+
+# Secrets (wrangler secret put ... on a deployment; .dev.vars locally — copy
+# config/dev.vars.example to worker/.dev.vars):
+#   BETTER_AUTH_SECRET — session secret
+#   BETTER_AUTH_URL    — public API URL
+#   RESEND_API_KEY     — Resend API key for OTP mail (sender domain must be
+#                        verified in Resend; see OTP_SENDER)

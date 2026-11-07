@@ -1,0 +1,16 @@
+{
+  "measured": "2026-10-19",
+  "how": "mentat-acceptance, 13 stages, same component trees as the Claude Opus 5.5 baseline (average 3.69; 3 = as expected)",
+  "models": [
+    {
+      "id": "deepseek/deepseek-v4.1-flash-1017",
+      "note": "average 3.62 vs Opus 3.69; about 15-25x cheaper; weaker on admin hand-over and case proposals"
+    }
+  ],
+  "not_recommended": [
+    {"id": "z-ai/glm-5.3-flash", "note": "average 2.62 - five stages below 3"},
+    {"id": "xiaomi/mimo-v2.6-flash", "note": "2-3 points and slow (11-15 min stages); run stopped"},
+    {"id": "qwen/qwen3.8-27b", "note": "average 2.9 on the earlier set; saved invented family facts as a verbatim brain dump"},
+    {"id": "openai/gpt-oss-20b", "note": "1 point on stages 01-02"}
+  ]
+}

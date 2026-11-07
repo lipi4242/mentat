@@ -1,0 +1,70 @@
+{
+  "description": "Hostnames are fine, IP addresses are not.",
+  "manifest": {
+    "schema": 1,
+    "agent": {
+      "name": "my-agent",
+      "language": "en"
+    },
+    "components": {
+      "brain": {
+        "root": "brain"
+      },
+      "engine": {
+        "path": "anytime_engine",
+        "plugins": [
+          "agent.concerns"
+        ],
+        "schedule_owner": "engine"
+      },
+      "fleet": {},
+      "admin": {
+        "plugins": [
+          "cases"
+        ]
+      }
+    },
+    "cases": {
+      "backend": "markdown"
+    }
+  },
+  "local": {
+    "schema": 1,
+    "installed": {
+      "brain": "0.2.0",
+      "engine": "0.3.0",
+      "fleet": "1.1.0"
+    },
+    "fleet": {
+      "agent_id": "my-agent",
+      "host": "192.0.2.10"
+    },
+    "admin": {
+      "url": "http://localhost:8787",
+      "token_env": "MENTAT_ADMIN_TOKEN"
+    }
+  },
+  "expect": {
+    "diagnostic_only": false,
+    "errors": [
+      {
+        "code": "ip_address",
+        "at": "local.fleet.host"
+      }
+    ],
+    "present": {
+      "brain": true,
+      "engine": true,
+      "fleet": false,
+      "admin": true
+    },
+    "synergies": {
+      "brain+engine": true,
+      "brain+fleet": false,
+      "engine+fleet": false,
+      "brain+admin": false,
+      "engine+admin": true,
+      "fleet+admin": false
+    }
+  }
+}

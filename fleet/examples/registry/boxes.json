@@ -1,0 +1,11 @@
+{
+  "boxes": [
+    {
+      "key": "demo-box",
+      "label": "Példa-box",
+      "hostname": "demo-box",
+      "unix_user": "agent",
+      "purpose": "példa — a valódi registryben itt a box szerepe áll"
+    }
+  ]
+}

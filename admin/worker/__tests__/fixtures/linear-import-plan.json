@@ -1,0 +1,133 @@
+[
+ {
+  "acs": [
+   {
+    "source_id": "linear:u1:ac:1",
+    "text": "the page loads"
+   },
+   {
+    "source_id": "linear:u1:ac:2",
+    "text": "the form saves"
+   },
+   {
+    "source_id": "linear:u1:ac:3",
+    "text": "errors are shown"
+   }
+  ],
+  "archived": false,
+  "comments": [
+   {
+    "body": "hi",
+    "source_author": "Bob",
+    "source_created_at": "2026-02-01T00:00:00Z",
+    "source_id": "c1",
+    "source_system": "linear"
+   }
+  ],
+  "created_at": "2026-01-01T00:00:00Z",
+  "description": "Why: demo.\n\nK\u00e9sz, ha:\n- the page loads\n- [ ] the form saves\n* errors are shown\n\nNotes below",
+  "dev": "b",
+  "estimate": 3,
+  "ext_ref": "linear:u1",
+  "idem_key": "linear-import:u1",
+  "labels": [
+   "web"
+  ],
+  "links": [
+   {
+    "title": "PR",
+    "url": "https://github.com/acme/app/pull/7"
+   }
+  ],
+  "number": 1,
+  "parent": null,
+  "priority": 2,
+  "project": "DEMO",
+  "stage": "taken",
+  "title": "item 1"
+ },
+ {
+  "acs": [],
+  "archived": false,
+  "comments": [],
+  "created_at": "2026-01-01T00:00:00Z",
+  "description": "",
+  "dev": null,
+  "estimate": 3,
+  "ext_ref": "linear:u2",
+  "idem_key": "linear-import:u2",
+  "labels": [
+   "web"
+  ],
+  "links": [],
+  "number": 2,
+  "parent": "u1",
+  "priority": 2,
+  "project": "DEMO",
+  "stage": "draft",
+  "title": "item 2"
+ },
+ {
+  "acs": [],
+  "archived": true,
+  "comments": [],
+  "created_at": "2026-01-01T00:00:00Z",
+  "description": "",
+  "dev": null,
+  "estimate": 3,
+  "ext_ref": "linear:u3",
+  "idem_key": "linear-import:u3",
+  "labels": [
+   "web"
+  ],
+  "links": [],
+  "number": 3,
+  "parent": null,
+  "priority": 2,
+  "project": "DEMO",
+  "stage": "done",
+  "title": "item 3"
+ },
+ {
+  "acs": [],
+  "archived": false,
+  "comments": [],
+  "created_at": "2026-01-01T00:00:00Z",
+  "description": "",
+  "dev": null,
+  "estimate": 3,
+  "ext_ref": "linear:u4",
+  "idem_key": "linear-import:u4",
+  "labels": [
+   "web"
+  ],
+  "links": [],
+  "number": 4,
+  "parent": null,
+  "priority": 2,
+  "project": "DEMO",
+  "stage": "dropped",
+  "title": "item 4"
+ },
+ {
+  "acs": [],
+  "archived": false,
+  "comments": [],
+  "created_at": "2026-01-01T00:00:00Z",
+  "description": "",
+  "dev": null,
+  "estimate": 3,
+  "ext_ref": "linear:u5",
+  "idem_key": "linear-import:u5",
+  "labels": [
+   "web"
+  ],
+  "links": [],
+  "number": 5,
+  "parent": null,
+  "priority": 2,
+  "project": "DEMO",
+  "stage": "draft",
+  "title": "item 5"
+ }
+]

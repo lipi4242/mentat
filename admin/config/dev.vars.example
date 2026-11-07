@@ -1,0 +1,8 @@
+# Local-only secrets for `wrangler dev`. Copy to worker/.dev.vars (gitignored):
+#   cp config/dev.vars.example worker/.dev.vars
+# NEVER use these values on a deployment.
+BETTER_AUTH_SECRET=dev-only-secret-change-me-0123456789abcdef
+BETTER_AUTH_URL=http://localhost:8787
+# Sign-in codes go to the wrangler log instead of a mailbox (local only —
+# the worker refuses this switch on a non-local BETTER_AUTH_URL).
+OTP_DRY_RUN=1

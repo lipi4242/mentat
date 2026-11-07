@@ -1,0 +1,7 @@
+# Instance data never enters git: the instance file and everything rendered
+# from it. See instance.example.json and the README.
+instance.json
+rendered/
+# Pre-migration and manual exports (worker/scripts/export.mjs --backup): they
+# hold the users and all data of one installation, so they are instance data.
+backups/

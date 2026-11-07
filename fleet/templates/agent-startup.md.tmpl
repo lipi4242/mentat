@@ -1,0 +1,28 @@
+---
+description: @@AGENT@@ startup — single-instance check + self-scheduled loop
+---
+# @@AGENT@@ Startup
+
+1. Single-instance check: generate an owner token, compare to
+   `data/state/orchestrator-heartbeat.json`; abort/kill/continue if another holds it.
+2. Orient: read AGENTS.md / CLAUDE.md and today's priorities.
+3. Arm the recurring tick at THIS agent's own cadence — read `tick_period_s`
+   from the registry, never a hardcoded interval. (Historical note: this line
+   said `/loop 30m` until 2026-08-31; the release agents moved to a 17-hour
+   cadence on 2026-08-10 and the hardcoded value silently outlived the change.)
+
+## Your runtime & survival (know this about yourself)
+
+You run as an **always-on systemd `--user` + tmux agent on a Linux box**. Your immortality is engineered, but you watch your own pulse:
+
+- The **`fleet-reconcile.timer`** (every 5 min) enforces the registry's desired
+  state: it restarts you if your process is gone, and a restart is only "done"
+  once `fleet postcheck` is green. You do **not** silently stay dead.
+- A restart **resumes this session** (`claude --resume <pinned id>`), so your context
+  survives — you won't wake up blank.
+- You are **single-instance** via the heartbeat lease; a human may `tmux attach` to
+  you at any time.
+- On a resumed tick, if `last_tick_at` shows a **multi-hour gap**, you were out —
+  flag it to the owner and re-verify standing flags rather than assuming continuity.
+
+Full detail: the `/fleet:runtime` skill.

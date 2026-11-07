@@ -1,0 +1,36 @@
+{
+  "name": "mentat-admin",
+  "version": "0.5.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit && tsc -p tsconfig.functions.json",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "deploy": "node ../config/instance.mjs render && vite build && npx wrangler pages deploy dist --project-name=\"$(node ../config/instance.mjs get admin.pages_project)\" --branch=main"
+  },
+  "dependencies": {
+    "@ant-design/icons": "^6.1.1",
+    "@refinedev/antd": "^5.42.0",
+    "@refinedev/core": "^4.54.0",
+    "@refinedev/react-router-v6": "^4.6.2",
+    "antd": "^5.21.0",
+    "better-auth": "1.6.23",
+    "dayjs": "^1.11.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "react-router-dom": "^6.30.4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260726.1",
+    "@types/react": "~18.3.0",
+    "@types/react-dom": "~18.3.0",
+    "@vitejs/plugin-react": "^4.3.0",
+    "jsdom": "^25.0.1",
+    "typescript": "~5.9.2",
+    "vite": "^5.4.0",
+    "vitest": "^3.2.7"
+  }
+}

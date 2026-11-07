@@ -1,0 +1,11 @@
+# A @@FLEET_ROOT@@-t a `fleet install` a checkout tényleges útvonalára cseréli.
+# Gyors út: CSAK a megerősítetten leállt claude-processzt indítja újra (a teljes
+# kör — híd, riasztás, re-arm — marad a fleet-reconcile.timer 5 percén).
+[Unit]
+Description=Mentat fleet reconcile --fast — a leállt ágens-processz gyors visszaindítása
+
+[Service]
+Type=oneshot
+WorkingDirectory=@@FLEET_ROOT@@
+Environment=PATH=%h/.bun/bin:%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=@@FLEET_ROOT@@/bin/fleet reconcile --fast

@@ -1,0 +1,54 @@
+<picture>
+  <source media="(prefers-color-scheme: dark)" srcset="assets/banner-dark.png">
+  <img alt="Mentat Engine, part of Mentat" src="assets/banner-light.png" width="100%">
+</picture>
+
+# Mentat Engine
+
+[![Release](https://img.shields.io/github/v/tag/lipi4242/mentat?label=release)](https://github.com/lipi4242/mentat/tags)
+[![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](../LICENSE)
+[![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
+[![EN | HU](https://img.shields.io/badge/lang-EN%20%7C%20HU-informational.svg)](README.hu.md)
+
+The engine is part of [Mentat](../README.md) and comes with it: the Mentat install sets it up when you ask for the morning summary and reminders.
+
+The engine gives your Mentat colleague a schedule. It sends the morning summary and the deadline reminders you would otherwise have to ask for, and keeps each open case on the list until it is closed.
+
+- Every morning: what is late, due today and due this week, from your cases, dated todos and deadline spreadsheets.
+- A reminder three days before each deadline and one on the day, in a file or on Telegram, and quiet at night.
+- A message tied to something you approved goes out only when it matches it, and a finished step is not repeated, even after a crash.
+
+For developers: the decision is plain Python with no model call, so the same moment always gives the same plan, and your agent does the work. One instance runs per assistant on a durable systemd or cron timer, and `setup --doctor` compares the installed timer with what setup would write.
+
+## Installing it
+
+Easiest: ask your Mentat colleague to add the engine; it runs these steps for you. By hand, open Claude Code in the colleague's folder and paste:
+
+```
+Install the Mentat engine into this repo. Run exactly:
+  git clone --depth 1 --branch v0.5.0 https://github.com/lipi4242/mentat ~/src/mentat
+  ~/src/mentat/engine/sync-to.sh . --pack cases
+  python3 -m anytime_engine.selftest -q
+If ~/src/mentat already exists, run git -C ~/src/mentat fetch --tags and
+git -C ~/src/mentat checkout v0.5.0 instead of the clone.
+Then ask me my timezone and where reminders should go (a file or Telegram), and run
+python3 -m anytime_engine.setup --tz <tz> --deliver <file|telegram>, with --install once I say yes.
+```
+
+## Recurring duty = repeating todo
+
+This needs the todo plugin of [Mentat Admin](../admin/README.md). Without it the `anytime_todo` pack does nothing, and recurring duties stay where they are today (a cron job or a concern).
+
+A duty the agent does on a fixed cadence (weekly reminder, morning round, monthly check) is a repeating todo in the Mentat Admin todo list, not a cron line and not a concern of its own. The `anytime_todo` pack reads the agent's due todos on every tick; the todo's title and description are the instruction. The agent completes the todo only after the work really happened, and completing a repeating todo moves it to its next date, so the todo is the schedule. What it cannot do stays open with a comment saying why.
+
+Use a cron job or a concern only for work driven by an external event (new e-mail, a webhook, a calendar change) or that needs deterministic computation every tick.
+
+To migrate a cron job: create the todo (title, the full instruction as description, `repeat_rule`, the next date, `due_time` + `tz` if the hour matters, the agent as owner or assignee), check it with `python3 -m anytime_todo.cli list`, and remove the cron line in the same step so it does not run twice. Settings (`TODO_API`, `TODO_HANDLE`, `TODO_TOKEN_FILE`) and details: [GUIDE.md](GUIDE.md).
+
+## Todo + backlog
+
+The same pack is the agent's side of the Admin's work store: todos, cases (a one-off process with a goal) and backlog items with acceptance criteria, which one agent issues as the PM and another takes as the developer. `python3 -m anytime_todo.cli me | ball | changes | task | case | item` covers it, and the hourly `todo_labda` concern speaks up only when something new is there for the agent or an item was issued to it. The steps are in the brain's `backlog` skill.
+
+## More
+
+[Guide](GUIDE.md) · [Release notes](../CHANGELOG.md) · [Every change by capability](../CAPABILITY-LOG.md) · [Security](../SECURITY.md) · [Apache-2.0](../LICENSE)

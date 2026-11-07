@@ -1,0 +1,18 @@
+.bl-page { min-height: 60vh; }
+.bl-title { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.bl-title h4.ant-typography { margin: 8px 0; flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.bl-person { margin-bottom: 24px; }
+.bl-actions, .bl-review { margin: 16px 0; }
+.bl-review { padding: 12px 16px; background: #f7f8f8; border-radius: 6px; }
+.bl-results { padding-left: 20px; }
+.bl-results li { margin-bottom: 12px; }
+.bl-evidence, .bl-hint { color: #66727a; font-size: 13px; margin: 4px 0 6px 24px; }
+.bl-hint { margin-left: 0; }
+.bl-quote { margin: 12px 0; padding-left: 12px; border-left: 3px solid #d5dbde; color: #66727a; }
+.bl-ranked { list-style: none; margin: 0; padding: 0; }
+.bl-rank { width: 28px; color: #8b969c; font-variant-numeric: tabular-nums; }
+@media (max-width: 600px) {
+  .bl-page { padding: 12px; }
+  .bl-ranked .todo-row { flex-wrap: wrap; }
+  .bl-actions .ant-btn { min-height: 40px; }
+}

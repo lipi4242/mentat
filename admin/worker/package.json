@@ -1,0 +1,44 @@
+{
+  "name": "mentat-admin-api",
+  "version": "0.5.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "dev:local": "node scripts/local-dev.mjs",
+    "deploy": "node ../config/instance.mjs render && wrangler deploy --config ../config/rendered/wrangler.toml",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "migrate:local": "node scripts/export.mjs --local --backup && wrangler d1 migrations apply DB --local",
+    "migrate:remote": "node ../config/instance.mjs render && node scripts/export.mjs --remote --backup && wrangler d1 migrations apply DB --remote --config ../config/rendered/wrangler.toml",
+    "model": "node scripts/model.mjs",
+    "model:migration": "node scripts/model-migration.mjs",
+    "export": "node scripts/export.mjs",
+    "restore": "node scripts/restore.mjs",
+    "mint-token": "node scripts/mint-token.mjs",
+    "revoke-token": "node scripts/revoke-token.mjs",
+    "connect": "node scripts/connect.mjs",
+    "login-link": "node scripts/login-link.mjs",
+    "status": "node scripts/status.mjs",
+    "where": "node scripts/where.mjs",
+    "instance:create": "node scripts/instance-create.mjs",
+    "instance:seed-principals": "node scripts/seed-principals.mjs"
+  },
+  "dependencies": {
+    "better-auth": "1.6.23",
+    "drizzle-orm": "^0.45.2",
+    "hono": "^4.5.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260726.1",
+    "@types/better-sqlite3": "^7.6.11",
+    "@types/node": "^25.6.0",
+    "better-sqlite3": "^12.0.0",
+    "typescript": "~5.9.2",
+    "vitest": "^3.0.0",
+    "wrangler": "^4.0.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

@@ -1,0 +1,34 @@
+{
+  "hu": {
+    "root": "agy",
+    "dirs": {
+      "agy/brain-dumps": "Nyers brain dumpok, szó szerint, a feldolgozás előtt mentve (`YYYY-MM-DD-<téma>.md`). Mindegyik alján a kinyert entitások linkjei és a `- [ ] tisztázandó:` sorok.",
+      "agy/explorations": "Feltárások: témák, amiknek iránya van, de „kész\" állapota nincs — kérdések, opciók, gyűjtött adatok egy döntés előtt.",
+      "agy/people": "Emberek: ki kicsoda, milyen kapcsolatban áll a FELHASZNÁLÓval, mi a teendő vele. Egy ember = egy fájl.",
+      "agy/todos": "Teendők: egyetlen lépés, kontextus nélkül. Ha hetek óta görög és mástól függ, ügy lesz belőle (`../cases/`).",
+      "agy/specs": "Specifikációk: elfogadási feltételek és beágyazott teendők nagyobb munkához.",
+      "agy/decisions": "Döntések: betartandó szabályok, dátummal és indokkal, a megszületésük pillanatában rögzítve. Felülírni csak új döntéssel lehet; a régit nem írjuk át.",
+      "agy/cases": "Ügyek: aminek elintézett állapota (vagy minden előfordulásának), következő lépése és dátuma van — egyszeri vagy ismétlődő. Ez a fájl a FELHASZNÁLÓ ügy-definíciója: a `case` sablon javaslatából indul, az első ügynél szabjátok rá.",
+      "agy/connectors": "Konnektorok: külső eszközök (e-mail, naptár, teendőlista) bekötésének leírása. A hitelesítő adat a `.env`-ben él, ide soha nem kerül.",
+      "agy/procedures": "Eljárások: visszatérő feladatok playbookjai, gyakran konnektorokat kombinálva a FELHASZNÁLÓ preferenciáival.",
+      "agy/subagentek": "Perszóna-inventár — segítő indítása előtt itt nézd meg, van-e megfelelő.\n\n| név | fajta | mire jó | állapot |\n|---|---|---|---|",
+      "projects": "Projektek: folyamatos munka, mindegyik saját mappában (`<név>/`)."
+    }
+  },
+  "en": {
+    "root": "brain",
+    "dirs": {
+      "brain/brain-dumps": "Raw brain dumps, verbatim, saved before processing (`YYYY-MM-DD-<topic>.md`). Each ends with links to the extracted entities and `- [ ] to clarify:` lines.",
+      "brain/explorations": "Explorations: topics with a direction but no \"done\" state — questions, options and collected data ahead of a decision.",
+      "brain/people": "People: who is who, how they relate to the USER, what is open with them. One person = one file.",
+      "brain/todos": "Todos: a single step without context. If it keeps rolling for weeks and depends on others, it becomes a case (`../cases/`).",
+      "brain/specs": "Specifications: acceptance criteria and nested todos for larger work.",
+      "brain/decisions": "Decisions: rules to follow, with date and reason, recorded the moment they are made. Only a new decision can supersede one; the old one is never edited.",
+      "brain/cases": "Cases: something with a done state (or each occurrence of it), a next step and a date — one-off or recurring. This file is the USER's case definition: start from the proposal in the `case` template and adjust it at the first case.",
+      "brain/connectors": "Connectors: how external tools (mail, calendar, todo list) are wired. Credentials live in `.env`, never here.",
+      "brain/procedures": "Procedures: playbooks for recurring tasks, often combining connectors with the USER's preferences.",
+      "brain/subagents": "Persona inventory — before spawning a helper, look here for one that fits.\n\n| name | kind | good for | status |\n|---|---|---|---|",
+      "projects": "Projects: sustained work, each in its own folder (`<name>/`)."
+    }
+  }
+}

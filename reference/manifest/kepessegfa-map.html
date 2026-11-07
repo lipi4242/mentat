@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="hu">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Képességfa</title>
+<style>
+:root{--bg:#f7f5f0;--panel:#fff;--ink:#1d1b18;--muted:#6b665d;--line:#e2dccf;--on:#2f7d4f;--avail:#7a6a2a;--off:#8f887b;--deg:#b5601a;--acc:#8a5a00;--code:#f1ede4;color-scheme:light}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#14120f;--panel:#1d1a16;--ink:#f1ebe0;--muted:#a49d90;--line:#36312a;--on:#6fcf95;--avail:#e3c56b;--off:#8f887b;--deg:#f0a05a;--acc:#e8a317;--code:#26221c;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#14120f;--panel:#1d1a16;--ink:#f1ebe0;--muted:#a49d90;--line:#36312a;--on:#6fcf95;--avail:#e3c56b;--off:#8f887b;--deg:#f0a05a;--acc:#e8a317;--code:#26221c;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+main{max-width:860px;margin:0 auto;padding:16px}
+h1{font-size:22px;margin:4px 0 2px}.sub{color:var(--muted);font-size:13px;margin:0 0 4px}
+h2{font-size:16px;margin:22px 0 8px;color:var(--acc)}
+section{margin:0 0 8px}
+.row{background:var(--panel);border:1px solid var(--line);border-radius:10px;margin:0 0 6px}
+.row>summary{list-style:none;display:flex;gap:10px;align-items:baseline;justify-content:space-between;padding:10px 12px;cursor:pointer}
+.row>summary::-webkit-details-marker{display:none}
+.nm{flex:1;min-width:0}.nm small{display:block;color:var(--muted);font-size:12px;word-break:break-all}
+.st{flex:none;font-size:12px;border-radius:999px;padding:1px 9px;border:1px solid currentColor;white-space:nowrap}
+.st-on{color:var(--on)}.st-available{color:var(--avail)}.st-degraded{color:var(--deg)}.st-off,.st-unknown,.st-planned{color:var(--off)}
+.more{padding:0 12px 12px;border-top:1px solid var(--line)}
+.more dl{display:grid;grid-template-columns:max-content 1fr;gap:4px 12px;margin:10px 0 0}
+.more dt{color:var(--muted);font-size:13px}.more dd{margin:0;min-width:0;word-break:break-word}
+code{background:var(--code);border-radius:6px;padding:1px 5px;font-size:12.5px;white-space:pre-wrap;word-break:break-word}
+.grp{font-size:13px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin:14px 0 6px}
+.alap>summary{cursor:pointer;color:var(--muted);padding:8px 0;font-size:15px}
+#t{float:right;border:1px solid var(--line);background:var(--panel);color:var(--ink);border-radius:8px;padding:4px 8px;font-size:12px}
+@media (max-width:520px){.more dl{grid-template-columns:1fr}.more dt{margin-top:6px}}
+</style>
+</head>
+<body>
+<main>
+<button id="t" type="button" aria-label="téma">◐</button>
+/*BODY*/
+</main>
+<script>
+(function(){var root=document.documentElement,modes=["auto","light","dark"],m=root.getAttribute("data-theme")||"auto",saved=null;
+try{saved=localStorage.getItem("kf-theme")}catch(e){}
+function apply(){if(m==="auto")root.removeAttribute("data-theme");else root.setAttribute("data-theme",m)}if(saved){m=saved;apply()}
+document.getElementById("t").addEventListener("click",function(){m=modes[(modes.indexOf(m)+1)%3];apply();try{localStorage.setItem("kf-theme",m)}catch(e){}});})();
+</script>
+</body>
+</html>

@@ -1,0 +1,71 @@
+{
+  "description": "A plugin must be a dotted package name inside the repo, never a URL or path.",
+  "manifest": {
+    "schema": 1,
+    "agent": {
+      "name": "my-agent",
+      "language": "en"
+    },
+    "components": {
+      "brain": {
+        "root": "brain"
+      },
+      "engine": {
+        "path": "anytime_engine",
+        "plugins": [
+          "agent.concerns",
+          "https://example.com/evil.py"
+        ],
+        "schedule_owner": "engine"
+      },
+      "fleet": {},
+      "admin": {
+        "plugins": [
+          "cases"
+        ]
+      }
+    },
+    "cases": {
+      "backend": "markdown"
+    }
+  },
+  "local": {
+    "schema": 1,
+    "installed": {
+      "brain": "0.2.0",
+      "engine": "0.3.0",
+      "fleet": "1.1.0"
+    },
+    "fleet": {
+      "agent_id": "my-agent",
+      "host": "my-box"
+    },
+    "admin": {
+      "url": "http://localhost:8787",
+      "token_env": "MENTAT_ADMIN_TOKEN"
+    }
+  },
+  "expect": {
+    "diagnostic_only": false,
+    "errors": [
+      {
+        "code": "plugin_invalid",
+        "at": "components.engine.plugins[1]"
+      }
+    ],
+    "present": {
+      "brain": true,
+      "engine": false,
+      "fleet": true,
+      "admin": true
+    },
+    "synergies": {
+      "brain+engine": false,
+      "brain+fleet": true,
+      "engine+fleet": false,
+      "brain+admin": false,
+      "engine+admin": false,
+      "fleet+admin": true
+    }
+  }
+}

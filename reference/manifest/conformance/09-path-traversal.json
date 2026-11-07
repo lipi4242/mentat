@@ -1,0 +1,47 @@
+{
+  "description": "A brain root that climbs out of the repo is refused and the brain is not used.",
+  "manifest": {
+    "schema": 1,
+    "agent": {
+      "name": "my-agent",
+      "language": "hu"
+    },
+    "components": {
+      "brain": {
+        "root": "../other-repo/agy"
+      }
+    },
+    "cases": {
+      "backend": "markdown"
+    }
+  },
+  "local": {
+    "schema": 1,
+    "installed": {
+      "brain": "0.2.0"
+    }
+  },
+  "expect": {
+    "diagnostic_only": false,
+    "errors": [
+      {
+        "code": "path_outside_repo",
+        "at": "components.brain.root"
+      }
+    ],
+    "present": {
+      "brain": false,
+      "engine": false,
+      "fleet": false,
+      "admin": false
+    },
+    "synergies": {
+      "brain+engine": false,
+      "brain+fleet": false,
+      "engine+fleet": false,
+      "brain+admin": false,
+      "engine+admin": false,
+      "fleet+admin": false
+    }
+  }
+}

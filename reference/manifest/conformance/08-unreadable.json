@@ -1,0 +1,44 @@
+{
+  "description": "mentat.json is not valid JSON: diagnostics only.",
+  "manifest": null,
+  "local": {
+    "schema": 1,
+    "installed": {
+      "brain": "0.2.0",
+      "engine": "0.3.0",
+      "fleet": "1.1.0"
+    },
+    "fleet": {
+      "agent_id": "my-agent",
+      "host": "my-box"
+    },
+    "admin": {
+      "url": "http://localhost:8787",
+      "token_env": "MENTAT_ADMIN_TOKEN"
+    }
+  },
+  "expect": {
+    "diagnostic_only": true,
+    "errors": [
+      {
+        "code": "unreadable",
+        "at": "mentat.json"
+      }
+    ],
+    "present": {
+      "brain": false,
+      "engine": false,
+      "fleet": false,
+      "admin": false
+    },
+    "synergies": {
+      "brain+engine": false,
+      "brain+fleet": false,
+      "engine+fleet": false,
+      "brain+admin": false,
+      "engine+admin": false,
+      "fleet+admin": false
+    }
+  },
+  "manifest_raw": "{\"schema\": 1,"
+}

@@ -1,0 +1,1225 @@
+{
+ "_comment": "A Partner-fork hidjabol rogzitve (kitalalt id-k, token nelkul).",
+ "_recorder": "node bridge/test/fixtures/webhook-paritas-recorder.mjs <fork-hid-konyvtar> bridge/test/fixtures/webhook-paritas.json",
+ "bot": {
+  "id": 999,
+  "username": "teszt_bot"
+ },
+ "group": "-1001",
+ "allow": [
+  "111",
+  "222"
+ ],
+ "kijelolt_kuldo": "111",
+ "nofooter_reply": "Melyik ügyre? Válaszolj (Válasz) arra az üzenetemre, amelyiknek az alján az ügy linkje áll — úgy felkerül az ügyre.",
+ "cases": [
+  {
+   "name": "draft-horgonyra reply, jovahagyva (lablec is van -> ugy-ag kimarad)",
+   "update": {
+    "message": {
+     "message_id": 50,
+     "date": 1760000000,
+     "chat": {
+      "id": -1001,
+      "type": "group"
+     },
+     "from": {
+      "id": 111,
+      "first_name": "Teszt"
+     },
+     "text": "mehet",
+     "reply_to_message": {
+      "message_id": 40,
+      "date": 1759990000,
+      "chat": {
+       "id": -1001,
+       "type": "group"
+      },
+      "from": {
+       "id": 999,
+       "is_bot": true,
+       "first_name": "Bot"
+      },
+      "text": "Jóváhagyásra vár a levél.\n\nÜgy: https://admin.example.test/ugyek/ugy-42"
+     }
+    }
+   },
+   "responses": {
+    "draft-approve": {
+     "status": 200,
+     "json": {
+      "ok": true,
+      "sent": true,
+      "message": "Jóváhagyva és elküldve."
+     }
+    }
+   },
+   "expected": {
+    "requests": [
+     {
+      "endpoint": "draft-approve",
+      "headers": [
+       "content-type",
+       "x-partner-bridge-token"
+      ],
+      "rawBody": "{\"tg_from_id\":\"111\",\"tg_chat_id\":\"-1001\",\"tg_message_id\":50,\"tg_reply_to\":40,\"tg_date\":1760000000,\"text\":\"mehet\"}"
+     }
+    ],
+    "replies": [
+     {
+      "chat_id": "-1001",
+      "reply_to_message_id": 50,
+      "text": "Jóváhagyva és elküldve."
+     }
+    ]
+   }
+  },
+  {
+   "name": "reakcio a horgonyra, jovahagyva",
+   "update": {
+    "message_reaction": {
+     "chat": {
+      "id": -1001,
+      "type": "group"
+     },
+     "user": {
+      "id": 111,
+      "first_name": "Teszt"
+     },
+     "message_id": 40,
+     "date": 1760000100,
+     "old_reaction": [],
+     "new_reaction": [
+      {
+       "type": "emoji",
+       "emoji": "👍"
+      }
+     ]
+    }
+   },
+   "responses": {
+    "draft-approve": {
+     "status": 200,
+     "json": {
+      "ok": true,
+      "message": "Jóváhagyva (reakció)."
+     }
+    }
+   },
+   "expected": {
+    "requests": [
+     {
+      "endpoint": "draft-approve",
+      "headers": [
+       "content-type",
+       "x-partner-bridge-token"
+      ],
+      "rawBody": "{\"tg_from_id\":\"111\",\"tg_chat_id\":\"-1001\",\"tg_message_id\":40,\"tg_reply_to\":40,\"tg_date\":1760000100,\"text\":\"👍\"}"
+     }
+    ],
+    "replies": [
+     {
+      "chat_id": "-1001",
+      "reply_to_message_id": 40,
+      "text": "Jóváhagyva (reakció)."
+     }
+    ]
+   }
+  },
+  {
+   "name": "reakcio horgony nelkul -> nema (no_anchor uzenettel is)",
+   "update": {
+    "message_reaction": {
+     "chat": {
+      "id": -1001,
+      "type": "group"
+     },
+     "user": {
+      "id": 222,
+      "first_name": "Teszt"
+     },
+     "message_id": 41,
+     "date": 1760000200,
+     "old_reaction": [
+      {
+       "type": "emoji",
+       "emoji": "👍"
+      }
+     ],
+     "new_reaction": [
+      {
+       "type": "emoji",
+       "emoji": "👍"
+      },
+      {
+       "type": "emoji",
+       "emoji": "🔥"
+      }
+     ]
+    }
+   },
+   "responses": {
+    "draft-approve": {
+     "status": 404,
+     "json": {
+      "ok": false,
+      "reason": "no_anchor",
+      "message": "nem latszik"
+     }
+    }
+   },
+   "expected": {
+    "requests": [
+     {
+      "endpoint": "draft-approve",
+      "headers": [
+       "content-type",
+       "x-partner-bridge-token"
+      ],
+      "rawBody": "{\"tg_from_id\":\"222\",\"tg_chat_id\":\"-1001\",\"tg_message_id\":41,\"tg_reply_to\":41,\"tg_date\":1760000200,\"text\":\"🔥\"}"
+     }
+    ],
+    "replies": []
+   }
+  },
+  {
+   "name": "custom_emoji reakcio",
+   "update": {
+    "message_reaction": {
+     "chat": {
+      "id": -1001,
+      "type": "group"
+     },
+     "user": {
+      "id": 111,
+      "first_name": "Teszt"
+     },
+     "message_id": 42,
+     "date": 1760000300,
+     "old_reaction": [],
+     "new_reaction": [
+      {
+       "type": "custom_emoji",
+       "custom_emoji_id": "5"
+      }
+     ]
+    }
+   },
+   "responses": {
+    "draft-approve": {
+     "status": 404,
+     "json": {
+      "ok": false,
+      "reason": "no_anchor"
+     }
+    }
+   },
+   "expected": {
+    "requests": [
+     {
+      "endpoint": "draft-approve",
+      "headers": [
+       "content-type",
+       "x-partner-bridge-token"
+      ],
+      "rawBody": "{\"tg_from_id\":\"111\",\"tg_chat_id\":\"-1001\",\"tg_message_id\":42,\"tg_reply_to\":42,\"tg_date\":1760000300,\"text\":\"[custom_emoji]\"}"
+     }
+    ],
+    "replies": []
+   }
+  },
+  {
+   "name": "fizetos (paid) reakcio",
+   "update": {
+    "message_reaction": {
+     "chat": {
+      "id": -1001,
+      "type": "group"
+     },
+     "user": {
+      "id": 111,
+      "first_name": "Teszt"
+     },
+     "message_id": 43,
+     "date": 1760000400,
+     "old_reaction": [],
+     "new_reaction": [
+      {
+       "type": "paid"
+      }
+     ]
+    }
+   },
+   "responses": {
+    "draft-approve": {
+     "status": 404,
+     "json": {
+      "ok": false,
+      "reason": "no_anchor"
+     }
+    }
+   },
+   "expected": {
+    "requests": [
+     {
+      "endpoint": "draft-approve",
+      "headers": [
+       "content-type",
+       "x-partner-bridge-token"
+      ],
+      "rawBody": "{\"tg_from_id\":\"111\",\"tg_chat_id\":\"-1001\",\"tg_message_id\":43,\"tg_reply_to\":43,\"tg_date\":1760000400,\"text\":\"⭐\"}"
+     }
+    ],
+    "replies": []
+   }
+  },
+  {
+   "name": "ugy-lablecre reply, horgony nincs -> ugy-uzenet, nema",
+   "update": {
+    "message": {
+     "message_id": 51,
+     "date": 1760000000,
+     "chat": {
+      "id": -1001,
+      "type": "group"
+     },
+     "from": {
+      "id": 111,
+      "first_name": "Teszt"
+     },
+     "text": "Írd meg neki a levelet.",
+     "reply_to_message": {
+      "message_id": 40,
+      "date": 1759990000,
+      "chat": {
+       "id": -1001,
+       "type": "group"
+      },
+      "from": {
+       "id": 999,
+       "is_bot": true,
+       "first_name": "Bot"
+      },
+      "text": "Megjött a forgalmi.\n\nÜgy: https://admin.example.test/ugyek/ugy-42"
+     }
+    }
+   },
+   "responses": {
+    "draft-approve": {
+     "status": 404,
+     "json": {
+      "ok": false,
+      "reason": "no_anchor"
+     }
+    },
+    "case-message": {
+     "status": 201,
+     "json": {
+      "ok": true,
+      "id": 7
+     }
+    }
+   },
+   "expected": {
+    "requests": [
+     {
+      "endpoint": "draft-approve",
+      "headers": [
+       "content-type",
+       "x-partner-bridge-token"
+      ],
+      "rawBody": "{\"tg_from_id\":\"111\",\"tg_chat_id\":\"-1001\",\"tg_message_id\":51,\"tg_reply_to\":40,\"tg_date\":1760000000,\"text\":\"Írd meg neki a levelet.\"}"
+     },
+     {
+      "endpoint": "case-message",
+      "headers": [
+       "content-type",
+       "x-partner-bridge-token"
+      ],
+      "rawBody": "{\"tg_from_id\":\"111\",\"tg_chat_id\":\"-1001\",\"tg_message_id\":51,\"tg_date\":1760000000,\"case_id\":\"ugy-42\",\"text\":\"Írd meg neki a levelet.\"}"
+     }
+    ],
+    "replies": []
+   }
+  },
+  {
+   "name": "ugy-lablecre reply, nem jovahagyas + tul regi -> a ket mondat egy uzenetben",
+   "update": {
+    "message": {
+     "message_id": 52,
+     "date": 1760000000,
+     "chat": {
+      "id": -1001,
+      "type": "group"
+     },
+     "from": {
+      "id": 111,
+      "first_name": "Teszt"
+     },
+     "text": "a második bekezdést írd át",
+     "reply_to_message": {
+      "message_id": 40,
+      "date": 1759990000,
+      "chat": {
+       "id": -1001,
+       "type": "group"
+      },
+      "from": {
+       "id": 999,
+       "is_bot": true,
+       "first_name": "Bot"
+      },
+      "text": "Kérdés.\nÜgy: https://admin.example.test/ugyek/ugy-42"
+     }
+    }
+   },
+   "responses": {
+    "draft-approve": {
+     "status": 422,
+     "json": {
+      "ok": false,
+      "reason": "not_an_approval",
+      "message": "Ezt nem vettem jóváhagyásnak."
+     }
+    },
+    "case-message": {
+     "status": 409,
+     "json": {
+      "ok": false,
+      "reason": "too_old",
+      "message": "Ez túl régi."
+     }
+    }
+   },
+   "expected": {
+    "requests": [
+     {
+      "endpoint": "draft-approve",
+      "headers": [
+       "content-type",
+       "x-partner-bridge-token"
+      ],
+      "rawBody": "{\"tg_from_id\":\"111\",\"tg_chat_id\":\"-1001\",\"tg_message_id\":52,\"tg_reply_to\":40,\"tg_date\":1760000000,\"text\":\"a második bekezdést írd át\"}"
+     },
+     {
+      "endpoint": "case-message",
+      "headers": [
+       "content-type",
+       "x-partner-bridge-token"
+      ],
+      "rawBody": "{\"tg_from_id\":\"111\",\"tg_chat_id\":\"-1001\",\"tg_message_id\":52,\"tg_date\":1760000000,\"case_id\":\"ugy-42\",\"text\":\"a második bekezdést írd át\"}"
+     }
+    ],
+    "replies": [
+     {
+      "chat_id": "-1001",
+      "reply_to_message_id": 52,
+      "text": "Ezt nem vettem jóváhagyásnak.\nEz túl régi."
+     }
+    ]
+   }
+  },
+  {
+   "name": "ugy-lablecre reply, de nem a kijelolt kuldotol -> csak draft",
+   "update": {
+    "message": {
+     "message_id": 53,
+     "date": 1760000000,
+     "chat": {
+      "id": -1001,
+      "type": "group"
+     },
+     "from": {
+      "id": 222,
+      "first_name": "Masik"
+     },
+     "text": "Írd meg.",
+     "reply_to_message": {
+      "message_id": 40,
+      "date": 1759990000,
+      "chat": {
+       "id": -1001,
+       "type": "group"
+      },
+      "from": {
+       "id": 999,
+       "is_bot": true,
+       "first_name": "Bot"
+      },
+      "text": "X.\nÜgy: https://admin.example.test/ugyek/ugy-42"
+     }
+    }
+   },
+   "responses": {
+    "draft-approve": {
+     "status": 404,
+     "json": {
+      "ok": false,
+      "reason": "no_anchor"
+     }
+    }
+   },
+   "expected": {
+    "requests": [
+     {
+      "endpoint": "draft-approve",
+      "headers": [
+       "content-type",
+       "x-partner-bridge-token"
+      ],
+      "rawBody": "{\"tg_from_id\":\"222\",\"tg_chat_id\":\"-1001\",\"tg_message_id\":53,\"tg_reply_to\":40,\"tg_date\":1760000000,\"text\":\"Írd meg.\"}"
+     }
+    ],
+    "replies": []
+   }
+  },
+  {
+   "name": "bot-uzenetre reply lablec nelkul, keresnek latszik -> Melyik ugyre?",
+   "update": {
+    "message": {
+     "message_id": 54,
+     "date": 1760000000,
+     "chat": {
+      "id": -1001,
+      "type": "group"
+     },
+     "from": {
+      "id": 111,
+      "first_name": "Teszt"
+     },
+     "text": "írd meg",
+     "reply_to_message": {
+      "message_id": 40,
+      "date": 1759990000,
+      "chat": {
+       "id": -1001,
+       "type": "group"
+      },
+      "from": {
+       "id": 999,
+       "is_bot": true,
+       "first_name": "Bot"
+      },
+      "text": "Megnéztem a portált."
+     }
+    }
+   },
+   "responses": {
+    "draft-approve": {
+     "status": 404,
+     "json": {
+      "ok": false,
+      "reason": "no_anchor"
+     }
+    }
+   },
+   "expected": {
+    "requests": [
+     {
+      "endpoint": "draft-approve",
+      "headers": [
+       "content-type",
+       "x-partner-bridge-token"
+      ],
+      "rawBody": "{\"tg_from_id\":\"111\",\"tg_chat_id\":\"-1001\",\"tg_message_id\":54,\"tg_reply_to\":40,\"tg_date\":1760000000,\"text\":\"írd meg\"}"
+     }
+    ],
+    "replies": [
+     {
+      "chat_id": "-1001",
+      "reply_to_message_id": 54,
+      "text": "Melyik ügyre? Válaszolj (Válasz) arra az üzenetemre, amelyiknek az alján az ügy linkje áll — úgy felkerül az ügyre."
+     }
+    ]
+   }
+  },
+  {
+   "name": "bot-uzenetre reply lablec nelkul, nem keres -> nema",
+   "update": {
+    "message": {
+     "message_id": 55,
+     "date": 1760000000,
+     "chat": {
+      "id": -1001,
+      "type": "group"
+     },
+     "from": {
+      "id": 111,
+      "first_name": "Teszt"
+     },
+     "text": "Köszi, megvan.",
+     "reply_to_message": {
+      "message_id": 40,
+      "date": 1759990000,
+      "chat": {
+       "id": -1001,
+       "type": "group"
+      },
+      "from": {
+       "id": 999,
+       "is_bot": true,
+       "first_name": "Bot"
+      },
+      "text": "Megnéztem a portált."
+     }
+    }
+   },
+   "responses": {
+    "draft-approve": {
+     "status": 404,
+     "json": {
+      "ok": false,
+      "reason": "no_anchor"
+     }
+    }
+   },
+   "expected": {
+    "requests": [
+     {
+      "endpoint": "draft-approve",
+      "headers": [
+       "content-type",
+       "x-partner-bridge-token"
+      ],
+      "rawBody": "{\"tg_from_id\":\"111\",\"tg_chat_id\":\"-1001\",\"tg_message_id\":55,\"tg_reply_to\":40,\"tg_date\":1760000000,\"text\":\"Köszi, megvan.\"}"
+     }
+    ],
+    "replies": []
+   }
+  },
+  {
+   "name": "ket ugyet emlito bot-uzenet -> nem kotheto, Melyik ugyre?",
+   "update": {
+    "message": {
+     "message_id": 56,
+     "date": 1760000000,
+     "chat": {
+      "id": -1001,
+      "type": "group"
+     },
+     "from": {
+      "id": 111,
+      "first_name": "Teszt"
+     },
+     "text": "Írd meg neki.",
+     "reply_to_message": {
+      "message_id": 40,
+      "date": 1759990000,
+      "chat": {
+       "id": -1001,
+       "type": "group"
+      },
+      "from": {
+       "id": 999,
+       "is_bot": true,
+       "first_name": "Bot"
+      },
+      "text": "Lásd https://admin.example.test/ugyek/ugy-7 is.\n\nÜgy: https://admin.example.test/ugyek/ugy-42"
+     }
+    }
+   },
+   "responses": {
+    "draft-approve": {
+     "status": 404,
+     "json": {
+      "ok": false,
+      "reason": "no_anchor"
+     }
+    }
+   },
+   "expected": {
+    "requests": [
+     {
+      "endpoint": "draft-approve",
+      "headers": [
+       "content-type",
+       "x-partner-bridge-token"
+      ],
+      "rawBody": "{\"tg_from_id\":\"111\",\"tg_chat_id\":\"-1001\",\"tg_message_id\":56,\"tg_reply_to\":40,\"tg_date\":1760000000,\"text\":\"Írd meg neki.\"}"
+     }
+    ],
+    "replies": [
+     {
+      "chat_id": "-1001",
+      "reply_to_message_id": 56,
+      "text": "Melyik ügyre? Válaszolj (Válasz) arra az üzenetemre, amelyiknek az alján az ügy linkje áll — úgy felkerül az ügyre."
+     }
+    ]
+   }
+  },
+  {
+   "name": "listaoldal-lablec (/ugyek/tipus) nem ugy -> Melyik ugyre?",
+   "update": {
+    "message": {
+     "message_id": 57,
+     "date": 1760000000,
+     "chat": {
+      "id": -1001,
+      "type": "group"
+     },
+     "from": {
+      "id": 111,
+      "first_name": "Teszt"
+     },
+     "text": "Írd meg neki.",
+     "reply_to_message": {
+      "message_id": 40,
+      "date": 1759990000,
+      "chat": {
+       "id": -1001,
+       "type": "group"
+      },
+      "from": {
+       "id": 999,
+       "is_bot": true,
+       "first_name": "Bot"
+      },
+      "text": "Lista.\nÜgy: https://admin.example.test/ugyek/tipus/ugyfel"
+     }
+    }
+   },
+   "responses": {
+    "draft-approve": {
+     "status": 404,
+     "json": {
+      "ok": false,
+      "reason": "no_anchor"
+     }
+    }
+   },
+   "expected": {
+    "requests": [
+     {
+      "endpoint": "draft-approve",
+      "headers": [
+       "content-type",
+       "x-partner-bridge-token"
+      ],
+      "rawBody": "{\"tg_from_id\":\"111\",\"tg_chat_id\":\"-1001\",\"tg_message_id\":57,\"tg_reply_to\":40,\"tg_date\":1760000000,\"text\":\"Írd meg neki.\"}"
+     }
+    ],
+    "replies": [
+     {
+      "chat_id": "-1001",
+      "reply_to_message_id": 57,
+      "text": "Melyik ügyre? Válaszolj (Válasz) arra az üzenetemre, amelyiknek az alján az ügy linkje áll — úgy felkerül az ügyre."
+     }
+    ]
+   }
+  },
+  {
+   "name": "kodolt listaoldal (tipu%73) sem ugy -> Melyik ugyre?",
+   "update": {
+    "message": {
+     "message_id": 66,
+     "date": 1760000000,
+     "chat": {
+      "id": -1001,
+      "type": "group"
+     },
+     "from": {
+      "id": 111,
+      "first_name": "Teszt"
+     },
+     "text": "Írd meg neki.",
+     "reply_to_message": {
+      "message_id": 40,
+      "date": 1759990000,
+      "chat": {
+       "id": -1001,
+       "type": "group"
+      },
+      "from": {
+       "id": 999,
+       "is_bot": true,
+       "first_name": "Bot"
+      },
+      "text": "Lista.\nÜgy: https://admin.example.test/ugyek/tipu%73"
+     }
+    }
+   },
+   "responses": {
+    "draft-approve": {
+     "status": 404,
+     "json": {
+      "ok": false,
+      "reason": "no_anchor"
+     }
+    }
+   },
+   "expected": {
+    "requests": [
+     {
+      "endpoint": "draft-approve",
+      "headers": [
+       "content-type",
+       "x-partner-bridge-token"
+      ],
+      "rawBody": "{\"tg_from_id\":\"111\",\"tg_chat_id\":\"-1001\",\"tg_message_id\":66,\"tg_reply_to\":40,\"tg_date\":1760000000,\"text\":\"Írd meg neki.\"}"
+     }
+    ],
+    "replies": [
+     {
+      "chat_id": "-1001",
+      "reply_to_message_id": 66,
+      "text": "Melyik ügyre? Válaszolj (Válasz) arra az üzenetemre, amelyiknek az alján az ügy linkje áll — úgy felkerül az ügyre."
+     }
+    ]
+   }
+  },
+  {
+   "name": "/ugyek/tipus/ugyek/ugy-9 lablec -> a fork szerint nem kotheto",
+   "update": {
+    "message": {
+     "message_id": 67,
+     "date": 1760000000,
+     "chat": {
+      "id": -1001,
+      "type": "group"
+     },
+     "from": {
+      "id": 111,
+      "first_name": "Teszt"
+     },
+     "text": "Írd meg neki.",
+     "reply_to_message": {
+      "message_id": 40,
+      "date": 1759990000,
+      "chat": {
+       "id": -1001,
+       "type": "group"
+      },
+      "from": {
+       "id": 999,
+       "is_bot": true,
+       "first_name": "Bot"
+      },
+      "text": "Lista.\nÜgy: https://admin.example.test/ugyek/tipus/ugyek/ugy-9"
+     }
+    }
+   },
+   "responses": {
+    "draft-approve": {
+     "status": 404,
+     "json": {
+      "ok": false,
+      "reason": "no_anchor"
+     }
+    },
+    "case-message": {
+     "status": 201,
+     "json": {
+      "ok": true,
+      "id": 7
+     }
+    }
+   },
+   "expected": {
+    "requests": [
+     {
+      "endpoint": "draft-approve",
+      "headers": [
+       "content-type",
+       "x-partner-bridge-token"
+      ],
+      "rawBody": "{\"tg_from_id\":\"111\",\"tg_chat_id\":\"-1001\",\"tg_message_id\":67,\"tg_reply_to\":40,\"tg_date\":1760000000,\"text\":\"Írd meg neki.\"}"
+     }
+    ],
+    "replies": [
+     {
+      "chat_id": "-1001",
+      "reply_to_message_id": 67,
+      "text": "Melyik ügyre? Válaszolj (Válasz) arra az üzenetemre, amelyiknek az alján az ügy linkje áll — úgy felkerül az ügyre."
+     }
+    ]
+   }
+  },
+  {
+   "name": "mely-link ugyanarra az ugyre nem ketertelmu -> ugy-uzenet",
+   "update": {
+    "message": {
+     "message_id": 58,
+     "date": 1760000000,
+     "chat": {
+      "id": -1001,
+      "type": "group"
+     },
+     "from": {
+      "id": 111,
+      "first_name": "Teszt"
+     },
+     "text": "Küldd el.",
+     "reply_to_message": {
+      "message_id": 40,
+      "date": 1759990000,
+      "chat": {
+       "id": -1001,
+       "type": "group"
+      },
+      "from": {
+       "id": 999,
+       "is_bot": true,
+       "first_name": "Bot"
+      },
+      "text": "Vár: https://admin.example.test/ugyek/ugy-42#level\nÜgy: https://admin.example.test/ugyek/ugy-42"
+     }
+    }
+   },
+   "responses": {
+    "draft-approve": {
+     "status": 404,
+     "json": {
+      "ok": false,
+      "reason": "no_anchor"
+     }
+    },
+    "case-message": {
+     "status": 201,
+     "json": {
+      "ok": true,
+      "id": 7
+     }
+    }
+   },
+   "expected": {
+    "requests": [
+     {
+      "endpoint": "draft-approve",
+      "headers": [
+       "content-type",
+       "x-partner-bridge-token"
+      ],
+      "rawBody": "{\"tg_from_id\":\"111\",\"tg_chat_id\":\"-1001\",\"tg_message_id\":58,\"tg_reply_to\":40,\"tg_date\":1760000000,\"text\":\"Küldd el.\"}"
+     },
+     {
+      "endpoint": "case-message",
+      "headers": [
+       "content-type",
+       "x-partner-bridge-token"
+      ],
+      "rawBody": "{\"tg_from_id\":\"111\",\"tg_chat_id\":\"-1001\",\"tg_message_id\":58,\"tg_date\":1760000000,\"case_id\":\"ugy-42\",\"text\":\"Küldd el.\"}"
+     }
+    ],
+    "replies": []
+   }
+  },
+  {
+   "name": "nem a bot uzenetere adott reply lablec-szoveggel -> csak draft",
+   "update": {
+    "message": {
+     "message_id": 59,
+     "date": 1760000000,
+     "chat": {
+      "id": -1001,
+      "type": "group"
+     },
+     "from": {
+      "id": 111,
+      "first_name": "Teszt"
+     },
+     "text": "Írd meg.",
+     "reply_to_message": {
+      "message_id": 45,
+      "from": {
+       "id": 222
+      },
+      "text": "idézet\nÜgy: https://admin.example.test/ugyek/ugy-42"
+     }
+    }
+   },
+   "responses": {
+    "draft-approve": {
+     "status": 404,
+     "json": {
+      "ok": false,
+      "reason": "no_anchor"
+     }
+    }
+   },
+   "expected": {
+    "requests": [
+     {
+      "endpoint": "draft-approve",
+      "headers": [
+       "content-type",
+       "x-partner-bridge-token"
+      ],
+      "rawBody": "{\"tg_from_id\":\"111\",\"tg_chat_id\":\"-1001\",\"tg_message_id\":59,\"tg_reply_to\":45,\"tg_date\":1760000000,\"text\":\"Írd meg.\"}"
+     }
+    ],
+    "replies": []
+   }
+  },
+  {
+   "name": "tobbsoros, vezerlo- es zero-width karakteres reply -> egy sorba vonva",
+   "update": {
+    "message": {
+     "message_id": 64,
+     "date": 1760000000,
+     "chat": {
+      "id": -1001,
+      "type": "group"
+     },
+     "from": {
+      "id": 111,
+      "first_name": "Teszt"
+     },
+     "text": "Írd meg neki:\n\n  első pont\tkettő​\r\nvége ",
+     "reply_to_message": {
+      "message_id": 40,
+      "date": 1759990000,
+      "chat": {
+       "id": -1001,
+       "type": "group"
+      },
+      "from": {
+       "id": 999,
+       "is_bot": true,
+       "first_name": "Bot"
+      },
+      "text": "Kérdés.\nÜgy: https://admin.example.test/ugyek/ugy-42"
+     }
+    }
+   },
+   "responses": {
+    "draft-approve": {
+     "status": 404,
+     "json": {
+      "ok": false,
+      "reason": "no_anchor"
+     }
+    },
+    "case-message": {
+     "status": 201,
+     "json": {
+      "ok": true,
+      "id": 7
+     }
+    }
+   },
+   "expected": {
+    "requests": [
+     {
+      "endpoint": "draft-approve",
+      "headers": [
+       "content-type",
+       "x-partner-bridge-token"
+      ],
+      "rawBody": "{\"tg_from_id\":\"111\",\"tg_chat_id\":\"-1001\",\"tg_message_id\":64,\"tg_reply_to\":40,\"tg_date\":1760000000,\"text\":\"Írd meg neki: első pont kettő vége\"}"
+     },
+     {
+      "endpoint": "case-message",
+      "headers": [
+       "content-type",
+       "x-partner-bridge-token"
+      ],
+      "rawBody": "{\"tg_from_id\":\"111\",\"tg_chat_id\":\"-1001\",\"tg_message_id\":64,\"tg_date\":1760000000,\"case_id\":\"ugy-42\",\"text\":\"Írd meg neki: első pont kettő vége\"}"
+     }
+    ],
+    "replies": []
+   }
+  },
+  {
+   "name": "hosszu (2000 karakteres) reply -> 1500-nal vagva",
+   "update": {
+    "message": {
+     "message_id": 65,
+     "date": 1760000000,
+     "chat": {
+      "id": -1001,
+      "type": "group"
+     },
+     "from": {
+      "id": 111,
+      "first_name": "Teszt"
+     },
+     "text": "Írd meg ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ",
+     "reply_to_message": {
+      "message_id": 40,
+      "date": 1759990000,
+      "chat": {
+       "id": -1001,
+       "type": "group"
+      },
+      "from": {
+       "id": 999,
+       "is_bot": true,
+       "first_name": "Bot"
+      },
+      "text": "Kérdés.\nÜgy: https://admin.example.test/ugyek/ugy-42"
+     }
+    }
+   },
+   "responses": {
+    "draft-approve": {
+     "status": 404,
+     "json": {
+      "ok": false,
+      "reason": "no_anchor"
+     }
+    },
+    "case-message": {
+     "status": 201,
+     "json": {
+      "ok": true,
+      "id": 7
+     }
+    }
+   },
+   "expected": {
+    "requests": [
+     {
+      "endpoint": "draft-approve",
+      "headers": [
+       "content-type",
+       "x-partner-bridge-token"
+      ],
+      "rawBody": "{\"tg_from_id\":\"111\",\"tg_chat_id\":\"-1001\",\"tg_message_id\":65,\"tg_reply_to\":40,\"tg_date\":1760000000,\"text\":\"Írd meg ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc \"}"
+     },
+     {
+      "endpoint": "case-message",
+      "headers": [
+       "content-type",
+       "x-partner-bridge-token"
+      ],
+      "rawBody": "{\"tg_from_id\":\"111\",\"tg_chat_id\":\"-1001\",\"tg_message_id\":65,\"tg_date\":1760000000,\"case_id\":\"ugy-42\",\"text\":\"Írd meg ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc ábc \"}"
+     }
+    ],
+    "replies": []
+   }
+  },
+  {
+   "name": "idegen chat -> semmi",
+   "update": {
+    "message": {
+     "message_id": 60,
+     "date": 1760000000,
+     "chat": {
+      "id": -777,
+      "type": "group"
+     },
+     "from": {
+      "id": 333
+     },
+     "text": "mehet",
+     "reply_to_message": {
+      "message_id": 40,
+      "date": 1759990000,
+      "chat": {
+       "id": -1001,
+       "type": "group"
+      },
+      "from": {
+       "id": 999,
+       "is_bot": true,
+       "first_name": "Bot"
+      },
+      "text": "Ügy: https://admin.example.test/ugyek/ugy-42"
+     }
+    }
+   },
+   "responses": {},
+   "expected": {
+    "requests": [],
+    "replies": []
+   }
+  },
+  {
+   "name": "bot kuldo -> semmi",
+   "update": {
+    "message": {
+     "message_id": 61,
+     "date": 1760000000,
+     "chat": {
+      "id": -1001,
+      "type": "group"
+     },
+     "from": {
+      "id": 555,
+      "is_bot": true
+     },
+     "text": "mehet",
+     "reply_to_message": {
+      "message_id": 40,
+      "date": 1759990000,
+      "chat": {
+       "id": -1001,
+       "type": "group"
+      },
+      "from": {
+       "id": 999,
+       "is_bot": true,
+       "first_name": "Bot"
+      },
+      "text": "Ügy: https://admin.example.test/ugyek/ugy-42"
+     }
+    }
+   },
+   "responses": {},
+   "expected": {
+    "requests": [],
+    "replies": []
+   }
+  },
+  {
+   "name": "reply nelkuli uzenet -> semmi",
+   "update": {
+    "message": {
+     "message_id": 62,
+     "date": 1760000000,
+     "chat": {
+      "id": -1001,
+      "type": "group"
+     },
+     "from": {
+      "id": 111,
+      "first_name": "Teszt"
+     },
+     "text": "írd meg"
+    }
+   },
+   "responses": {},
+   "expected": {
+    "requests": [],
+    "replies": []
+   }
+  },
+  {
+   "name": "szerkesztett reply -> semmi",
+   "update": {
+    "edited_message": {
+     "message_id": 63,
+     "date": 1760000000,
+     "chat": {
+      "id": -1001,
+      "type": "group"
+     },
+     "from": {
+      "id": 111,
+      "first_name": "Teszt"
+     },
+     "text": "mehet",
+     "reply_to_message": {
+      "message_id": 40,
+      "date": 1759990000,
+      "chat": {
+       "id": -1001,
+       "type": "group"
+      },
+      "from": {
+       "id": 999,
+       "is_bot": true,
+       "first_name": "Bot"
+      },
+      "text": "Ügy: https://admin.example.test/ugyek/ugy-42"
+     }
+    }
+   },
+   "responses": {},
+   "expected": {
+    "requests": [],
+    "replies": []
+   }
+  }
+ ]
+}

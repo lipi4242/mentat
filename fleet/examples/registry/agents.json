@@ -1,0 +1,34 @@
+[
+  {
+    "agent": "demo-agent",
+    "description": "Példa-ágens: proaktív, félóránként tickel, saját Telegram-híddal",
+    "unit": "demo-agent.service",
+    "session": "demo-agent",
+    "workdir": "%h/demo-agent",
+    "model": "opus",
+    "host": "demo-box",
+    "status": "active",
+    "proactive": true,
+    "loop_cmd": "/loop 30m /demo-agent:tick",
+    "tick_period_s": 1800,
+    "telegram_bot": "@demo_agent_bot",
+    "bridge": {
+      "mode": "sub-etha",
+      "unit": "demo-agent-telegram-bridge.service",
+      "version": "1.5.1"
+    },
+    "runbook": "runbooks/demo-agent.md"
+  },
+  {
+    "agent": "demo-helper",
+    "description": "Példa-ágens: nem proaktív, pihenő (dormant), híd nélkül",
+    "unit": "demo-helper.service",
+    "session": "demo-helper",
+    "workdir": "%h/demo-helper",
+    "model": "sonnet",
+    "host": "demo-box",
+    "status": "dormant",
+    "proactive": false,
+    "runbook": "runbooks/demo-helper.md"
+  }
+]

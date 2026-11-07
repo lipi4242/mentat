@@ -1,0 +1,5 @@
+{
+  "_doc": "The instance's own data model: extra fields on a plugin entity (fields.cases) and whole new entities. The product ships this empty and never writes it. How to extend: agent/EXTENDING.md.",
+  "fields": {},
+  "entities": []
+}

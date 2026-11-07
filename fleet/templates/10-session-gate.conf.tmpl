@@ -1,0 +1,18 @@
+# FLEET drop-in: ~/.config/systemd/user/<unit>.d/10-session-gate.conf
+#
+# Transcript gate: above AGENT_TRANSCRIPT_MAX_MB (default 10) the agent starts
+# FRESH instead of --resume. Loop state lives in docs/, data/ and the case DB,
+# not in chat history, so a fresh start costs nothing — while resuming a 153 MB
+# transcript is what OOMed the box on 2026-08-07 and took the systemd user
+# manager (and every watchdog under it) with it.
+#
+# WHY A DROP-IN AND NOT THE RENDERED UNIT: this is FLEET POLICY, not part of
+# what any one agent is. The hand-written units (unit_source: file) never pass
+# through render.py; a drop-in reaches all of them, and `fleet doctor` checks
+# its presence directly.
+#
+# Installed by fleet.install: install_drop_in(). Any path that writes a unit
+# MUST also install this. The leading `-` makes failure non-fatal: a missing
+# script must never stop an agent from starting.
+[Service]
+ExecStartPre=-@@FLEET_ROOT@@/bin/agent-session-gate.sh @@AGENT@@

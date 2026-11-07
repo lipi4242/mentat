@@ -1,0 +1,21 @@
+{
+  "_doc": "Mentat Admin instance file. Copy to config/instance.json (gitignored) or ~/.config/mentat-admin/instance.json, or point MENTAT_ADMIN_INSTANCE at it. All values below are made up.",
+  "title": "Example Admin",
+  "cloudflare": {
+    "account_id": "0123456789abcdef0123456789abcdef"
+  },
+  "worker": {
+    "name": "mentat-admin-api",
+    "database_name": "mentat-admin-db",
+    "database_id": "00000000-0000-4000-8000-000000000000",
+    "vars": {
+      "ALLOWED_ORIGINS": "https://example-admin.pages.dev,https://admin.example.com",
+      "ADMIN_EMAILS": "owner@example.com",
+      "OTP_SENDER": "admin@example.com",
+      "SITE_URL": "https://admin.example.com"
+    }
+  },
+  "admin": {
+    "pages_project": "example-admin"
+  }
+}

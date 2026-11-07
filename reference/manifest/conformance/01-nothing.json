@@ -1,0 +1,23 @@
+{
+  "description": "No mentat.json, no local file: every element absent, no error.",
+  "manifest": null,
+  "local": null,
+  "expect": {
+    "diagnostic_only": false,
+    "errors": [],
+    "present": {
+      "brain": false,
+      "engine": false,
+      "fleet": false,
+      "admin": false
+    },
+    "synergies": {
+      "brain+engine": false,
+      "brain+fleet": false,
+      "engine+fleet": false,
+      "brain+admin": false,
+      "engine+admin": false,
+      "fleet+admin": false
+    }
+  }
+}
