@@ -36,7 +36,7 @@
     "better-sqlite3": "^12.0.0",
     "typescript": "~5.9.2",
     "vitest": "^3.0.0",
-    "wrangler": "^4.0.0"
+    "wrangler": "^4.158.0"
   },
   "engines": {
     "node": ">=22"
