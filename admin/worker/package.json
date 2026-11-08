@@ -25,7 +25,7 @@
     "instance:seed-principals": "node scripts/seed-principals.mjs"
   },
   "dependencies": {
-    "better-auth": "1.6.23",
+    "better-auth": "1.7.18",
     "drizzle-orm": "^0.45.2",
     "hono": "^4.5.0"
   },
