@@ -7,7 +7,7 @@
 
 [![Release](https://img.shields.io/github/v/tag/lipi4242/mentat?label=release)](https://github.com/lipi4242/mentat/tags)
 [![License](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](../LICENSE)
-[![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/)
 [![EN | HU](https://img.shields.io/badge/lang-EN%20%7C%20HU-informational.svg)](README.hu.md)
 
 The engine is part of [Mentat](../README.md) and comes with it: the Mentat install sets it up when you ask for the morning summary and reminders.
@@ -26,11 +26,11 @@ Easiest: ask your Mentat colleague to add the engine; it runs these steps for yo
 
 ```
 Install the Mentat engine into this repo. Run exactly:
-  git clone --depth 1 --branch v0.5.1 https://github.com/lipi4242/mentat ~/src/mentat
+  git clone --depth 1 --branch v0.6.0 https://github.com/lipi4242/mentat ~/src/mentat
   ~/src/mentat/engine/sync-to.sh . --pack cases
   python3 -m anytime_engine.selftest -q
 If ~/src/mentat already exists, run git -C ~/src/mentat fetch --tags and
-git -C ~/src/mentat checkout v0.5.1 instead of the clone.
+git -C ~/src/mentat checkout v0.6.0 instead of the clone.
 Then ask me my timezone and where reminders should go (a file or Telegram), and run
 python3 -m anytime_engine.setup --tz <tz> --deliver <file|telegram>, with --install once I say yes.
 ```

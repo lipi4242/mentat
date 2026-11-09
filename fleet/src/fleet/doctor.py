@@ -2,7 +2,12 @@
 unit engedélyezve/aktív, drop-in megvan-e, híd-verzió, Claude-fiók, és a fail-open
 hookok (F-39: onFailure:"block" hiányzik, vagy a Claude Code régebbi 2.1.295-nél) — csak jelzés —,
 és hogy a futó claude env-jében van-e felügyelet nélküli jel a nemakad hooknak (envjel.py).
-PROXY-jel (paneor.py): a unit claude binárisában megvannak-e a híd pane-őrének mintái (F-17).
+Essentials (11-07, essentials.py): a telepített titok-kapu tiltja-e az ágens alapfunkcióit
+(Telegram-küldés, todo, git, saját állapot), van-e TELEGRAM_BOT_TOKEN (név szerint) a hidas ágens
+unitjának env-jében, és futott-e a send.mjs token nélkül — piros; a leltárfájlt `.`-tal töltő
+ágens-szkript teendő (⚠). PROXY-jel (paneor.py): a unit claude binárisában megvannak-e a híd pane-őrének mintái (F-17).
+Box-sor (11-07, doctor_box.py, csak ágens-név nélkül): a független riasztási út és a
+kézbesítetlen riasztások, a felhasználói hookok/pluginok kanári nélküli változása, kiadás-lemaradás.
 `--fix` = reconcile egy ágensre, végrehajtással (ez az operátor kifejezett
 parancsa, ezért nem vár a controller-fájlra).
 
@@ -57,7 +62,7 @@ def assess(entry: dict, m: dict, st: dict, *, unit_active: str | None,
            now: float | None = None, hook_problems: list[str] = (),
            claude_problem: str | None = None, claude_unknown: str | None = None,
            env_check: tuple = (None, None), outward: dict | None = None,
-           bridge_stale: str | None = None) -> dict:
+           bridge_stale: str | None = None, essentials: dict | None = None) -> dict:
     """Pure: egészség (health.py) + a tények listája. A híd verzió-driftje teendő
     (`warnings`), nem üzemzavar; a fail-open hook (F-39) szándékosan piros."""
     facts = []
@@ -89,6 +94,10 @@ def assess(entry: dict, m: dict, st: dict, *, unit_active: str | None,
             problems.append(bridge_stale)
         if bridge_installed != bridge_current:
             warnings.append(f"híd-drift: {bridge_installed} ≠ {bridge_current} (`fleet bridge install {entry['agent']}`)")
+    ess = essentials or {}
+    problems += list(ess.get("red", []))  # 11-07: tiltott alapfunkció / token nélküli unit / néma küldés
+    facts += list(ess.get("facts", []))  # 11-07: ami a képesség-próbán ténylegesen lefutott
+    warnings += list(ess.get("warn", []))
     if st.get("quarantined"):
         problems.append("KARANTÉN — ember oldja fel")
     from fleet.budget import exhausted_line
@@ -104,7 +113,7 @@ def assess(entry: dict, m: dict, st: dict, *, unit_active: str | None,
     if rss:
         facts.append(f"memória: {rss} MB")
     rep = _report(entry["agent"], facts, problems, s, j, warnings)
-    for unk in (claude_unknown, env_check[1]):  # N2: not measurable is not green
+    for unk in [claude_unknown, env_check[1]] + list(ess.get("unknown", [])):  # N2: not measurable is not green
         if not unk:
             continue
         rep["unknown"] = rep["unknown"] + [unk]
@@ -127,6 +136,19 @@ def hook_problems_for(entry: dict) -> list[str]:
     home = signals.claude_home(entry)
     return (hookguard.hook_problems(_workdir(entry)) + hookguard.user_hook_problems(home)
             + hookguard.secrets_gate_problems(home))
+
+
+def essentials_for(entry: dict) -> dict:
+    """11-07: az ágens alapfunkciói a TELEPÍTETT titok-kapun (ha él) + a futásidejű előfeltételek."""
+    from fleet import essentials, essentials_env, titok_telepit
+    home = Path.home()
+    live = (titok_telepit.code_dir(home) / "current" / "titok_kapu.py").is_file()
+    r = essentials.probe([entry], home, gate=live).get(entry["agent"]) or {"red": [], "warn": [], "unknown": []}
+    sent = essentials_env.send_failures(entry, home)
+    from fleet import kepesseg  # 11-07: és le is fut-e (küldés dry-run, todo, állapot, git)
+    cap = kepesseg.check(entry, home)
+    return {**r, "red": r["red"] + ([sent] if sent else []) + cap["red"],
+            "unknown": r["unknown"] + cap["unknown"], "facts": [kepesseg.summary(cap)] if cap["ok"] else []}
 
 
 def doctor(agent: str | None = None, fix: bool = False) -> list[dict]:
@@ -164,8 +186,11 @@ def doctor(agent: str | None = None, fix: bool = False) -> list[dict]:
                      env_check=envjel.check(m["signals"]["process"]["data"].get("pid"))
                      if m["signals"]["process"]["state"] == "up" else (None, None),
                      outward=outward_hold_box.read(_workdir(e)) if e.get("workdir") else None,
-                     bridge_stale=_bridge_stale(e))
+                     bridge_stale=_bridge_stale(e), essentials=essentials_for(e))
         out.append(rep)
+    if agent is None:  # 11-07: a box-sor — riasztási út, kanári-lenyomat, kiadás-lemaradás
+        from fleet import doctor_box
+        out.append(doctor_box.box_facts(Path.home(), host))
     if fix and agent:
         from fleet import reconcile as rc
         # kifejezett operátori parancs: a controller-fájltól függetlenül hajt végre

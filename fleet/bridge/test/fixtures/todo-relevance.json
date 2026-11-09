@@ -1,0 +1,25 @@
+{
+  "_doc": "A todo-ebresztes relevancia-szabalyai (AC 2). A hid es a desktop-hook ugyanazt a kodot futtatja (test/todo-plugin-copy.test.mjs). me = P_ME (handle: thufir).",
+  "me": {"id": "P_ME", "handle": "thufir"},
+  "cases": [
+    {"name": "backlog-tetel kiadva neki", "event": {"kind": "item_issue", "actor_id": "P_KRISZ", "diff": {"dev_id": "P_ME"}}, "task": {"kind": "item", "owner_id": "P_KRISZ", "assignee_id": "P_ME"}, "verb": "kiadta"},
+    {"name": "backlog-tetel masnak kiadva", "event": {"kind": "item_issue", "actor_id": "P_KRISZ", "diff": {"dev_id": "P_KATA"}}, "task": {"kind": "item", "owner_id": "P_ME", "assignee_id": "P_KATA"}, "verb": null},
+    {"name": "uj todo neki letrehozva", "event": {"kind": "created", "actor_id": "P_KRISZ", "diff": {}}, "task": {"kind": "todo", "owner_id": "P_KRISZ", "assignee_id": "P_ME"}, "verb": "kiadta"},
+    {"name": "uj todo, gazda o, felelos nincs (flotta-incidens)", "event": {"kind": "created", "actor_id": "P_FLOTTA", "diff": {}}, "task": {"kind": "todo", "owner_id": "P_ME", "assignee_id": null}, "verb": "kiadta"},
+    {"name": "felelos-csere ra", "event": {"kind": "updated", "actor_id": "P_KRISZ", "diff": {"assignee_id": "P_ME"}}, "task": {"kind": "todo", "owner_id": "P_KRISZ", "assignee_id": "P_ME"}, "verb": "kiadta"},
+    {"name": "puszta mezovaltozas (hatarido) a sajat tetelen", "event": {"kind": "updated", "actor_id": "P_KRISZ", "diff": {"due_date": "2026-11-09"}}, "task": {"kind": "todo", "owner_id": "P_KRISZ", "assignee_id": "P_ME"}, "verb": null},
+    {"name": "AC hozzaadva (mezovaltozas)", "event": {"kind": "ac_added", "actor_id": "P_KRISZ", "diff": {"text": "x"}}, "task": {"kind": "item", "owner_id": "P_KRISZ", "assignee_id": "P_ME"}, "verb": null},
+    {"name": "visszaadta neki (task handback)", "event": {"kind": "handback", "actor_id": "P_KATA", "diff": {"assignee_id": null}}, "task": {"kind": "todo", "owner_id": "P_ME", "assignee_id": null}, "verb": "visszaadta"},
+    {"name": "fejleszto visszaadta a PM-nek (item_handback)", "event": {"kind": "item_handback", "actor_id": "P_KATA", "diff": {}}, "task": {"kind": "item", "owner_id": "P_ME", "assignee_id": null}, "verb": "visszaadta"},
+    {"name": "elutasitva, vissza a fejlesztohoz", "event": {"kind": "item_reject", "actor_id": "P_KRISZ", "diff": {"verdict": "rejected"}}, "task": {"kind": "item", "owner_id": "P_KRISZ", "assignee_id": "P_ME"}, "verb": "visszadobta"},
+    {"name": "elfogadasra var (o a PM)", "event": {"kind": "item_submit", "actor_id": "P_KATA", "diff": {}}, "task": {"kind": "item", "owner_id": "P_ME", "assignee_id": null}, "verb": "elfogadásra küldte"},
+    {"name": "elfogadasra kuldte, de nem o a PM", "event": {"kind": "item_submit", "actor_id": "P_KATA", "diff": {}}, "task": {"kind": "item", "owner_id": "P_KRISZ", "assignee_id": null}, "verb": null},
+    {"name": "megemlitettek kommentben (nem nala a labda)", "event": {"kind": "commented", "actor_id": "P_KATA", "diff": {"body": "@thufir nezd meg"}}, "task": {"kind": "todo", "owner_id": "P_KRISZ", "assignee_id": "P_KATA"}, "verb": "megemlített"},
+    {"name": "email-szeru szoveg nem megemlites", "event": {"kind": "commented", "actor_id": "P_KATA", "diff": {"body": "irj ide: x@thufir"}}, "task": {"kind": "todo", "owner_id": "P_KRISZ", "assignee_id": "P_KATA"}, "verb": null},
+    {"name": "komment, nala a labda", "event": {"kind": "commented", "actor_id": "P_KRISZ", "diff": {"body": "es a masik resze?"}}, "task": {"kind": "todo", "owner_id": "P_KRISZ", "assignee_id": "P_ME"}, "verb": "kommentelt"},
+    {"name": "komment masok kozott (gazda o, labda masnal)", "event": {"kind": "commented", "actor_id": "P_KRISZ", "diff": {"body": "Kata, ez kesz?"}}, "task": {"kind": "todo", "owner_id": "P_ME", "assignee_id": "P_KATA"}, "verb": null},
+    {"name": "sajat komment", "event": {"kind": "commented", "actor_id": "P_ME", "diff": {"body": "@thufir kesz"}}, "task": {"kind": "todo", "owner_id": "P_KRISZ", "assignee_id": "P_ME"}, "verb": null},
+    {"name": "sajat kiadas sajat magának", "event": {"kind": "item_issue", "actor_id": "P_ME", "diff": {"dev_id": "P_ME"}}, "task": {"kind": "item", "owner_id": "P_ME", "assignee_id": "P_ME"}, "verb": null},
+    {"name": "lezarva (completed) nem ebreszt", "event": {"kind": "completed", "actor_id": "P_KRISZ", "diff": {}}, "task": {"kind": "todo", "owner_id": "P_KRISZ", "assignee_id": "P_ME"}, "verb": null}
+  ]
+}

@@ -19,10 +19,10 @@ engine reads for recurring duties.
 
 Needs Node.js 22 or newer and git. No Cloudflare account, no agent. If you already
 have `~/src/mentat` (the engine and the fleet use the same checkout), skip the clone
-and run `git -C ~/src/mentat fetch --tags && git -C ~/src/mentat checkout v0.5.1`.
+and run `git -C ~/src/mentat fetch --tags && git -C ~/src/mentat checkout v0.6.0`.
 
 ```bash
-git clone --depth 1 --branch v0.5.1 https://github.com/lipi4242/mentat ~/src/mentat
+git clone --depth 1 --branch v0.6.0 https://github.com/lipi4242/mentat ~/src/mentat
 cd ~/src/mentat/admin
 npm ci --prefix worker && npm ci --prefix admin     # most of the time
 npm --prefix admin run build                        # the UI the worker serves
@@ -192,8 +192,9 @@ npm run restore -- --local --in ~/mentat-admin-export.json
 
 ## Set up your own instance (Cloudflare account)
 
-**Scripted:** after `cd worker && npx wrangler login`, one command does
-steps 2 to 8 below:
+After `cd worker && npx wrangler login`, one command sets up the whole
+instance: D1 database, Pages project, instance file, schema, worker deploy,
+worker secrets, the admin's API origin and the admin deploy:
 
 ```bash
 npm run instance:create -- --name acme --title "Acme Admin" \
@@ -214,31 +215,13 @@ from `pbpaste`. Then, optionally, the todo principals:
 (shape: `{"humans":[{"email":"…","name":"…"}],"agents":[{"name":"<token label>"}]}`;
 an agent needs a live `todo:write` token with that label; rerunning is safe).
 
-**By hand:**
-
-1. **Log in:** `cd worker && npx wrangler login`.
-2. **D1 database:** `npx wrangler d1 create mentat-admin-db`, and note the
-   `database_id` it prints.
-3. **Instance file:** `mkdir -p ~/.config/mentat-admin && cp ../config/instance.example.json ~/.config/mentat-admin/instance.json`,
-   then fill in: `title`, `cloudflare.account_id` (`npx wrangler whoami`),
-   `worker.database_id`, `worker.vars` (`ALLOWED_ORIGINS` = your admin
-   origin(s), `ADMIN_EMAILS` = who may sign in, `OTP_SENDER` = a mailbox on a
-   domain verified in Resend, `SITE_URL` = linked in the mail footer), and
-   `admin.pages_project`.
-4. **Schema:** `npm run migrate:remote` (renders the config, applies
-   `worker/migrations` to the remote D1).
-5. **Worker secrets:**
-   `npx wrangler secret put BETTER_AUTH_SECRET --config ../config/rendered/wrangler.toml`
-   (a long random string), likewise `BETTER_AUTH_URL` (the public origin the
-   admin is served from) and `RESEND_API_KEY`.
-6. **Deploy the worker:** `npm run deploy`. Note its `*.workers.dev` URL.
-7. **Pages project + API origin:** `npx wrangler pages project create <pages_project> --production-branch=main`,
-   then `npx wrangler pages secret put API_ORIGIN --project-name=<pages_project>`
-   with the worker URL from step 6.
-8. **Deploy the admin:** `cd ../admin && npm run deploy` (render → build →
-   `wrangler pages deploy`).
-9. **Agent token** (optional): `cd ../worker && npm run connect -- --repo <agent-repo> --url <admin-url> --remote`
-   (or `npm run mint-token -- --agent <name> --scope cases:write --remote`; see *Agent tokens* above).
+**If the command does not run:** `npm run instance:create -- … --dry-run`
+prints the same steps in order, each with the `wrangler` command it runs
+(`worker/scripts/lib/instance-steps.mjs`); do them by hand in that order. The
+secrets (`BETTER_AUTH_SECRET`, a long random string; `BETTER_AUTH_URL`, the
+admin's public origin; `RESEND_API_KEY`) go in with
+`npx wrangler secret put <NAME> --config ../config/rendered/wrangler.toml`,
+which reads the value from the prompt, never from argv.
 
 The worker always deploys before the admin, because the admin calls the worker's API.
 

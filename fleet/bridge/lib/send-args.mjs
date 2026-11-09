@@ -15,6 +15,7 @@ export const USAGE =
   "         (caption max 1024 karakter, plain text; fajl max 10 MB; nem kombinalhato szoveggel/--react-tel)\n" +
   "  hosszu uzenetnel: --why \"<egy mondat, miert kell ennyi>\"\n" +
   "  formazott uzenet: --html (csak a Telegram engedte tagek: b i u s code pre a blockquote tg-spoiler)\n" +
+  "  --dry-run: minden elofeltetel (token, chat, kapcsolok, kapu, naplo) Telegram-hivas nelkul; semmi nem megy ki\n" +
   "  --instance <id>: ELAVULT, figyelmen kivul hagyva\n" +
   "  a -- utan minden szo szerint szoveg (kapcsolonak latszo szo is)\n" +
   "  4096 feletti plain text automatikusan (i/n) darabokra bomlik; --html 4096 felett exit 4\n" +
@@ -25,7 +26,7 @@ export const USAGE =
   "64 ismeretlen kapcsolo (SEMMI nem ment ki)";
 
 const KNOWN_VALUE = new Set(["--chat", "--reply-to", "--react", "--message", "--why", "--instance", "--photo", "--caption"]);
-const KNOWN_FLAG = new Set(["--text-stdin", "--html", "--caption-stdin"]);
+const KNOWN_FLAG = new Set(["--text-stdin", "--html", "--caption-stdin", "--dry-run"]);
 
 const positiveInt = (flag, v) => {
   const n = /^\d+$/.test(String(v).trim()) ? Number(v) : NaN;
@@ -45,6 +46,7 @@ export function parseArgs(argv) {
     if (a === "--") { rest.push(...argv.slice(i + 1)); break; } // utana: SZOVEG, szo szerint
     if (KNOWN_FLAG.has(a)) {
       if (a === "--caption-stdin") out.captionStdin = true; // photo-mezok CSAK hasznalatkor (a regi alak valtozatlan)
+      else if (a === "--dry-run") out.dryRun = true; // ez is csak hasznalatkor kerul a kimenetbe
       else out[a === "--html" ? "html" : "textStdin"] = true;
       continue;
     }

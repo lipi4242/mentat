@@ -20,6 +20,10 @@ HEAD = {
     "hu": ["Meta", "A) Elfogadási feltételek", "B) Tesztek", "C) Review", "D) Kapuk", "E) Verdikt",
            "F) Csatolmányok"],
 }
+META_HINT = {
+    "en": "head_sha: the commit, 7-40 hex · pr: a full http(s) URL, one per line, or leave it empty",
+    "hu": "head_sha: a commit, 7-40 hexa jegy · pr: teljes http(s) URL, soronként egy, vagy hagyd üresen",
+}
 HINT = {
     "en": ["which test covers which AC, the command and its result; does the test really assert the AC?",
            "the load-bearing claims, challenged; each finding and how it was resolved",
@@ -45,7 +49,8 @@ def render(item: dict[str, Any], lang: str = "en") -> str:
     h, hint = HEAD.get(lang, HEAD["en"]), HINT.get(lang, HINT["en"])
     out = [f"# {item.get('key') or item['id']}: {item.get('title', '')}",
            f"<!-- mentat:ac-form item={item['id']} round={next_round(item)} -->", "",
-           f"## {h[0]}", "- summary: ", "- head_sha: ", "- pr: ", "", f"## {h[1]}"]
+           f"## {h[0]}", f"<!-- {META_HINT.get(lang, META_HINT['en'])} -->",
+           "- summary: ", "- head_sha: ", "- pr: ", "", f"## {h[1]}"]
     for ac in item.get("acs") or []:
         out += ["", f"### AC {ac['id']}", "> " + str(ac["text"]).replace("\n", "\n> "),
                 "- verdict: " + " | ".join(VERDICTS), "- evidence: "]
@@ -140,5 +145,6 @@ def parse(text: str) -> dict[str, Any]:
     body = "\n\n".join(re.sub(r"<!--.*?-->", "", sec[k], flags=re.S).strip()
                        for k in "BCDF" if k in sec)
     return {"item": m.group(1), "round": int(m.group(2)), "results": _results(sec.get("A", "")),
-            "summary": " ".join(meta.get("summary", [])), "head_sha": (meta.get("head_sha") or [None])[0],
+            "summary": " ".join(meta.get("summary", [])),
+            "head_sha": ((meta.get("head_sha") or [None])[0] or "").lower() or None,
             "prs": meta.get("pr", []), "body": body or None}

@@ -47,8 +47,22 @@ class TestMentatTodoBin(unittest.TestCase):
 
     def test_no_identity_is_refused(self):
         r = self.run_bin("me")
-        self.assertEqual(r.returncode, 2)
-        self.assertIn("FLEET_AGENT", r.stderr)
+        self.assertNotEqual(r.returncode, 0)
+        self.assertIn("FLEET_AGENT", r.stderr)      # a hibaüzenet megnevezi a lehetőségeket
+        self.assertIn("todo_handle", r.stderr)
+
+    def test_desktop_handle_comes_from_the_repo_manifest(self):
+        # asztali gép: nincs FLEET_AGENT, nincs --as; a repó mentat.json-ja adja a handle-t,
+        # a ~/.config/todo az api-t és a tokent (box–asztal paritás, 11-08)
+        repo = Path(self.tmp.name) / "repo"
+        repo.mkdir()
+        (repo / "mentat.json").write_text('{"schema": 1, "components": {"engine": {"todo_handle": "minta"}}}')
+        e = {"PATH": os.environ["PATH"], "HOME": self.tmp.name, "XDG_CONFIG_HOME": self.tmp.name}
+        r = subprocess.run(["sh", str(BIN), "me"], capture_output=True, text=True, env=e, cwd=repo)
+        self.assertNotIn("mentat-todo:", r.stderr)
+        self.assertNotIn("not configured", r.stderr)
+        self.assertNotIn("token", r.stderr.lower())
+        self.assertIn("unreachable", r.stderr)          # a (szándékosan zárt) API-ig jutott
 
     def test_a_stale_engine_in_the_cwd_does_not_shadow_the_checkout(self):
         stale = Path(self.tmp.name) / "anytime_engine"

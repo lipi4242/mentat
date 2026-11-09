@@ -1,6 +1,7 @@
 # templates/agent.service.tmpl — a Mentat fleet által renderelt ágens-unit.
 # Ne szerkeszd a telepített példányt: `fleet install <agent>` felülírja.
-# Az env-fájl betöltése ŐRZÖTT (`if [ -r … ]`): a /bin/sh (dash) a hiányzó
+# Az env-fájlok (registry `env_files`/`env_file`; hidas ágensnél ELSŐként a híd telegram.env-je,
+# 11-07: így a send.mjs tokenje mindig a unit env-jéből jön) betöltése ŐRZÖTT (`if [ -r … ]`): a /bin/sh (dash) a hiányzó
 # fájl `.`-jára azonnal kilép, a 2>/dev/null pedig elnyelte az üzenetet —
 # egy friss boxon a claude így el sem indult, nyom nélkül.
 # A claude-auth.env (0600) az ágens Claude-tokenje (CLAUDE_CODE_OAUTH_TOKEN): külön
@@ -22,8 +23,8 @@ RemainAfterExit=yes
 Environment=CLAUDE_CODE_AUTO_COMPACT_WINDOW=500000
 Environment=PATH=%h/.bun/bin:%h/.local/bin:/usr/local/bin:/usr/bin:/bin
 @@ACCOUNT_ENV@@UnsetEnvironment=ANTHROPIC_API_KEY CLAUDE_API_KEY
-EnvironmentFile=-@@ENV_FILE@@
-@@EXECSTARTPRE@@ExecStart=/usr/bin/tmux new-session -d -s @@SESSION@@ -c @@WORKDIR@@ /bin/sh -c 'set -a; if [ -r @@ENV_FILE@@ ]; then . @@ENV_FILE@@; fi; if [ -r %h/.config/@@AGENT@@/claude-auth.env ]; then . %h/.config/@@AGENT@@/claude-auth.env; fi; if [ -r @@WORKDIR@@/.mentat/model.env ]; then . @@WORKDIR@@/.mentat/model.env; fi; set +a; m=@@MODEL@@; if [ -n "$MENTAT_MODEL" ]; then m="$MENTAT_MODEL"; fi; unset ANTHROPIC_API_KEY CLAUDE_API_KEY; @@ACCOUNT_SHELL@@ export FLEET_AGENT=@@AGENT@@; sid=$(cat %h/.config/@@AGENT@@/session.id 2>/dev/null); if [ -n "$sid" ] && ls %h/.claude/projects/*/"$sid".jsonl >/dev/null 2>&1; then %h/.local/bin/claude @@FLAGS@@ --model "$m" --resume "$sid" || exec %h/.local/bin/claude @@FLAGS@@ --model "$m"; else exec %h/.local/bin/claude @@FLAGS@@ --model "$m"; fi'
+@@ENV_FILE_LINES@@
+@@EXECSTARTPRE@@ExecStart=/usr/bin/tmux new-session -d -s @@SESSION@@ -c @@WORKDIR@@ /bin/sh -c 'set -a; @@ENV_FILE_SOURCES@@ if [ -r %h/.config/@@AGENT@@/claude-auth.env ]; then . %h/.config/@@AGENT@@/claude-auth.env; fi; if [ -r @@WORKDIR@@/.mentat/model.env ]; then . @@WORKDIR@@/.mentat/model.env; fi; set +a; m=@@MODEL@@; if [ -n "$MENTAT_MODEL" ]; then m="$MENTAT_MODEL"; fi; unset ANTHROPIC_API_KEY CLAUDE_API_KEY; @@ACCOUNT_SHELL@@ export FLEET_AGENT=@@AGENT@@; sid=$(cat %h/.config/@@AGENT@@/session.id 2>/dev/null); if [ -n "$sid" ] && ls %h/.claude/projects/*/"$sid".jsonl >/dev/null 2>&1; then %h/.local/bin/claude @@FLAGS@@ --model "$m" --resume "$sid" || exec %h/.local/bin/claude @@FLAGS@@ --model "$m"; else exec %h/.local/bin/claude @@FLAGS@@ --model "$m"; fi'
 @@EXECSTARTPOST@@ExecStop=/usr/bin/tmux kill-session -t =@@SESSION@@
 
 [Install]

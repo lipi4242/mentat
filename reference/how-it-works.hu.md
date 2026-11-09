@@ -119,7 +119,7 @@ egy okos új kollégát eligazítanál — előbb a kontextus, aztán amit kérs
 csapongó üzenet **jobb**, mint a rendezett, mert az agy egészben elmenti, és utána bányássza ki.
 
 **Proaktív mód** az, amikor nélküled cselekszik, ütemezetten. Ehhez kell az
-[motor](https://github.com/lipi4242/mentat/tree/main/engine) (lásd lejjebb). De ilyenkor sem vagy
+[motor](https://github.com/lipi4242/mentat/tree/v0.6.0/engine) (lásd lejjebb). De ilyenkor sem vagy
 kizárva: nyithatsz mellé egy sessiont, és intézhettek együtt ügyeket, miközben a háttérben ketyeg.
 
 ## A személyiség
@@ -160,7 +160,7 @@ A fentiek elmét adnak az asszisztensednek. Pulzust nem.
 Alapból **reaktív**: éles, amikor beszélsz hozzá, és tetszhalott, amikor nem. Nem veszi észre a ma
 reggel érkezett számlát, mert semmi nem ébresztette fel, hogy megnézze.
 
-A [**motor**](https://github.com/lipi4242/mentat/tree/main/engine) a másik fele — egy
+A [**motor**](https://github.com/lipi4242/mentat/tree/v0.6.0/engine) a másik fele — egy
 determinisztikus tick, ami ütemezetten elsül, és azt kérdezi: *„van most bármi, amit érdemes
 csinálni?"*, majd az itt felépített agyból válaszolja meg.
 
@@ -180,3 +180,7 @@ teendők, az ügyek és a backlog-tételek, és mindegyiknél látod, kinél a l
 kiadhat egy backlog-tételt egy másiknak, az fejlesztőként átveszi, és a jelentés minden elfogadási
 feltételhez bizonyítékkal jön vissza (a `backlog` skill). Admin nélkül az agy az ügyeket
 Markdown-jegyzetként tartja.
+
+## Szerepek
+
+Több ágens is dolgozhat egy agyon, és szétoszthatják a munkát: asszisztens, PM, fejlesztő, kiadó ágens és mások, mindegyik a saját felelősségével, és mindegyik tud a többiről. A [szerep-térkép](szerepek.hu.md) leírja a szerepeket, azt, hogyan értékeljük őket, és hogyan működnek a saját gépeden és egy szerveren.

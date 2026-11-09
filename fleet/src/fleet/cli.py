@@ -32,6 +32,8 @@ def cmd_validate(_a) -> int:
     from fleet.validate import validate
     rdir = registry_dir()
     n, problems = validate(rdir)
+    from fleet.managers_cli import validate_problems   # flotta-menedzser: a registry melletti managers.json is
+    problems = problems + validate_problems(rdir)
     for p in problems:
         print(p)
     print(f"validate: {rdir}: {n} ágens, {len(problems)} probléma")
@@ -46,9 +48,24 @@ def cmd_render(a) -> int:
 
 def cmd_install(a) -> int:
     from fleet.install_flow import install_agent, format_install
+    if getattr(a, "dry_run", False):
+        return _install_dry_run(_entry_or_die(a.agent))
     r = install_agent(_entry_or_die(a.agent))
     _print(r) if a.json else print(format_install(r))
     return {"ok": 0, "pending": 3}.get(r["status"], 1)
+
+
+def _install_dry_run(entry: dict) -> int:
+    """11-07: mit írna át a unitban (diff a telepítetthez) — semmit nem ír, nem indít újra."""
+    import difflib
+    from fleet.install import UNIT_DIR, unit_text_for
+    new = unit_text_for(entry)
+    cur = Path(UNIT_DIR) / entry["unit"]
+    old = cur.read_text() if cur.exists() else ""
+    diff = list(difflib.unified_diff(old.splitlines(), new.splitlines(), str(cur), "új", lineterm=""))
+    print("\n".join(diff) if diff else f"{cur}: nincs változás")
+    print(f"--dry-run: semmi nem íródott; élesben a unit cseréje + újraindítás ({entry['agent']})")
+    return 0
 
 
 def cmd_preflight(a) -> int:
@@ -275,7 +292,7 @@ def build_parser() -> argparse.ArgumentParser:
     x = cs.add_parser("find"); x.add_argument("--as", dest="as_agent", required=True); x.add_argument("--json", action="store_true")
     x.add_argument("query"); x.set_defaults(fn=cmd_capabilities)
     x = sub.add_parser("render", help="unit szövege a registryből"); x.add_argument("agent"); x.set_defaults(fn=cmd_render)
-    x = sub.add_parser("install", help="unit + felügyelet telepítése, indítás, postcheck (0 kész · 3 függő · 1 hiba, visszaállítva)"); x.add_argument("agent"); x.add_argument("--json", action="store_true"); x.set_defaults(fn=cmd_install)
+    x = sub.add_parser("install", help="unit + felügyelet telepítése, indítás, postcheck (0 kész · 3 függő · 1 hiba, visszaállítva). Mellékhatás: az ágens unitját cseréli és ÚJRAINDÍTJA"); x.add_argument("agent"); x.add_argument("--json", action="store_true"); x.add_argument("--dry-run", action="store_true", help="csak a unit-diff, semmit nem ír"); x.set_defaults(fn=cmd_install)
     x = sub.add_parser("preflight", help="telepíthető-e a repó"); x.add_argument("agent"); x.set_defaults(fn=cmd_preflight)
 
     b = sub.add_parser("bridge", help="Telegram-híd"); bs = b.add_subparsers(dest="sub", required=True)
@@ -289,6 +306,9 @@ def build_parser() -> argparse.ArgumentParser:
 
     x = sub.add_parser("roster", help="ki van a flottában, mi fut"); x.add_argument("--host"); x.add_argument("--no-probe", action="store_true"); x.add_argument("--json", action="store_true"); x.set_defaults(fn=cmd_roster)
     x = sub.add_parser("doctor", help="a négy jel ágensenként"); x.add_argument("agent", nargs="?"); x.add_argument("--fix", action="store_true"); x.add_argument("--json", action="store_true"); x.set_defaults(fn=cmd_doctor)
+    x = sub.add_parser("canary", help="felhasználói hookok/pluginok kanári-rögzítése (11-07)"); cs2 = x.add_subparsers(dest="sub", required=True)
+    from fleet.kanari import cmd_record
+    x = cs2.add_parser("record", help="a box ágenseinek alapfunkció-próbája gyökerenként; zöld gyökér lenyomata rögzítve (kézi változás után)"); x.add_argument("--force", action="store_true", help="piros gyökeret is rögzít"); x.set_defaults(fn=cmd_record)
     x = sub.add_parser("postcheck", help="restart utáni ellenőrzés"); x.add_argument("agent"); x.add_argument("--wait", type=int, default=90); x.set_defaults(fn=cmd_postcheck)
     x = sub.add_parser("reconcile", help="kívánt állapot érvényesítése (timer)"); x.add_argument("--observe", action="store_true"); x.add_argument("--agent"); x.add_argument("--fast", action="store_true", help="gyors út: csak a megerősítetten leállt processzt indítja (30 mp-es timer)"); x.set_defaults(fn=cmd_reconcile)
 
@@ -309,6 +329,12 @@ def build_parser() -> argparse.ArgumentParser:
     plugin_install.add_parser(sub)
     from fleet import box_upgrade   # a box egy parancsos frissítése egy tagre (#12, 2026-11-07)
     box_upgrade.add_parser(sub)
+    from fleet import tick_gate_cli   # tick-kapu, precheck, wake (tick-kapu, 2026-11-08)
+    tick_gate_cli.add_parser(sub)
+    from fleet import flotta_now   # paritás: a saját gép sessionje jelent (nincs timer)
+    flotta_now.add_parser(sub)
+    from fleet import incident_cli, managers_cli, repair_exec   # flotta-menedzser szerep (flotta-menedzser, 2026-11-08)
+    managers_cli.add_parser(sub); incident_cli.add_parser(sub); repair_exec.add_parser(sub)
     return p
 
 

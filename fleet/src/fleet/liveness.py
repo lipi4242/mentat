@@ -13,17 +13,16 @@ Three jobs, all driven by `deploy/agents.json` so a new agent gets them free.
 **1. Transcript heartbeat.** `entry.py` refreshes the heartbeat at the START of a
 tick. During a LONG piece of work the /loop is busy, no tick runs, and after
 `staleness_min` the supervisor would kill an agent that is working perfectly
-well — an observed restart spiral in production. That threshold is derived from
-the agent's own `tick_period_s` with a 90-minute floor
-(`watchdog.staleness_min_for`), so it is never shorter than 90. The honest
-liveness signal is whether the session is writing to its transcript: a working
-agent writes continuously. So: if the transcript is fresh, touch the heartbeat.
+well — an observed restart spiral in production. (That supervisor was the old
+watchdog, with a 90-minute floor; it was removed (11-08), and the reconcile
+now judges staleness from the agent's own `tick_period_s` × `TICK_STALE_FACTOR`
+in `signals.schedule_verdict`.) The honest liveness signal is whether the
+session is writing to its transcript: a working agent writes continuously.
 
 The freshness window matters in both directions. Too long and we vouch for a
 hung session; too short and a genuinely busy agent still gets killed. 10 minutes
-sits inside the watchdog's 90-minute floor — an agent silent for 10 minutes is
-not yet declared dead, it just stops being vouched for, and the watchdog's own
-threshold decides.
+is well inside the tick-derived staleness threshold of the default 30-minute
+period (45 minutes); only a period under 400 s has a shorter threshold.
 
 **2. OOM protection.** The box has 3.8G shared by 5+ Claude agents plus
 CI-weight gate builds. Measured 2026-08-03: most agent processes sat at
@@ -69,8 +68,8 @@ from pathlib import Path
 
 
 #: How stale a transcript may be and still count as "this agent is alive".
-#: Deliberately well inside the watchdog's 90-minute floor — the threshold
-#: itself is derived (`watchdog.staleness_min_for`) but never falls below it.
+#: Well inside the tick-derived staleness threshold of the default period
+#: (`signals.schedule_verdict`: period × TICK_STALE_FACTOR = 45 min at 1800 s).
 TRANSCRIPT_FRESH_S = 600
 
 #: Linux OOM adjustment for an agent process. Negative = protect.
@@ -160,6 +159,8 @@ def rearm_reason(entry: dict, m: dict) -> str | None:
     """Pure: a liveness tick-őre (korábban külön timeren futott). Él, de
     nem tickel, és tétlen → a loop-parancs újraküldése. A küszöbök az ágens
     saját periódusából (should_rearm)."""
+    if entry.get("tick_gate"):
+        return None   # tick-kapu: a tick-kapu ütemez; a loop-parancs újraküldése kettős ütemet adna
     period = float(entry.get("tick_period_s") or DEFAULT_TICK_PERIOD_S)
     tick_age = (m["signals"]["schedule"].get("data") or {}).get("tick_age_s")
     if not should_rearm(transcript_age_s=m.get("transcript_age_s"), tick_age_s=tick_age,

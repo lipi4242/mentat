@@ -3,7 +3,9 @@ hogy minden ágens-session megkapja — a fogadó is, és az is, amelyikben ninc
 
     install(home) -> [jegyzet]   kód → ~/.mentat/bin/titok-kapu/<sha12>/ (0444/0555) + `current` symlink;
                                  PreToolUse-bejegyzés (onFailure: block) minden ~/.claude*/settings.json-ba
-                                 (és a $CLAUDE_CONFIG_DIR-be); mentés: settings.json.bak-titok-<bélyeg>
+                                 (és a $CLAUDE_CONFIG_DIR-be); mentés: settings.json.bak-titok-<bélyeg>.
+                                 Előtte az ágensek essentials-próbája és kanári (titok_kanari.py, 11-07):
+                                 piros ágensnél nem ír semmit. CSAK a `fleet secrets hook install` hívja.
     selftest(home) -> [hiba]     a telepített hook futtatása: egy ártalmatlan Bash-hívás nem akadhat meg,
                                  egy kulcsfájl-olvasás nem mehet át (CISO Q5); az install hibával áll le
     problems(claude_home, home) -> [probléma]   a doctor-nak (hookguard.secrets_gate_problems)
@@ -140,7 +142,10 @@ def selftest(home: Path, code: Path | None = None) -> list[str]:
     return errs
 
 
-def install(home: Path | None = None) -> list[str]:
+def install(home: Path | None = None, agents: list[dict] | None = None, force: bool = False,
+            dry_run: bool = False) -> list[str]:
+    """`agents`: a próbált ágensek (None = a registry ezen a boxon); `force`: piros essentials mellett is."""
+    from fleet import essentials, titok_kanari as K
     home = Path(home or Path.home())
     src = source()
     if src is None:
@@ -150,8 +155,10 @@ def install(home: Path | None = None) -> list[str]:
     errs = selftest(home, code_dir(home) / sha)
     if errs:  # a hibás kód nem lesz `current`, és a beállításokba sem kerül: minden ágenst kizárna
         raise SelfTestFailed("titok-kapu önteszt HIBÁS, nem telepítem: " + "; ".join(errs))
-    _switch(home, sha)
-    notes = [n for n in (_register(r, home, stamp) for r in roots(home)) if n]
+    try:  # 11-07: essentials-próba a jelölt kódon, kanári-gyökér, csak utána a többi
+        notes = K.rollout(home, sha, stamp, essentials.local_agents() if agents is None else agents, force, dry_run)
+    except K.Refused as e:
+        raise SelfTestFailed(str(e)) from None
     return notes + [f"titok-kapu kód: {code_dir(home) / sha} ({len(roots(home))} Claude-gyökér, önteszt rendben)"]
 
 

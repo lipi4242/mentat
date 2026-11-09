@@ -21,8 +21,11 @@ REL = Path(__file__).resolve().parent.parent
 class TestReadmePinned(unittest.TestCase):
     def test_every_install_clone_names_the_release_tag(self):
         init = REL / "src" / "anytime_engine" / "__init__.py"
-        if not ((REL / "release.json").is_file() and (REL / "README.md").is_file() and init.is_file()):
-            self.skipTest("an installed engine (sync-to.sh) carries no release.json / README.md")
+        # sync-to.sh itself marks the source tree (dev engine/release/, public engine/): an
+        # installed copy carries neither it nor README.md. Not release.json: the dev copy of it
+        # was stale (0.4.0) and goes away; the public engine/ never shipped one.
+        if not ((REL / "sync-to.sh").is_file() and (REL / "README.md").is_file() and init.is_file()):
+            self.skipTest("an installed engine (sync-to.sh) carries no sync-to.sh / README.md")
         version = re.search(r'^__version__ = "([^"]+)"', init.read_text(encoding="utf-8"), re.M).group(1)
         text = (REL / "README.md").read_text(encoding="utf-8")
         clones = re.findall(r"git clone [^\n]*github\.com/lipi4242/mentat ~/src/mentat", text)

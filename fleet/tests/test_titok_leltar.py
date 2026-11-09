@@ -60,7 +60,8 @@ class Scan(unittest.TestCase):
         self.assertEqual((sa["class"], sa["private_key"]), ("json", True))
         self.assertIn("client_email", sa["fields"])
         self.assertEqual(self.by["id_ed25519"]["pem"], ["OPENSSH PRIVATE KEY"])
-        self.assertEqual(self.by["adat.bin"]["class"], "ismeretlen")  # 0600 → leltárba kerül
+        self.assertNotIn("adat.bin", self.by)  # 11-07: 0600 bizonyíték nélkül: átnézendő, nem titok
+        self.assertIn("adat.bin", [Path(f["path"]).name for f in self.inv["review"]])
 
     def test_minden_hely(self):
         for name in ("szervezo.env.bak-hid-20261029-000000", ".credentials.json", "connect.json", "bridge.env"):
@@ -112,7 +113,9 @@ class Cli(unittest.TestCase):
         self.assertIn("SZ_TOKEN", out.getvalue())
         self.assertNotIn(FAKE, out.getvalue() + err.getvalue())
         self.assertTrue((home / ".mentat/titkok/leltar.json").is_file())
-        self.assertIn("titok-kapu", (home / ".claude-szervezo/settings.json").read_text())
+        # 11-07: a scan a kaput NEM telepíti (régen minden Claude-gyökérbe beírta)
+        self.assertFalse((home / ".claude-szervezo/settings.json").exists())
+        self.assertIn("hook install", err.getvalue())
 
 
 if __name__ == "__main__":

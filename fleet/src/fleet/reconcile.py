@@ -209,6 +209,12 @@ def _unit_active(unit: str) -> bool | None:
     return None
 
 
+def _env_paths(entry: dict) -> list[Path]:
+    """A riasztás a unit összes env-fájlját látja (11-07: az agent.env-es ágens tokenje a telegram.env-ben)."""
+    from fleet.registry import env_files
+    return [Path.home() / ".config" / entry["agent"] / f for f in env_files(entry)]
+
+
 def _may_act(entry: dict, log) -> bool:
     """Közvetlenül a beavatkozás előtt: tulajdonjog, zár, karantén újra."""
     a = entry["agent"]
@@ -227,14 +233,30 @@ def _may_act(entry: dict, log) -> bool:
 
 def _record_postcheck(entry: dict, st: dict, r: dict, *, log) -> None:
     a = entry["agent"]
-    env_file = Path.home() / ".config" / a / entry["env_file"]
+    env_file = _env_paths(entry)
     if r["status"] == OK:
         st["failed_postchecks"] = 0
         st["pending_postcheck"] = None
         alerts.clear(f"rc:{a}")
+        alerts.clear(f"kepesseg:{a}:")
         log(f"{a}: postcheck OK")
+        try:  # 11-07: a postcheck a képességet is mérte — a központ a következő körben zöldet lát
+            from fleet import flotta_report, kepesseg_riaszt
+            kepesseg_riaszt.record(a, [])
+            if flotta_report.config() is not None:
+                flotta_report.force()
+        except OSError as e:
+            log(f"{a}: képesség-állapot nem írható ({type(e).__name__})")
     elif r["status"] == PENDING:
         log(f"{a}: postcheck PENDING — {'; '.join(r['pending'])}")
+    elif r.get("capability_only"):
+        # 11-07: él, de nem tud küldeni/todózni/gitezni — restart ezen nem segít, karantén sem;
+        # a riasztás a beteg csatornától független úton megy: a központi flotta-ellenőrzésbe
+        # (11-07), annak hiányában a fájl-tartalékba — a saját hídján soha
+        st["pending_postcheck"] = None
+        log(f"{a}: postcheck KÉPESSÉG-HIBA: {'; '.join(r['problems'])}")
+        from fleet import kepesseg_riaszt
+        log(f"{a}: riasztás [{kepesseg_riaszt.alert_red(a, r['problems'])}] képesség")
     else:
         st["failed_postchecks"] = st.get("failed_postchecks", 0) + 1
         st["pending_postcheck"] = None
@@ -250,7 +272,7 @@ def execute(entry: dict, action: str, m: dict, st: dict, *, now: float, log,
             sysctl=_sysctl, run=subprocess.run, do_postcheck=postcheck) -> None:
     a = entry["agent"]; unit = entry["unit"]
     bridge_unit = (entry.get("bridge") or {}).get("unit")
-    env_file = Path.home() / ".config" / a / entry["env_file"]
+    env_file = _env_paths(entry)
     if action.startswith("alert:"):
         key = action[len("alert:"):]
         res = alerts.alert(key, m.get("_reason", key), agent_env_file=env_file)
@@ -340,7 +362,7 @@ def reconcile(*, observe: bool = False, only: str | None = None, now: float | No
             log(msg + ("" if acting else " (nem riasztok: megfigyelés)"))
             if acting:
                 alerts.alert(f"dup:{fe['agent']}:{host}", msg,
-                             agent_env_file=Path.home() / ".config" / fe["agent"] / fe["env_file"])
+                             agent_env_file=_env_paths(fe))
         for e in agents_for_host(host or "", all_agents):
             if only and e["agent"] != only:
                 continue
@@ -389,6 +411,12 @@ def main() -> int:
                 print("képességfa: begyűjtve")
         except Exception as e:  # noqa: BLE001
             print("képességfa: a begyűjtés hibája (%s)" % type(e).__name__)
+        try:  # 11-07: alapfunkció-próba ágensenként, jelentés a központi flotta-ellenőrzésnek
+            from fleet import kepesseg_riaszt
+            for line in kepesseg_riaszt.sweep():
+                print(line)
+        except Exception as e:  # noqa: BLE001
+            print("képesség-próba: hiba (%s)" % type(e).__name__)
     return 0
 
 

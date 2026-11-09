@@ -30,12 +30,13 @@ import { initOffset, pollForever } from "./lib/poll.mjs";
 import { holdTokenLockOrExit } from "./lib/token-lock-guard.mjs";
 import { createWebhookWire } from "./lib/webhook-wire.mjs";
 import { createReceiptWire } from "./lib/receipt-wire.mjs";
+import { createTodoWire } from "./lib/todo-wire.mjs";
 
 const log = (...a) => console.log(new Date().toISOString(), "[bridge]", ...a);
 
 // Wiring: a CFG-bol felepiti a hid alkatreszeit. Kulon fuggveny, hogy a
 // modul importja ne inditson semmit (tesztek, `node --check`).
-// deps.webhookPost / deps.webhookCa: csak tesztnek (a webhook-POST helyettesitese, sajat CA).
+// deps.webhookPost / deps.webhookCa / deps.todoFetch: csak tesztnek (a halozat helyettesitese, sajat CA).
 export function createBridge(CFG, deps = {}) {
   const { tg, fileApi } = createTelegram(CFG.token, CFG.telegramApi);
   // A felirat CFG.agentLabel: tobb hid eseten mindegyik a sajat neveben szol.
@@ -69,6 +70,9 @@ export function createBridge(CFG, deps = {}) {
   const mediaQueue = new MediaQueue(CFG.mediaQueueFile,
     (item) => albums.handleMedia(item.msg, item.media, item.updateId), { onCorrupt });
   const webhook = createWebhookWire(CFG, { post: deps.webhookPost, ca: deps.webhookCa, tg, log, onCorrupt });
+  const logInbound = createInboundLogger({ inboxDir: CFG.inboxDir, healthFile: CFG.healthFile, log });
+  // Todo-ebresztes: a todo-esemenyek ugyanazon a kezbesitesi uton mennek, mint a Telegram.
+  const todo = createTodoWire(CFG, { deliver: delivery.deliver, logInbound, log, alert, onCorrupt, fetchFn: deps.todoFetch });
   const botIdentity = { username: "", id: 0 };
   const handlers = createHandlers({
     groupId: CFG.groupId, allowIds: CFG.allowIds, requireMention: CFG.requireMention,
@@ -77,7 +81,7 @@ export function createBridge(CFG, deps = {}) {
       mediaQueue.enqueue(item);
       mediaQueue.drain().catch(() => {});
     },
-    logInbound: createInboundLogger({ inboxDir: CFG.inboxDir, healthFile: CFG.healthFile, log }),
+    logInbound,
     log, onApprovalCandidate: webhook.onApprovalCandidate,
   });
   const processUpdate = (upd) => {
@@ -86,7 +90,7 @@ export function createBridge(CFG, deps = {}) {
     handlers.handleMessage(upd.edited_message, { edited: true, updateId: upd.update_id });
     handlers.handleReaction(upd.message_reaction);
   };
-  return { tg, alert, onCorrupt, delivery, albums, mediaQueue, botIdentity, handlers, processUpdate, webhook, receipts };
+  return { tg, alert, onCorrupt, delivery, albums, mediaQueue, botIdentity, handlers, processUpdate, webhook, receipts, todo };
 }
 
 async function main() {
@@ -100,7 +104,7 @@ async function main() {
   // Egy tokenre EGY poller (H5) — MINDEN halozati hivas elott; foglalt: exit 75.
   holdTokenLockOrExit({ lockDir: CFG.lockDir, token: CFG.token, checkMs: CFG.lockCheckMs });
   const b = createBridge(CFG);
-  log(`starting. session=${CFG.session} group=${CFG.groupId} allow=${CFG.allowIds.join(",")} inbox=${CFG.inboxDir} ${b.webhook.summary}`);
+  log(`starting. session=${CFG.session} group=${CFG.groupId} allow=${CFG.allowIds.join(",")} inbox=${CFG.inboxDir} ${b.webhook.summary} ${b.todo.summary}`);
   // A getMe valaszat VALIDALJUK: enelkul requireMention=true mellett a hid
   // MINDEN csoport-uzenetet nemán eldobna. Nincs degradalt mod — a systemd visszahoz.
   const me = await b.tg("getMe", {}).catch((e) => ({ body: { ok: false, error: e.message } }));
@@ -133,13 +137,14 @@ async function main() {
   b.mediaQueue.drain().catch((e) => log("media queue error:", e.message));
   b.webhook.start(); // a felbemaradt webhook-sor induláskor folytatodik
   b.receipts.start(); // a fuggo nyugta-ellenorzesek is
+  b.todo.start(); // todo-ebresztes: pollMs-enkent (<= 60 s) egy kor
 
   const offset = await initOffset({ tg: b.tg, offsetFile: CFG.offsetFile, onCorrupt: b.onCorrupt, log });
   await pollForever({
     tg: b.tg, offset, offsetFile: CFG.offsetFile, healthFile: CFG.healthFile,
     conflictAlertMs: CFG.conflictAlertMs, processUpdate: b.processUpdate, alert: b.alert, log,
     depths: () => ({ pending_depth: b.delivery.depth(), media_queue_depth: b.mediaQueue.depth(),
-      webhook_queue_depth: b.webhook.depth() }),
+      webhook_queue_depth: b.webhook.depth(), todo_buffer_depth: b.todo.depth() }),
   });
 }
 

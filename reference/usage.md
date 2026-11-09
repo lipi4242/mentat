@@ -21,7 +21,7 @@ The brain is a private git repository, so the same agent can live in more than o
 |---|---|---|
 | Your own computer | Claude Code (desktop app or terminal); on Windows also Git for Windows | Getting started. Works for non-technical users; the install takes a few minutes. |
 | Several computers | The same private repo (for example on GitHub) cloned on each; the agent saves with git, and you pull before you start on the other machine | One person with a laptop and a desktop, or one agent helping on several family computers. |
-| A server, always on | A Linux server with the [fleet](https://github.com/lipi4242/mentat/tree/main/fleet) runner; Telegram for talking to it | An agent that works on a schedule and answers you on your phone, also when your computer is off. |
+| A server, always on | A Linux server with the [fleet](https://github.com/lipi4242/mentat/tree/v0.6.0/fleet) runner; Telegram for talking to it | An agent that works on a schedule and answers you on your phone, also when your computer is off. |
 | Several sessions on one computer | Open more than one Claude Code session in the same folder; optionally a role per session (`MENTAT_ROLE=<role> claude`) | Working on two things at once. The sessions share one long-term memory. |
 | From your phone or the web | Run `/rc` (remote control) in a session | Continuing a session started on your computer from elsewhere. |
 

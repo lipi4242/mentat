@@ -1,4 +1,4 @@
-# fleet-leader — az always-on ágensek futtatásának terméke
+# Mentat fleet — az always-on ágensek futtatásának terméke
 
 Ez a repó egy ágensflotta harmadik komponense (a Mentat AI Brain és az
 anytime reducer mellett): tagság, szabályok, névsor, kérés, felügyelet,
@@ -17,7 +17,7 @@ flotta-specifikus adat (nevek, IP-k, bot-nevek, útvonalak) ide nem kerülhet.
 | **Registry (kívül)** | `$FLEET_REGISTRY/agents.json`, `boxes.json`, `accounts.json`, `runbooks/`, `units/` | HOL és HOGYAN fut egy ágens — emberi jóváhagyású sáv a registry saját repójában |
 | **Futtató** | `src/fleet/` (stdlib), `bin/fleet` | `reconcile` (5 perces timer, az EGY vezérlő: kívánt állapot, OOM-védelem, tick re-arm, duplikáció-riasztás), `postcheck`, `doctor`, `roster`, `render`, `init` (registry-bejegyzés a repóból), `setup` (a teljes kihelyezés egy parancsa), `install` (tranzakció zöld postcheckig; első indítás ablakai, auth a unit szemével), `auth`, `stop`/`wait-up`/`restart` (egy ágens, célzottan), `bridge install`, `join/upgrade` (mentat.json-szinergiák), `secrets` (titok-leltár, jóváhagyott kulcsmozgatás, titok-kapu), `status`, `validate`, `preflight` |
 | **Híd** | `bridge/` (Node) | Telegram ↔ tmux: `bridge.mjs`, `send.mjs` (`--html` szűrt formázás) |
-| **Plugin** | `plugin/`, `.claude-plugin/marketplace.json` | skillek az ágensekbe: `roster`, `request`, `doctor`, `new-agent`, `runtime`; SessionStart hook |
+| **Plugin** | `plugin/`, a gyökér `.claude-plugin/marketplace.json` | skillek az ágensekbe: `roster`, `request`, `doctor`, `new-agent`, `runtime`; SessionStart hook |
 | **Sablonok** | `templates/` | unit (RC + strict-mcp beépítve), drop-in, `rules/fleet.md.tmpl`, systemd-timerek |
 | **Eljárások** | `docs/workflows/` | new-agent, cutover, zero-touch-setup |
 

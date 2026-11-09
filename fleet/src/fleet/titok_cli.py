@@ -1,15 +1,18 @@
 """`fleet secrets …` — titok-leltár, tételes jóváhagyás, mozgatás, audit, titok-kapu. Értéket egyik
 alparancs sem ír ki.
 
-    scan --agent A [--agent B]     leltár (~/.mentat/titkok/leltar.json) + táblázat; a titok-kaput is
-                                   felteszi a box minden Claude-gyökerébe (--no-hook: nem)
+    scan --agent A [--agent B]     leltár (~/.mentat/titkok/leltar.json) + táblázat. A kaput NEM teszi fel
+                                   (11-07; --install-hook: igen). Ha a kapu már él, az új leltárral is
+                                   lefut az essentials-próba; piros ágensnél a régi leltár marad (--force).
+                                   Az összeolvasztás-módot nem kapcsolja (csak plan-merge / merge-mode on)
     approve --item OP:NÉV:HONNAN:HOVA:MIÉRT … --owner-text "<a tulajdonos szó szerinti igenje>"
     move|copy --name K --from X --to Y --approval ID
     audit [--repo DIR …]           kiszivárgott-e leltárban lévő érték (átiratok, repó, git-történet)
-    hook install|status            a titok-kapu felhasználói szintű telepítése / ellenőrzése
+    hook install [--force]|status  a titok-kapu telepítése (essentials-próba + kanári előtte) / ellenőrzése
     merge-mode on|off|status       az ágens-határ összeolvasztás-módja (hatar_mod.py)
 """
 from __future__ import annotations
+import argparse
 import json
 import sys
 from pathlib import Path
@@ -18,22 +21,54 @@ from fleet import titok_jovahagy as J
 
 
 def cmd_scan(a) -> int:
-    from fleet import titok_leltar as L, titok_telepit as T
+    from fleet import titok_hely as H, titok_leltar as L, titok_telepit as T
     repos = dict(r.split("=", 1) for r in a.repo or [] if "=" in r)
     inv = L.scan(a.agent, repos={k: Path(v).expanduser() for k, v in repos.items()})
-    path = L.save(inv)
+    path = H.inventory_path()
+    if getattr(a, "dry_run", False):
+        print(json.dumps(inv, ensure_ascii=False, indent=1) if a.json else L.table(inv))
+        print(f"--dry-run: a leltár ({path}) NEM íródott; élesben az élő titok-kapu azonnal ezt olvasná",
+              file=sys.stderr)
+        return 0
+    old = path.read_bytes() if path.exists() else None
+    L.save(inv)
+    hook, force = getattr(a, "install_hook", False), getattr(a, "force", False)
+    live = (T.code_dir(Path.home()) / "current" / "titok_kapu.py").is_file()  # a kapu él: a leltárt azonnal olvassa
+    if live and _leltar_breaks(old, path, force):
+        return 2
     print(json.dumps(inv, ensure_ascii=False, indent=1) if a.json else L.table(inv))
     print(f"leltár: {path} (0600)", file=sys.stderr)
-    if len(set(a.agent)) >= 2:  # a merge 0. lépése: innentől összeolvasztás-mód
-        from fleet import hatar_mod
-        hatar_mod.safe_on("secrets scan " + "+".join(a.agent), "secrets scan")
+    if len(set(a.agent)) >= 2:  # 11-07: a scan az összeolvasztás-módot SOSEM kapcsolja (Rilí tickje bukna)
+        print("összeolvasztás-mód: a scan nem kapcsolja; merge-hez `fleet plan-merge` vagy "
+              "`fleet secrets merge-mode on`", file=sys.stderr)
+    if not hook:  # 11-07: a scan boxszinten semmit nem kapcsol be
+        print("titok-kapu: a scan nem telepít; telepítés: `fleet secrets hook install`", file=sys.stderr)
+        return 0
     try:
-        for note in ([] if a.no_hook else T.install()):
+        for note in T.install(force=force):
             print(note, file=sys.stderr)
     except T.SelfTestFailed as e:
         print(f"fleet secrets: {e}", file=sys.stderr)
         return 2
     return 0
+
+
+def _leltar_breaks(old: bytes | None, path: Path, force: bool) -> bool:
+    """Az élő kapu az új leltárt azonnal olvassa: ha egy ágens alapfunkcióját tiltaná, a régi marad."""
+    from fleet import essentials as E, titok_hely as H
+    res = E.probe(E.local_agents(), Path.home())
+    if not E.blocking(res):
+        return False
+    text = E.format_probe(res)
+    if force:
+        print(f"!!! --force: az új leltár ezekkel a HIBÁKKAL él:\n{text}", file=sys.stderr)
+        return False
+    if old is None:
+        path.unlink(missing_ok=True)
+    else:
+        H.write_atomic(path, old)
+    print(f"fleet secrets: az új leltár ágens-alapfunkciót tiltana — a RÉGI leltár maradt:\n{text}", file=sys.stderr)
+    return True
 
 
 def cmd_approve(a) -> int:
@@ -77,7 +112,8 @@ def cmd_hook(a) -> int:
     from fleet import titok_telepit as T
     from fleet import hatar_mod
     try:
-        for note in T.install() if a.action == "install" else []:
+        for note in T.install(force=getattr(a, "force", False), dry_run=getattr(a, "dry_run", False)) \
+                if a.action == "install" else []:
             print(note)
     except T.SelfTestFailed as e:
         print(f"fleet secrets: {e}", file=sys.stderr)
@@ -97,11 +133,17 @@ def add_parser(sub) -> None:
     s = sub.add_parser("secrets", help="titok-leltár, tételes jóváhagyás, mozgatás, audit, titok-kapu "
                                        "(értéket sosem ír ki)")
     ss = s.add_subparsers(dest="secrets_cmd", required=True)
-    x = ss.add_parser("scan", help="titokfájlok neve, helye, formátuma, kulcsnevei — érték nélkül")
+    x = ss.add_parser("scan", help="titokfájlok neve, helye, formátuma, kulcsnevei — érték nélkül. Mellékhatás: "
+                                   "a leltárt az élő titok-kapu AZONNAL olvassa (minden ágensre). A kaput nem "
+                                   "telepíti (csak --install-hook), az összeolvasztás-módot nem kapcsolja")
+    x.add_argument("--dry-run", action="store_true", help="csak a táblázat, a leltár nem íródik")
     x.add_argument("--agent", action="append", required=True)
     x.add_argument("--repo", action="append", metavar="ÁGENS=DIR", help="ha a registry nem tudja a repót")
     x.add_argument("--json", action="store_true")
-    x.add_argument("--no-hook", action="store_true", help="ne telepítse a titok-kaput")
+    x.add_argument("--install-hook", action="store_true",
+                   help="a leltár után a titok-kaput is telepítse (essentials-próbával, kanárival)")
+    x.add_argument("--no-hook", action="store_true", help=argparse.SUPPRESS)  # régi kapcsoló: ma az alap
+    x.add_argument("--force", action="store_true", help="piros essentials mellett is (a listát kiírja)")
     x.set_defaults(fn=cmd_scan)
     x = ss.add_parser("approve", help="tételes tulajdonosi jóváhagyás (≤60 perc, egyszer használható)")
     x.add_argument("--item", action="append", required=True, metavar="OP:NÉV:HONNAN:HOVA:MIÉRT")
@@ -122,8 +164,14 @@ def add_parser(sub) -> None:
     x.add_argument("--repo", action="append")
     x.add_argument("--json", action="store_true")
     x.set_defaults(fn=cmd_audit)
-    x = ss.add_parser("hook", help="a titok-kapu telepítése a box minden Claude-gyökerébe / ellenőrzése")
+    x = ss.add_parser("hook", help="a titok-kapu telepítése a box minden Claude-gyökerébe / ellenőrzése. Mellékhatás: "
+                                   "a Claude Code a hookot a FUTÓ sessionökben is azonnal betölti; előtte "
+                                   "essentials-próba (minden ágens) és kanári")
     x.add_argument("action", choices=("install", "status"))
+    x.add_argument("--force", action="store_true",
+                   help="piros essentials-próba mellett is telepít — a hibalistát hangosan kiírja")
+    x.add_argument("--dry-run", action="store_true",
+                   help="önteszt + essentials-próba a jelölt kódon; settings.json-t nem ír")
     x.set_defaults(fn=cmd_hook)
     from fleet import hatar_mod
     hatar_mod.add_parser(ss)

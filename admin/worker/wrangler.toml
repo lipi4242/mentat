@@ -17,6 +17,11 @@ binding = "DB"
 database_name = "mentat-admin-db"
 database_id = "local-dev-only"
 
+# The fleet check's cron (flotta plugin): dead-man, the responsible agent's
+# tasks, e-mail escalation. Every 5 minutes; each run is idempotent.
+[triggers]
+crons = ["*/5 * * * *"]
+
 # Local-dev values. The rendered deploy config replaces this whole section
 # with the instance file's `worker.vars` (+ INSTANCE_TITLE from `title`).
 [vars]

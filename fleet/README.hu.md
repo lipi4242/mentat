@@ -24,12 +24,12 @@ A flotta a [Mentat](../README.hu.md) része. Csak akkor kell, ha azt szeretnéd,
 A legegyszerűbb: kérd meg a Mentat-kollégádat, hogy tegye fel ezt a szerveredre, ő futtatja a lépéseket. Kézzel, a Linux szerveren (kell: `systemd --user`, `tmux`, a `claude` CLI, Python 3 és Node.js 18+), az egyetlen Mentat-checkoutból:
 
 ```sh
-git clone --depth 1 --branch v0.5.1 https://github.com/lipi4242/mentat ~/src/mentat
+git clone --depth 1 --branch v0.6.0 https://github.com/lipi4242/mentat ~/src/mentat
 mkdir -p ~/.local/bin && ln -sf ~/src/mentat/fleet/bin/fleet ~/.local/bin/fleet
 cd ~/az-agens-repoja && fleet init az-agens && fleet setup az-agens
 ```
 
-Ha a `~/src/mentat` már megvan (a motor ugyanezt a checkoutot használja), a klón helyett futtasd: `git -C ~/src/mentat fetch --tags && git -C ~/src/mentat checkout v0.5.1`.
+Ha a `~/src/mentat` már megvan (a motor ugyanezt a checkoutot használja), a klón helyett futtasd: `git -C ~/src/mentat fetch --tags && git -C ~/src/mentat checkout v0.6.0`.
 
 A `fleet setup` 0-val lép ki, ha az ágens egészséges, 3-mal, ha fut, de még nem bizonyított, és 1-gyel hibánál, ilyenkor megadja az egy javító parancsot. Az ágenshez a flotta Claude Code-skilljeit is hozzáadja. Kézzel így: `claude plugin marketplace add lipi4242/mentat`, utána `claude plugin install fleet@mentat`. Részletek: [a flotta útmutatója](docs/workflows/fleet-guide.hu.md).
 

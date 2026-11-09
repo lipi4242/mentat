@@ -18,12 +18,18 @@ from typing import Any
 from . import form, form_check, work
 
 NOTE_VERBS = ("handback", "hold", "drop")
+HELP = {"issue": "PM: give the item to a developer", "take": "dev: start the work",
+        "handback": "dev: give it back, with why", "submit": "dev: the filled AC form (item show --form)",
+        "accept": "PM: every AC met, checked", "reject": "PM: --fail AC=why, back to the dev",
+        "hold": "PM: pause, with why", "resume": "PM: continue where it was held", "drop": "PM: end it, with why"}
 
 
 def add(p) -> None:
     for verb in ("issue", "take", "handback", "submit", "accept", "reject", "hold", "resume", "drop"):
-        q = p.add_parser(verb)
+        q = p.add_parser(verb, help=HELP[verb])
         q.add_argument("ref")
+        if verb == "resume":
+            q.add_argument("--note", help="optional: why it continues")
         if verb == "issue":
             q.add_argument("--dev", required=True, help="the developer's handle (may be you)")
         if verb in NOTE_VERBS + ("reject",):
@@ -96,6 +102,8 @@ def run(c, a: argparse.Namespace, item: dict[str, Any], path: str, rev: int) -> 
         body = _accept(item)
     elif a.verb == "reject":
         body = _reject(item, a.fail, work.required(a.note, "note"))
-    elif a.verb not in ("take", "resume"):
+    elif a.verb == "resume":
+        body = {"note": work.text(a.note, "note")}
+    elif a.verb != "take":
         raise work.UsageError(f"unknown item verb {a.verb}")   # pragma: no cover
     return work.show(c.send("POST", f"{path}/{a.verb}", {**body, "expected_rev": rev}))

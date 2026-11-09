@@ -2,6 +2,27 @@
 
 Generated from `capability-log.json` - do not edit by hand.
 
+## 0.6.0 (not released yet)
+
+### Proactivity and scheduling
+
+- A handed-over todo reaches the agent within a minute. The Telegram bridge polls the todo store every 20 seconds and writes one line into the session when the ball is with the agent; mentat-todo ack is the receipt; the same code runs as a session hook on your own computer. (Extended: `engine.todo`)
+- The todo command line fills the gaps. task show/list, project list, repeating tasks, backlog keys everywhere; changes and ball no longer show your own writes and drafts; mentat-todo works without a server unit. (Improved: `engine.todo`)
+
+### Work and projects
+
+- A handed-over todo reaches the agent within a minute. The Telegram bridge polls the todo store every 20 seconds and writes one line into the session when the ball is with the agent; mentat-todo ack is the receipt; the same code runs as a session hook on your own computer. (Improved: `backlog`)
+
+### Operation and flexibility
+
+- Central fleet check. Every box reports its agents' capability probe to the Admin's flotta plugin; a red check opens an incident, a silent box a dead-man incident, and the owner gets an e-mail when nobody fixes it. (Extended: `admin`, `fleet`)
+- Fleet managers repair fallen agents. Ranked manager agents get a task for each incident, claim it for 30 minutes, repair only through five fixed repair steps, and close it only on a fresh green check; the next manager takes over when one does not answer. (Extended: `fleet`)
+- Ask your agent to file a bug report. The agent drafts a scrubbed issue with every part's version, shows it word for word, and posts it with your own gh only after a plain yes to that exact draft. (Extended: `mentat.status`)
+- Telegram groups: the sender counts. Only an allowlisted sender reaches the agent from its group; one filter removes invisible characters from everything that reaches the session. (Improved: `fleet`)
+- The secrets gate blocks less of your work, more of others'. The agent's own project memory is writable; transcripts and other projects' memory are a secret store; cd and run-time paths are followed; the scan no longer installs the gate. (Improved: `fleet`)
+- fleet doctor measures what agents actually do. doctor and every postcheck run the essentials (send dry run, todo, state files, git); user-level settings change through one canary; the box row shows the release lag. (Improved: `fleet`)
+- Installs on the Python your Mac already has. Python 3.9 or newer is the one minimum in the install check, the engine and the guides; the install guide links the engine and the fleet at the release tag. (Improved: `mentat.init`)
+
 ## 0.5.1 (not released yet)
 
 ### Proactivity and scheduling

@@ -26,6 +26,7 @@ def tokens(text):
     try:
         lex = shlex.shlex(text, posix=True, punctuation_chars=True)
         lex.whitespace_split = True
+        lex.commenters = ""  # a shlex a `#`-tól a SOR végéig dob (a szó közepén is): `echo x#; cat t` elrejtené a cat-et
         return list(lex)
     except ValueError:
         return [w.strip("'\"") for w in re.findall(r"&&|\|\||[;|&()]|[<>]+|[^\s;|&()<>]+", text)]

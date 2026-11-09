@@ -43,8 +43,8 @@ kerül ide (allowlist- vagy mention-kapun elutasított nem).
 
 | Mező | Jelentés |
 |---|---|
-| `msg_id` | A Telegram `message_id`. Reakciónál `null`. |
-| `kind` | `message` \| `edited` \| `media` \| `reaction`. |
+| `msg_id` | A Telegram `message_id`. Reakciónál `null`. Todo-ébresztésnél (`chat_id:"todo"`) a `wake=<seq>`. |
+| `kind` | `message` \| `edited` \| `media` \| `reaction` \| `todo` (2.2: a todo-ébresztés sora). |
 | `from`, `from_id` | A küldő (sanitize-olt név, user id). |
 | `reply_to` | Ha a bejövő egy korábbi üzenetre válaszolt (opcionális). |
 | `target_msg_id` | Reakciónál: melyik üzenetre jött. |
@@ -111,6 +111,13 @@ Eseménynevek:
   transzkript nem volt meg, `detail:"stale"`, ha az ellenőrzés rég lejárt
   (ilyenkor újrainjektálás sincs). Mellé a híd riaszt, és — a `no transcript`
   kivételével — 😨 reakciót tesz az üzenetre (a ⚠️ nem engedett Telegram-reakció).
+
+- `todo_wake_handled` — a todo-ébresztés (2.2, `chat_id:"todo"`, `msg_id:"<wake-seq>"`) nyugtája: az
+  ágens írt a tételen a kiváltó események után; `detail`: a tételek, `kind:"kesve"`, ha a határidő
+  után. A `delivery.mjs` ettől tekinti megválaszoltnak a `todo` bejövő sort.
+- `todo_wake_unhandled` — a határidő (30 perc, `BRIDGE_TODO_HANDLED_MS`) lejárt saját írás nélkül.
+- `todo_runaway` — elszabadulás-fék: egy tételen rövid idő alatt sok tartalom nélküli oda-vissza
+  komment; `detail:"task=<id> <n> komment"`. Az ébresztés gyűlik, nem esik ki.
 
 ## A sorrend és az, amit garantál
 

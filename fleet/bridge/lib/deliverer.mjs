@@ -9,6 +9,7 @@ import { saveJsonStrict, loadJsonQuarantine } from "./jsonfile.mjs";
 import { capPending } from "./pending.mjs";
 import { injectLine } from "./inject.mjs";
 import { writeHealth } from "./health.mjs";
+import { paneSafe } from "./sanitize.mjs";
 
 export function oldestPendingAgeMs(items, now = Date.now()) {
   if (!items.length) return 0;
@@ -33,7 +34,11 @@ export function createDeliverer({
   const hook = (fn, line) => {
     try { fn(line); } catch (e) { log("inject-horog hiba:", e.message); }
   };
-  const tryInject = (line) => {
+  // minden pane-be meno sor (szoveg, media, reakcio, nyugta-ujrainjekt,
+  // a pending-sorbol visszajatszott regi sor is) itt megy at a kozos szuron —
+  // a horgok ugyanazt a sort latjak, ami a pane-be kerul.
+  const tryInject = (raw) => {
+    const line = paneSafe(raw);
     hook(beforeInject, line);
     const res = inject(session, line);
     if (!res.ok) { log(res.error); lastError = res.dialog ? res.error : ""; }

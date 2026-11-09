@@ -4,6 +4,8 @@ The pure checks carry most of the weight here; the I/O ones are exercised
 through a real temp workdir rather than mocks, because the failure they guard
 against (a repo that looks fine and is not deployable) is a filesystem fact.
 """
+from __future__ import annotations
+import _hermetic  # noqa: F401  (első import: HOME → tmp, lásd tests/_hermetic.py)
 import os
 import stat
 import shutil

@@ -12,6 +12,9 @@ First wins, per setting:
 On a fleet box (FLEET_AGENT set by the unit) each setting that is still missing comes
 from the box convention `fleet/bin/mentat-todo` also uses: ~/.config/todo/env (TODO_API=),
 ~/.config/todo/handles ("agent=handle", else the agent name), ~/.config/todo/<handle>.token.
+On a desktop (no FLEET_AGENT) the same files fill the api and the token once the handle
+is known (TODO_HANDLE or mentat.json): box–desktop parity, no --as on every call (11-08).
+Without a handle nothing is read from there.
 
 No api or no handle = not configured: the pack stays silent (load() -> None).
 Configured but no usable token = TodoConfigError, reported like an API error.
@@ -91,8 +94,11 @@ def load(root: Path) -> Settings | None:
     handle = os.environ.get("TODO_HANDLE") or (comps.get("engine") or {}).get("todo_handle")
     token_file = os.environ.get("TODO_TOKEN_FILE") or None
     box = _box(handle)
+    # A tárolt token csak ahhoz az API-hoz megy, amelyik mellette van (~/.config/todo/env):
+    # egy kézzel megadott másik TODO_API-ra nem visszük át (11-08, Codex-review).
+    same_api = not api or not box.get("api") or str(api).rstrip("/") == str(box["api"]).rstrip("/")
     api, handle = api or box.get("api"), handle or box.get("handle")
-    if not token_file and not admin.get("token_env"):
+    if not token_file and not admin.get("token_env") and same_api:
         token_file = box.get("token_file")
     if not api or not handle:
         return None
@@ -101,9 +107,9 @@ def load(root: Path) -> Settings | None:
 
 
 def _box(handle: str | None) -> dict:
-    """The fleet box convention (only under a fleet unit: FLEET_AGENT is set)."""
+    """The box convention: under a fleet unit (FLEET_AGENT), or on a desktop with a known handle."""
     agent = os.environ.get("FLEET_AGENT")
-    if not agent:
+    if not agent and not handle:
         return {}
     cfg = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "todo"
     if not cfg.is_dir():

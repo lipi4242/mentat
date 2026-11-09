@@ -15,7 +15,7 @@ injektálna.
 |---|---|
 | `TELEGRAM_BOT_TOKEN` | A Telegram Bot API tokenje (getUpdates/sendMessage/getFile ehhez a bothoz kötve). |
 | `TELEGRAM_GROUP_CHAT_ID` | A dedikált csoport chat ID-ja — innen jön be minden csoport-üzenet, ide megy a `selfAlert`. |
-| `TELEGRAM_ALLOWLIST_IDS` | Vesszővel elválasztott user ID lista — DM-ben csak ezekről a userekről fogad el üzenetet. |
+| `TELEGRAM_ALLOWLIST_IDS` | Vesszővel elválasztott user ID lista — csak ezekről a userekről jut sor a pane-be: DM-ben és a saját csoportban is. Minden csoporttag, akinek az ágenssel beszélnie kell, legyen rajta. |
 | `TMUX_SESSION` | A tmux session neve, ahova a híd a `tmux send-keys`-szel injektál. |
 | `BRIDGE_STATE_DIR` | Alap könyvtár az állapotfájlokhoz (offset, pending, health, media-queue) — az opcionális útvonal-envek ebből származtatják a defaultjukat. |
 
@@ -45,6 +45,30 @@ Minden alábbi env-nek van defaultja; hiányuk nem fatális.
 | `SUBETHA_PHOTO_TIMEOUT_MS` | `60000` | A `sendPhoto` (kép-feltöltés) időkorlátja; lejárta után a kimenet `unknown` (exit 5). |
 | `SUBETHA_TELEGRAM_API` | `https://api.telegram.org` | Csak tesztnek: helyi hamis Telegram címe (ugyanaz, mint a send.mjs-nél). |
 | `BRIDGE_WEBHOOK_QUEUE_FILE` | `${BRIDGE_STATE_DIR}/telegram-state/webhook-queue.json` | A jóváhagyó webhook tartós sora (lásd lent). |
+
+## Todo-ébresztés (2.2)
+
+Ha a boxon van todo-beállítás (`~/.config/todo/env` `TODO_API=`-val), a híd magától BE: az ágens
+(`FLEET_AGENT`, különben a `BRIDGE_STATE_DIR` utolsó tagja) handle-je a `~/.config/todo/handles`
+fájlból jön (`ágens=handle`, különben az ágens neve), a token a `~/.config/todo/<handle>.token`-ból
+(0600, egyetlen sor; az értéke sehol nem jelenik meg). Ugyanaz a konvenció, mint a `mentat-todo`-é.
+Hibás beállítás nem fatális: a todo-ébresztés KI, okkal (`[bridge] TODO-ÉBRESZTÉS KI: …` +
+`health.todo_wake`), a Telegram-út fut tovább.
+
+| Env | Default | Jelentés |
+|---|---|---|
+| `BRIDGE_TODO` | be | `off`: ennél az ágensnél nincs todo-poll. |
+| `TODO_API` / `TODO_HANDLE` / `TODO_TOKEN_FILE` | a box-konvencióból | Felülírás (pl. tesztnek). |
+| `BRIDGE_TODO_POLL_MS` | `20000` | A poll periódusa; 1–60 s közé szorítva. |
+| `BRIDGE_TODO_COALESCE_MS` | `60000` | Ennyi ideig vonja össze az egymás után érkező eseményeket egy ébresztésbe (csendes kör után azonnal megy). |
+| `BRIDGE_TODO_HANDLED_MS` | `1800000` (30 perc) | Ennyi idő alatt kell az ágensnek írnia a tételen, különben `todo_wake_unhandled`. |
+| `BRIDGE_TODO_STATE_FILE` | `${BRIDGE_STATE_DIR}/telegram-state/todo-state.json` | Kurzor, puffer, ébresztések, fék-állapot. |
+
+Első induláskor (nincs kurzor) a korábbi eseményeket átugorja: azokat az óránkénti tick kezeli.
+
+Híd nélkül (desktop): `node todo-once.mjs --session-start | --prompt` ugyanezt a kódot egy körre
+futtatja (a fleet plugin hookja így hívja); állapot, health és napló a
+`${XDG_STATE_HOME:-~/.local/state}/mentat/todo/<ágens>/` alatt. A lezárt session nem ébreszthető.
 
 ## Jóváhagyó webhook (3.1)
 

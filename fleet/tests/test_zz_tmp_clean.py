@@ -1,7 +1,8 @@
 """The Python tests leave nothing in the temp folder (2026-10-23: the bridge tests filled the
 shared tmp quota of the thufir user; the Python suites left 40 folders per run too).
 tests/_hermetic.py points tempfile and TMPDIR at one per-run folder and removes it at exit;
-src/fleet cleans up after itself (release-tools: a separate PR, another track).
+the former src/fleet tests now live here too (11-08), so they run under it
+(release-tools: a separate PR, another track).
 """
 from __future__ import annotations
 import _hermetic  # noqa: F401  (első import: HOME → tmp)
@@ -43,11 +44,12 @@ class TmpClean(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(left, [])
 
-    def test_src_fleet_suite_leaves_nothing(self):
-        for args in (["-m", "unittest", "discover", "-s", "src/fleet", "-p", "test_*.py", "-q"],):
-            r, left = leftovers({"PYTHONPATH": "src", "HOME": tempfile.mkdtemp()}, *args)
-            self.assertEqual(r.returncode, 0, r.stderr[-1500:])
-            self.assertEqual(left, [], args)
+    def test_no_test_module_ships_in_src_fleet(self):
+        # 11-08: the src/fleet tests moved here; a test under src/ ships with the
+        # source and runs outside _hermetic. The one placeholder keeps the bin/gate
+        # src/fleet line green until that line is removed; then it goes too.
+        self.assertEqual(sorted(p.name for p in (ROOT / "src" / "fleet").glob("test_*.py")),
+                         ["test_zz_athelyezve.py"])
 
 
 if __name__ == "__main__":

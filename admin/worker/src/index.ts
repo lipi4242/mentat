@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
-import type { AppEnv } from './types';
+import type { AppEnv, Env } from './types';
 import { createAuth } from './lib/better-auth';
 import { registerTokenRoutes } from './core/tokens';
 import { registerLocalLoginRoutes } from './core/local-login';
@@ -54,4 +54,22 @@ export function createApp(plugins: AdminPlugin[]) {
   return app;
 }
 
-export default createApp(PLUGINS);
+/** Every plugin's cron, in order; one plugin's failure does not stop the next. */
+export async function runScheduled(env: Env, plugins: AdminPlugin[], now: Date) {
+  for (const plugin of plugins) {
+    if (!plugin.scheduled) continue;
+    try {
+      await plugin.scheduled(env, now);
+    } catch (err) {
+      console.error('scheduled-failed', plugin.id, err);
+    }
+  }
+}
+
+// The Hono app is the fetch handler; `scheduled` makes the same export the cron
+// handler (wrangler.toml [triggers]).
+export default Object.assign(createApp(PLUGINS), {
+  scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext) {
+    ctx.waitUntil(runScheduled(env, PLUGINS, new Date()));
+  },
+});

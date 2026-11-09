@@ -23,8 +23,8 @@ Ismeretlen parancs (`plan-merge`, `secrets`) = elavult box flotta-kód:
 ## Tilalmak (mindig élnek)
 
 Az 1., 2., 5. tilalom egy részét a titok-kapu hook (ágens-határ) gépileg is tiltja; a 0.
-lépés (`fleet secrets scan` két ágensre, vagy `fleet plan-merge`) bekapcsolja az
-összeolvasztás-módot (≤7 nap, boxszintű; állapot: `fleet secrets merge-mode status`). Ha
+lépés `fleet plan-merge`-e bekapcsolja az összeolvasztás-módot (≤7 nap, boxszintű; állapot:
+`fleet secrets merge-mode status`); a `fleet secrets scan` nem kapcsolja. Ha
 megállít, nem kerülöd meg (nem írsz át git-beállítást, nem fogalmazod át a parancsot): a
 jelzett utat választod, vagy a tulajdonost kérdezed.
 

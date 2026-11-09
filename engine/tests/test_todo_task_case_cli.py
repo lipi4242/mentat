@@ -122,5 +122,30 @@ class TestCaseCommands(TaskCase):
         self.assertEqual(self.sent("confirm")[0][2], {"expected_rev": 4})
 
 
+class TestAck(TaskCase):
+    """`ack`: the receipt for a todo wake-up when there is nothing to do (one marked comment)."""
+
+    def test_ack_by_task_id_is_one_marked_comment(self):
+        rc, out = self.cli("ack", "T1", "--note", "már kész volt")
+        self.assertEqual(rc, 0, out)
+        self.assertEqual([b["body"] for _, _, b in self.sent("comments")], ["[ack] láttam, nincs teendő: már kész volt"])
+
+    def test_ack_by_backlog_key_resolves_the_item(self):
+        from _work_fixture import item
+        self.srv.items["T1"] = item("T1", key="WEB-7")
+        self.assertEqual(self.cli("ack", "web-7")[0], 0)
+        self.assertTrue(any(p.endswith("/items/WEB-7") for p in self.gets()))
+        self.assertEqual([p for _, p, _ in self.sent("comments")], ["/tasks/T1/comments"])
+        self.assertEqual(self.sent("comments")[0][2]["body"], "[ack] láttam, nincs teendő")
+
+    def test_ack_takes_the_task_ref_form_of_the_wake_line(self):
+        self.assertEqual(self.cli("ack", "task:T1")[0], 0)
+        self.assertEqual([p for _, p, _ in self.sent("comments")], ["/tasks/T1/comments"])
+
+    def test_blank_note_is_refused_and_nothing_sent(self):
+        self.assertEqual(self.cli("ack", "T1", "--note", " ")[0], 2)
+        self.assertEqual(self.sent(), [])
+
+
 if __name__ == "__main__":
     unittest.main()

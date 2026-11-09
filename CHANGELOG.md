@@ -3,6 +3,211 @@
 Every release also ships a machine-readable `release.json` at the root of
 its tag (see `reference/mentat-json.md`, section 4).
 
+## 0.6.0
+
+A release for people who run several agents: the fleet now watches itself from one central
+place, a manager agent repairs a fallen agent before anyone is woken, and an agent hears about a
+todo handed to it within a minute instead of at the next hourly tick. Telegram groups and the
+secrets gate are stricter. Read "What behaves differently" and the upgrade order before you
+upgrade a server.
+
+- **Central fleet check: one place sees every box, and the owner gets an e-mail when nobody fixes it.** <!-- cap: fleet-check -->
+  - Mentat Admin has a new `flotta` plugin. Every box reports its agents' capability probe there
+    every 10 minutes (sending, todo, git, own state files, the secrets gate), with its release lag
+    and fleet version. A red check opens one incident per agent and check; the next green report
+    closes it.
+  - A box that stops reporting for 30 minutes opens a dead-man incident. An incident nobody
+    resolves within 60 minutes sends the owner an e-mail through the Admin's existing sign-in mail
+    sender, again every 6 hours while it stays open, and a short "resolved" when it closes. Every
+    threshold can be changed.
+  - A box token can only report, only for its own box, at most once a minute; it lives 90 days and
+    `fleet doctor` warns two weeks before it expires. A report the Admin refuses no longer counts
+    as a sign of life: three refusals in a row open their own incident, and the box's doctor row
+    turns red.
+  - Without the Admin nothing changes on a server: a red capability goes to
+    `~/.config/fleet/state/alerts-undelivered.jsonl` and the doctor's box row is red.
+- **Fleet managers: an agent repairs another agent, in a fixed order.** <!-- cap: fleet-managers -->
+  - Being a manager is a role. A manager covers one agent, one box or the whole fleet; several
+    agents can hold it, ranked. The list lives in one versioned file, `managers.json`, and has one
+    writer: `fleet managers check`, `fleet managers publish --dry-run`, `fleet managers publish`.
+  - An open incident becomes a todo task for the first fit manager (not the broken agent itself,
+    not one whose own box is silent). It claims the incident for a fixed 30 minutes, repairs it
+    only through `fleet repair-exec` (five fixed steps: `doctor`, `doctor-fix`, `bridge-install`,
+    `unquarantine`, `postcheck`; no free arguments, no shell), and the incident closes only on a fresh, green check made
+    after the repair. If nobody claims it within 10 minutes, the next manager gets it. Restarts are
+    limited to 3 per hour per agent; after that a human is asked.
+  - The `flotta-incidens` skill in the fleet plugin is the manager's instruction. Agents on your
+    own computer take part too: `fleet flotta-report` from the session, `doctor` and `postcheck`
+    only.
+- **Todo wake-up: a handed-over todo reaches the agent within a minute.** <!-- cap: todo-wake -->
+  - The Telegram bridge (2.2.0) asks the todo store for the agent's changes every 20 seconds (at
+    most 60) and writes one line into the agent's session when the ball is now with it: issued
+    to it, handed back, rejected to its developer, waiting for its acceptance, or a comment that
+    mentions it. Several events within a minute become one line. No LLM runs for the polling.
+  - "Seen, nothing to do": `mentat-todo ack <key> [--note …]`. It is the receipt and wakes nobody.
+    A wake-up with neither a reply on the item nor an ack within 30 minutes shows as unhandled,
+    and the fleet check turns red.
+  - There is no hourly cap, so agents can talk in an item's comments as long as they need. Only an
+    obvious runaway (many contentless back-and-forth comments on one item) is held for 5 minutes,
+    and that always raises a notice.
+  - Without a bridge, the fleet plugin's session hooks run the same code at the start of a
+    session and with every prompt; a closed session cannot be woken. Turn it off for one agent
+    with `BRIDGE_TODO=off`.
+- **The todo command line fills the gaps agents ran into.** <!-- cap: todo-cli -->
+  - `task show`, `task list` with filters, `project list`, `task new|update --repeat RULE
+    [--repeat-from schedule|completion]` (`--repeat none` clears it), `item resume --note`.
+    `task comment` and `task new --parent` accept a backlog key (`WEB-12`).
+  - `changes` skips your own writes (see below) and moves the cursor past them, so they never come
+    back after an ack. The AC form says what `pr` and `head_sha` expect and refuses a bad value
+    before sending it; the Admin's error names the field.
+  - `mentat-todo` also works on your own computer, without a server unit: the handle comes from
+    the repo's `mentat.json` (`engine.todo_handle`) or `TODO_HANDLE`. A stored token is only sent
+    to the API it was stored with.
+- **Ask your agent to file a bug report.** <!-- cap: bug-report -->
+  - The new `bug-report` skill drafts an issue for the public repository: versions of every part,
+    what happened, the steps. Every field is scrubbed (tokens, keys, e-mail addresses, home paths,
+    IP addresses, chat ids, phone numbers, account numbers, your private names), and a final check
+    on the finished text stops the draft if anything is left. A suspected security problem goes
+    only to a private advisory.
+  - The agent shows you the draft word for word. It is posted with your own `gh` only after a
+    plain yes to that exact draft (its full sha256 must match), at most 3 a day. Without `gh` you
+    get a link to file it yourself. It works the same on your computer and on a server.
+- **Telegram groups: the sender counts, not only the chat.** <!-- cap: bridge-allowlist -->
+  - In the agent's own group, only a sender on `TELEGRAM_ALLOWLIST_IDS` reaches the agent.
+    Elsewhere only a private chat with an allowlisted user does; an allowlisted user in a foreign
+    group opens nothing, and a message without a sender (a channel, an anonymous admin) never
+    gets in.
+  - One shared filter removes invisible and control characters (zero-width, bidi, tag characters,
+    variation selectors, soft hyphens) from everything that reaches the session: text, captions,
+    names, reactions, receipts, and lines left in the queue by an older bridge.
+- **The secrets gate blocks less of your own work and more of other agents'.** <!-- cap: secrets-gate -->
+  - Your agent can read and write its own project's memory folder (`~/.claude*/projects/<this
+    project>/memory/*.md`), also with a heredoc that contains code snippets. Every other part of
+    `~/.claude*/projects/` is a secret store: transcripts (your own too), another project's
+    memory, file history. "Own project" is the session's project, so a `cd` into another agent's
+    repo does not make that repo's memory yours; relative paths after `cd`/`pushd` are checked
+    against every directory the command could be in.
+  - A path built at run time (`$X`, `$(…)`) that points into a secret store (`~/.claude*`,
+    `~/.config`, `~/.mentat`, `~/.ssh`, your home itself) is refused with a request for a concrete
+    path. Ordinary repo work with variables passes. A recursive search over a folder with a key
+    file is refused with the exclusion that would make it pass.
+  - A file's mode alone no longer makes it a secret: only a secret-like name or content does.
+    Scripts in an agent's `jobs/` folder and its state files run and read again.
+  - `fleet secrets scan` only takes the inventory now. Installing the gate is a separate step
+    (`fleet secrets hook install`), which first runs the essentials probe (sending, todo, git,
+    own state) against the new gate on one agent, rolls back if that agent turns red, and only
+    then writes the rest.
+- **`fleet doctor` measures what agents actually do.** <!-- cap: capability-health -->
+  - `fleet doctor` and the postcheck after `restart`, `install` and `box-upgrade` run the essentials
+    themselves: a dry run of the Telegram send with the unit's env files, `mentat-todo me`, the
+    agent's own state files, `git status`. They run in a clean environment, so the operator's
+    shell cannot make them green.
+  - A failure only in these checks is not fixed by a restart, so it no longer counts towards the
+    restart quarantine; it is reported on its own.
+  - Every writer of user-level Claude settings (the SessionStart hook, operator skills, the plugin
+    install) goes through one canary: one agent first, checked before and after, rolled back on a
+    new red. `fleet canary record` records a manual change. The box row shows how far the checkout
+    is behind the newest public release.
+  - A bridge agent's unit always loads the bridge's env file first, so the agent always has its
+    Telegram token.
+- **Mentat installs on the Python your Mac already has.** <!-- cap: install-python39 -->
+  - Python 3.9 or newer is the one minimum everywhere: the install check, the engine and the
+    guides. The Python that ships with macOS is enough.
+  - The install guide and the usage pages link the engine and the fleet at the release tag, not
+    at the moving `main`. The README says plainly what works on a laptop and what needs an
+    always-on server, and what access the Google connection asks for.
+
+Release tooling, for people who build releases: `tools/release/bump.py` moves every version from
+`release.json` in one command, and `bump.py --check` is part of the release gate. `publish.sh`
+publishes only the gated `main` of the development repository, from a fresh clone, refuses an
+empty private-name list unless told otherwise, and checks `main` again just before the push. The
+scrub also finds phone numbers, IBANs, tax numbers, bare numeric ids and chat ids. The public
+repository has issue forms, a contributing guide, a code of conduct, CodeQL, an OpenSSF Scorecard,
+SHA-pinned workflows (with a gate that blocks an unpinned one), and every release ships
+`SHA256SUMS` and a signed build provenance attestation. It has no Dependabot pull requests:
+dependency updates are made in the development repository and ship with the next release. Each
+public CI job is one `.github/ci.sh` call, and the release gate runs the same script on the
+composed tree, so a release whose public CI would fail is not published. `publish.sh` waits for
+the GitHub Release with `SHA256SUMS` and fails if it does not appear. Test helpers are no longer
+listed in the user manifest. `bin/gate functional` runs 47 scenarios of
+the todo, backlog and case flows against a throwaway local Admin.
+
+### What behaves differently
+
+1. **Telegram groups.** A group member who is not on `TELEGRAM_ALLOWLIST_IDS` no longer reaches
+   the agent; the message only leaves a `drop:` line in the bridge log. Add everyone who has to
+   talk to the agent *before* you install the 2.2.0 bridge.
+2. **Admin todo API: 401 instead of 403.** An unknown, expired or revoked token now gets 401, as
+   on the cases plugin. An `X-Mentat-Token` header that is present but empty is decided on the
+   token path (401) and no longer falls back to the session cookie; this also applies to
+   `/api/meta`. A live token without the needed scope is still 403, now with a `need` field.
+3. **`changes` hides your own writes.** The count of skipped entries is in `own_skipped`; `--all`
+   shows everything. `changes --ack` prints JSON. A script that waited for its own write to come
+   back through `changes` has to read the item instead.
+4. **`ball` hides your own draft items.** `ball --drafts` shows them.
+5. **`fleet secrets scan` no longer installs the gate** and never switches a box into merge mode;
+   run `fleet secrets hook install` (with `--dry-run` first).
+6. **No alert bot.** Capability alerts never go through a Telegram bot; they go to the central
+   fleet check, and without it to the undelivered-alerts file. `~/.config/fleet/alert.env` is not
+   read.
+7. **Engine packs need `<0.7`.** The engine is 0.6.0. A concern pack of your own that declares
+   `"<0.6"` is refused; widen it to `"<0.7"`. The bundled packs already do.
+
+### Known security limits
+
+These are known and accepted for 0.6.0. None of them can be used from outside without a token or
+a seat on the machine; each has a planned fix.
+
+| Limit | What it means for you | Planned |
+|---|---|---|
+| All agents on a server run as one system user | The secrets gate, the manager's claim, fencing token and verification nonce keep well-behaved agents from getting in each other's way. They are not a boundary against a malicious agent on the same server, which can read the box token and the claim files. | Per-agent operating-system isolation, after 0.6.0 |
+| The secrets gate is a guardrail, not a boundary | It stops mistakes and the usual commands. An agent that deliberately evades it (an interpreter, a path decoded at run time, a path list read from a file, a config the agent can write) is not stopped. | Operating-system isolation |
+| The todo wake-up line carries a title | Up to 80 characters of the item's title, written by any todo participant, reach the agent's session, cleaned and framed as data. A model can still read a sentence in it. There is no trust list and, by design, no hourly cap. On the desktop path the title is not yet Unicode-normalised. | The shared filter on the desktop path |
+| A bug report's yes cannot prove a person said it | The hash ties the post to the exact draft, but the agent computes it and passes on your answer. The scrubber is not complete (a YAML block value, `key => value`, smart or HTML-encoded quotes, `mysql -p…`, a password written before "is my password"), which is why you read every draft. | Further scrub patterns |
+| Release tags are not signed, the plugin marketplace has no ref pin | Tags cannot be moved or deleted (repository rules, immutable releases), and every release has `SHA256SUMS` and a provenance attestation, but `box-upgrade` does not verify a signature yet. | Signed tags and a pinned marketplace ref |
+| Some security-relevant parts merge after automated gates only | The bridge, the supervisor, the secrets gate and the bug-report scrubber can be merged without a human review once their gates are green. | Human review for these parts |
+| The Telegram check is a dry run | `fleet doctor` checks the token's presence and shape and the send path, not a live call to Telegram. An agent without a declared essentials list passes by default. | A live check |
+| A stolen box token can still make noise | It can fill the fleet's open-incident cap (a per-box share limits it) and use Admin storage until you revoke it. It cannot read anything, reach another box's agents, or write instructions into a manager's task. Tokens may be issued for up to 180 days. | Tighter per-box limits, shorter tokens |
+| Desktop health is not central | A desktop agent's wake-up health lives only on that computer, and a desktop session reports to the fleet check only while it is open. | Central desktop health |
+| No full penetration test yet | 0.6.0 had a targeted security review, regression tests for every fix it asked for, and a differential test of the secrets gate (old vs new, 106 cases). | A full penetration test before 1.0 |
+
+### Upgrading from 0.5.1
+
+Brain only (no server): update from
+`https://raw.githubusercontent.com/lipi4242/mentat/v0.6.0/INSTALL.md`; your notes do not change.
+Run `claude plugin update fleet@mentat` if you use the fleet plugin.
+
+Servers, in this order:
+
+1. **Allowlist first.** Put everyone who has to talk to an agent in a group on that agent's
+   `TELEGRAM_ALLOWLIST_IDS`.
+2. **The Admin, if you run it.** Export a backup, then apply the migrations `0500_flotta.sql` and
+   `0501_flotta_menedzser.sql` (`npm --prefix admin/worker run migrate:remote`; run the 0501
+   preflight query from `admin/docs/plugins/flotta/INSTALL.md` first). Deploy the worker, then the
+   admin. The worker has a 5-minute cron trigger; e-mail needs the sign-in mail's
+   `RESEND_API_KEY` and sender.
+3. **Upgrade every box** before you publish any managers: `fleet box-upgrade --to v0.6.0 --dry-run`,
+   read the plan, then run it without `--dry-run`. It installs the 2.2.0 bridge and the repair
+   steps the managers will call. Then `claude plugin update fleet@mentat` on each box and on your
+   own computer (plugin 1.7.0), and `fleet doctor`. If the doctor says a unit does not load the
+   bridge's env file, run `fleet install <agent> --dry-run`, then `fleet install <agent>`.
+4. **If you use the secrets gate:** `fleet secrets scan --dry-run --agent <agent>`, then the scan
+   itself (the old inventory listed scripts and state files), then
+   `fleet secrets hook install --dry-run` and `fleet secrets hook install`, and finally
+   `fleet canary record`.
+5. **Connect each box to the fleet check:** register the box in the Admin (the token is shown
+   once), write `~/.config/fleet/flotta.env` (mode 0600) with `FLOTTA_URL` and `FLOTTA_TOKEN`, and
+   check that `fleet doctor` says the report is fresh. `~/.config/fleet/alert.env` can go.
+6. **Todo wake-up** needs the same `~/.config/todo` setup as `mentat-todo` (`env`, `handles`,
+   `<handle>.token` with mode 0600); where `mentat-todo me` works, the wake-up works. On your own
+   computer, `node` must be on the `PATH`.
+7. **Managers, last.** Mint a token whose only scope is `flotta:config`, put it in
+   `~/.config/fleet/flotta-config.env` (mode 0600, `FLOTTA_URL`, `FLOTTA_CONFIG_TOKEN`), write
+   `managers.json`, then `fleet managers check`, `fleet managers publish --dry-run`,
+   `fleet managers publish`. Managers need plugin 1.7.0 or newer.
+8. **Engine.** Re-sync each agent's engine with `~/src/mentat/engine/sync-to.sh <your repo>` and
+   the packs it uses, widen your own packs to `"<0.7"`, then `python3 -m anytime_engine.selftest`.
+
 ## 0.5.1
 
 A small release for people who run Mentat on a server: upgrading a box is now one command, and
@@ -42,11 +247,11 @@ runs the private-name check on the tree it ships.
 
 ### Upgrading from 0.5.0
 
-Server: `fleet box-upgrade --to v0.5.1 --dry-run`, read the plan, then run it without
+Server: `fleet box-upgrade --to v0.6.0 --dry-run`, read the plan, then run it without
 `--dry-run`. To give the agents the backlog command, link `mentat-todo` as above. If an agent
 uses the backlog, re-sync its engine with `~/src/mentat/engine/sync-to.sh <your repo> --pack todo`
 and run `python3 -m anytime_engine.selftest`. Other installs: update from
-`https://raw.githubusercontent.com/lipi4242/mentat/v0.5.1/INSTALL.md`; your notes do not change.
+`https://raw.githubusercontent.com/lipi4242/mentat/v0.6.0/INSTALL.md`; your notes do not change.
 
 ## 0.5.0
 
@@ -69,7 +274,7 @@ changelog for all of them. The engine, fleet and admin changelogs up to 0.4.x ar
     The old repositories stay readable with their tags, so an install that points at them keeps
     working, but they get no new releases.
   - The three-line install prompt now points at
-    `https://raw.githubusercontent.com/lipi4242/mentat/v0.5.1/INSTALL.md`. The engine, the fleet
+    `https://raw.githubusercontent.com/lipi4242/mentat/v0.6.0/INSTALL.md`. The engine, the fleet
     and the admin all come from one checkout of the same tag (`~/src/mentat`), so their versions
     can no longer drift apart.
   - The product version is the only version you need to know. The engine's version follows it,
@@ -100,11 +305,11 @@ changelog for all of them. The engine, fleet and admin changelogs up to 0.4.x ar
 ### Upgrading from 0.4.x
 
 Brain: ask your colleague to update Mentat to 0.5.0 from
-`https://raw.githubusercontent.com/lipi4242/mentat/v0.5.1/INSTALL.md`. It fetches the 0.5.0
+`https://raw.githubusercontent.com/lipi4242/mentat/v0.6.0/INSTALL.md`. It fetches the 0.5.0
 tools; your notes do not change.
 
 Engine: clone the release once
-(`git clone --depth 1 --branch v0.5.1 https://github.com/lipi4242/mentat ~/src/mentat`) and
+(`git clone --depth 1 --branch v0.6.0 https://github.com/lipi4242/mentat ~/src/mentat`) and
 re-run `~/src/mentat/engine/sync-to.sh <your agent folder>` with the packs you use. A pack of
 your own that declares `"<0.5"` is refused; widen it to `"<0.6"` and re-sync. The old
 `~/src/anytime-engine` copy is no longer used.

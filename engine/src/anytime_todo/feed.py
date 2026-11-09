@@ -11,7 +11,10 @@ nothing on another instance, so switching TODO_API starts that instance at 0
     seen    the highest seq a `changes` run has shown (an ack may not pass it)
 
 Reading never moves `acked`: only `changes --ack <seq>` does, after the agent
-has handled the events up to that seq. So a crash means reading again, never
+has handled the events up to that seq. The caller's own writes (actor = the
+token's principal) are left out by default — they are not news for the writer,
+and two agents filtered them by hand (11-08) — but `last_seq` still counts them,
+so an ack steps over them; `own_skipped` says how many. `include_own` shows all. So a crash means reading again, never
 losing an event. Every read-modify-write holds an exclusive lock on
 todo-cursor.lock, and the file is replaced atomically (tmp + fsync + rename).
 """
@@ -102,9 +105,16 @@ def _page(c: Client, handle: str, since: int, limit: int) -> list[dict[str, Any]
     return rows
 
 
-def read(c: Client, handle: str) -> dict[str, Any]:
+def me_id(c: Client) -> str | None:
+    """The token's principal id (the actor of my own writes); None if unknown."""
+    me = c.get_json("/me")
+    return str(me["id"]) if isinstance(me, dict) and me.get("id") else None
+
+
+def read(c: Client, handle: str, include_own: bool = False) -> dict[str, Any]:
     """The un-acked events (at most MAX_EVENTS), oldest first; records `seen`."""
     since = acked(c.api, handle)
+    mine = None if include_own else me_id(c)
     events: list[dict[str, Any]] = []
     more = True
     while more and len(events) < MAX_EVENTS:
@@ -118,8 +128,11 @@ def read(c: Client, handle: str) -> dict[str, Any]:
     with _locked() as doc:
         entry = doc["handles"].setdefault(key(c.api, handle), {"acked": 0, "seen": 0})
         entry["seen"] = max(int(entry.get("seen") or 0), last)
-    return {"handle": handle, "acked": acked(c.api, handle), "events": events, "last_seq": last,
-            "more": more}
+    shown = [e for e in events if mine is None or e.get("actor_id") != mine]
+    done = acked(c.api, handle)
+    return {"handle": handle, "acked": done, "events": shown, "own_skipped": len(events) - len(shown),
+            "last_seq": last, "more": more,
+            "ack_with": f"changes --ack {last}" if last > done else None}
 
 
 def ack(api: str, handle: str, seq: int) -> int:
@@ -137,5 +150,19 @@ def ack(api: str, handle: str, seq: int) -> int:
 
 
 def pending(c: Client, handle: str) -> bool:
-    """Is there at least one un-acked event? One small read, no file write."""
-    return bool(_page(c, handle, acked(c.api, handle), 1))
+    """Is there at least one un-acked event someone ELSE wrote? No file write.
+    My own writes never wake me (the todo_labda concern and the wake-up build on it).
+    Nothing un-acked at all costs one 1-row read, as before; past MAX_EVENTS of my
+    own un-acked writes it answers True (in doubt, wake: `changes` + ack clears it)."""
+    since = acked(c.api, handle)
+    if not _page(c, handle, since, 1):
+        return False
+    mine = me_id(c)
+    for _ in range(MAX_EVENTS // PAGE):
+        rows = _page(c, handle, since, PAGE)
+        if any(r.get("actor_id") != mine for r in rows):
+            return True
+        if len(rows) < PAGE:
+            return False
+        since = rows[-1]["seq"]
+    return True

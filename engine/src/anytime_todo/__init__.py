@@ -25,4 +25,4 @@ Off (no plan entry, no noise) until TODO_API + TODO_HANDLE are configured.
 Rules: docs/todo-pack.md (dev repo) and the pack contract (concern-packs.md).
 """
 
-ANYTIME_PLUGIN = {"name": "todo", "engine": ">=0.4,<0.6"}
+ANYTIME_PLUGIN = {"name": "todo", "engine": ">=0.4,<0.7"}

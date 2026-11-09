@@ -2,7 +2,7 @@
 // PR links). Each child row is keyed by a stable source id, so a rerun inserts
 // only what is missing and never overwrites what was changed in Mentat.
 import type { Context } from 'hono';
-import { hasScope, resolveAgentToken } from '../../lib/guards';
+import { hasScope } from '../../lib/guards';
 import { newId } from './id';
 import { now } from './store';
 import { object, Problem, textField, type TodoEnv } from './types';
@@ -12,8 +12,9 @@ import { MAX_ACS, optionalText } from './item-fields';
 /** Import writes history (done, dropped, a developer) directly: humans, or tokens with todo:import. */
 export async function requireImporter(c: Context<TodoEnv>) {
   if (isHuman(c)) return;
-  const token = await resolveAgentToken(c.env.DB, c.req.header('X-Mentat-Token') ?? '');
-  if (!token || !hasScope(token.scopes, 'todo:import')) throw new Problem('import needs a human session or a todo:import token', 403);
+  // The token was already resolved once, by the shared guard in auth.ts.
+  const scopes = c.get('tokenScopes');
+  if (!scopes || !hasScope(scopes, 'todo:import')) throw new Problem('import needs a human session or a todo:import token', 403);
 }
 
 const many = (v: unknown, name: string) => {

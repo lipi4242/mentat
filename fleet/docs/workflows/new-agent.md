@@ -61,6 +61,23 @@ vissza, ami **nem az övé**. Hídhoz `bridge.unit` és `bridge.version`.
 Kell még `runbook: runbooks/<agent>.md` (a registry könyvtárához relatív), és
 a fájlnak léteznie kell — a `fleet validate` ezt ellenőrzi.
 
+### Kiadó ágensnél: a kadencia kérdése (tick-kapu)
+
+Kiadó ágensnél a `tick_period_s` helyett a `tick_gate` dönt az ütemről. Kérdezd meg a tulajdonost, a
+szöveg szó szerint (`fleet tick-gate presets` kiírja):
+
+> Milyen gyakran nézzen rá a kiadó ágens a sorra? Az üres ellenőrzés nagyon olcsó: nem fut AI,
+> csak egy gyors lekérdezés — AI-kör csak akkor indul, ha van munka.
+> 1. Rendszeres (aktív fejlesztéshez) (ajánlott) — 30 percenként; ha 3 órája nem volt munka, óránként.
+> 2. Mérsékelt — óránként; ha 3 órája nem volt munka, 3 óránként.
+> 3. Reggel és este — napi két fix ellenőrzés (alapból 08:07 és 18:07, átállítható).
+
+A válasz a registrybe: `"tick_gate": {"preset": "rendszeres" | "mersekelt" | "reggel-este",
+"tick_cmd": "<a tick promptja>", "check": "builtin:release", "daily_at": ["10:04"], "release":
+{"repos_file": "…", "state_file": "…", "todo_handle": "…"}}` (a `reggel-este`-nél `"at"` állítja az
+időpontokat), és mellé `tick_period_s: 86400`. A session saját cronját ilyenkor NE húzza fel a
+startup — a kettő együtt kettős ticket adna.
+
 ## 3–5. Egy paranccsal
 
 Ha a registry-bejegyzés még nincs meg: `fleet init [<agent>] [--repo .]` megírja

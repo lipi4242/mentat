@@ -11,6 +11,11 @@
             "type": "command",
             "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/identitas/kapu.py\" --session-start",
             "timeout": 15
+          },
+          {
+            "type": "command",
+            "command": "sh -c 'command -v node >/dev/null 2>&1 || { [ -f \"$HOME/.config/todo/env\" ] && echo \"[todo] node nincs a PATH-on: a todo-figyelés ebben a sessionben nem fut\"; exit 0; }; node \"$0\" \"$1\"; exit 0' \"${CLAUDE_PLUGIN_ROOT}/hooks/todo/todo-once.mjs\" --session-start",
+            "timeout": 15
           }
         ]
       }
@@ -48,6 +53,17 @@
             "command": "python3 -I \"${CLAUDE_PLUGIN_ROOT}/hooks/identitas/nemakad.py\" --hook",
             "timeout": 10,
             "onFailure": "block"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "sh -c 'command -v node >/dev/null 2>&1 || { exit 0; }; node \"$0\" \"$1\"; exit 0' \"${CLAUDE_PLUGIN_ROOT}/hooks/todo/todo-once.mjs\" --prompt",
+            "timeout": 15
           }
         ]
       }

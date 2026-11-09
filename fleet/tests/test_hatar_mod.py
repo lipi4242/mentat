@@ -16,7 +16,8 @@ from unittest import mock
 
 from fleet import REPO_ROOT, cli, hatar_mod as HM, outward_hold_cli, plan_merge, titok_cli
 
-sys.path.insert(0, str(REPO_ROOT / "security" / "eszkozok" / "identitas"))
+# the shipped copy (plugin/hooks): security/ is internal and does not reach the public repo
+sys.path.insert(0, str(REPO_ROOT / "plugin" / "hooks" / "identitas"))
 import hatar_jel  # noqa: E402
 
 
@@ -58,14 +59,16 @@ class Marker(unittest.TestCase):
             plan_merge.cmd_plan_merge(NS(donor="a", recipient="b", repo=[], json=True))
         self.assertEqual(HM.read()["set_by"], ["plan-merge"])
 
-    def test_ketagenses_scan_bekapcsolja_az_egyagenses_nem(self):
+    def test_a_scan_sosem_kapcsolja_az_osszeolvasztas_modot(self):
+        """11-07: a többágenses scan sem (11-07: 7 napra bekapcsolta, Rilí gitje bukott volna)."""
         from fleet import titok_leltar as L
         with mock.patch.object(L, "scan", return_value={"files": []}), \
                 mock.patch.object(L, "save", return_value=self.home / "x"), mock.patch.object(L, "table", return_value=""):
             titok_cli.cmd_scan(NS(agent=["a"], repo=None, json=False, no_hook=True))
             self.assertIsNone(HM.read())
             titok_cli.cmd_scan(NS(agent=["a", "b"], repo=None, json=False, no_hook=True))
-        self.assertEqual(HM.read()["set_by"], ["secrets scan"])
+        self.assertIsNone(HM.read())
+        self.assertFalse(HM.path().exists())
 
     def test_hold_es_release_outward(self):
         ok = {"ok": True, "target": "box", "engine_knows": True, "removed": True,

@@ -16,9 +16,11 @@ async function withPending(c: Context<AppEnv>, table: string, fields: FieldDef[]
 
 export function registerMeta(app: Hono<AppEnv>, models: Models) {
   app.get('/api/meta', async (c) => {
-    const supplied = c.req.header('X-Mentat-Token') ?? '';
+    // Same precedence as lib/guards.ts authorize(): a present header — even
+    // an empty one — decides outright, never falling back to the cookie.
+    const supplied = c.req.header('X-Mentat-Token');
     let may: (scopes: string[]) => boolean;
-    if (supplied) {
+    if (supplied !== undefined) {
       const tok = await resolveAgentToken(c.env.DB, supplied);
       if (!tok) return c.json({ error: 'unauthorized' }, 401);
       may = (scopes) => scopes.some((s) => hasScope(tok.scopes, s));

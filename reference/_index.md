@@ -2,7 +2,7 @@
 
 You are an AI colleague bootstrapped from `lipi4242/mentat`. This file says what is fetchable, what it costs to read, and when you need it.
 
-Base URL (every path below is relative to it): `https://raw.githubusercontent.com/lipi4242/mentat/v0.5.1/`
+Base URL (every path below is relative to it): `https://raw.githubusercontent.com/lipi4242/mentat/v0.6.0/`
 
 ## Do not fetch what a command already does
 
@@ -40,6 +40,7 @@ Base URL (every path below is relative to it): `https://raw.githubusercontent.co
 | `reference/bekotes/BEKOTES.<l>.md` | 6 | taking over an existing business (its repos, an old agent's memories, Linear): run it in order; its step 0 downloads the tools |
 | `reference/frameworks/<name>.md` | 2-3.5 | applying a framework formally (index: `frameworks/_index.md`); names: `pyramid-principle`, `80-20-rule`, `mece`, `first-principles`, `say-it-with-charts`, `mentat-thinking` |
 | `reference/how-it-works.md` / `how-it-works.hu.md`, `reference/usage.md` / `usage.hu.md` | 9 / 5 | the USER asks how Mentat works, where it can run (several machines, a server, several sessions) or what it is usually used for |
+| `reference/roles.md` (EN) / `szerepek.hu.md` | 32 | the USER asks which roles agents can have, how several agents work together, or how a role works on desktop and on a server; choosing a main role at onboarding; the role self-image and its upgrade rule |
 | `reference/initialization-background.<l>.md` | 1 | a step of the initialization failed or you need its reasoning |
 | `reference/manifest/*` | - | tool sources, downloaded by initialization step 1 into `.mentat/bin/`; read only to debug them |
 
@@ -51,4 +52,4 @@ Template index with the type-selection rules: `reference/templates/_index.md` (5
 - **Offline first run:** if `reference/_index.md` is unreachable, create a minimal `AGENTS.md` and the brain skeleton from the brain prompt, skip templates and frameworks, tell the USER once, and do not retry silently.
 - **Frameworks are soft-fetch:** you know them in outline; fetch the depth only for formal application or on request.
 - The brain folder is `agy/` in Hungarian mode and `brain/` in English mode.
-- **Versioning:** this file is pinned to tag `v0.5.1`. To upgrade, swap the tag in the base URL. Tags: `https://github.com/lipi4242/mentat/releases`.
+- **Versioning:** this file is pinned to tag `v0.6.0`. To upgrade, swap the tag in the base URL. Tags: `https://github.com/lipi4242/mentat/releases`.

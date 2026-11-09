@@ -17,7 +17,7 @@ RULE = {"hu": ["Meglévő business", "reference/bekotes/BEKOTES.hu.md", "0. lép
                "munkamappán kívül", "nem listázol", "kulcsneveit", "~/.claude", "AskUserQuestion-nel soha"],
         "en": ["Existing business", "reference/bekotes/BEKOTES.en.md", "step 0", "for every task",
                "outside the working folder", "list nothing", "key names", "~/.claude", "never AskUserQuestion"]}
-README = {"README.hu.md": ["## Meglévő business bekötése", "reference/bekotes/BEKOTES.hu.md", "Úgy van utasítva"],
+README = {"README.hu.md": ["## Meglévő vállalkozás bekötése", "reference/bekotes/BEKOTES.hu.md", "Az a dolga, hogy"],
           "README.md": ["## Onboarding an existing business", "reference/bekotes/BEKOTES.en.md", "It is instructed"]}
 OVERCLAIM = ["máshol nem kutat", "does not search the rest"]
 

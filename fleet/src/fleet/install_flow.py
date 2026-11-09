@@ -82,6 +82,8 @@ def install_agent(entry: dict, *, unit_dir: Path = UNIT_DIR, config_dir: Path = 
         res["notes"] += ensure_supervision(t, unit_dir=Path(unit_dir), config_dir=Path(config_dir),
                                            fleet_root=fleet_root_for_units(),
                                            registry=registry or registry_dir())
+        from fleet import tick_gate_units   # tick-kapu: a tick-kapu timere ugyanabban a tranzakcióban
+        res["notes"] += tick_gate_units.install(t, entry, Path(unit_dir), fleet_root_for_units())
         if is_dormant(entry):
             res["status"] = OK
             res["notes"].append("dormant: telepítve, nem indítva (a reconcile tartja leállítva)")

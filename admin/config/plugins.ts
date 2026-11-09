@@ -8,6 +8,7 @@ import { loadModels, type Models } from '../worker/src/core/models';
 import { makeCasesPlugin } from '../worker/src/plugins/cases';
 import { makeCustomPlugin } from '../worker/src/plugins/custom';
 import { todoPlugin } from '../worker/src/plugins/todo';
+import { flottaPlugin } from '../worker/src/plugins/flotta';
 import modelsJson from './models.json';
 
 /**
@@ -17,7 +18,7 @@ import modelsJson from './models.json';
  * agent edits to extend the admin).
  */
 export function pluginsFor(models: Models): AdminPlugin[] {
-  return [makeCasesPlugin(models.fields.cases ?? []), makeCustomPlugin(models), todoPlugin];
+  return [makeCasesPlugin(models.fields.cases ?? []), makeCustomPlugin(models), todoPlugin, flottaPlugin];
 }
 
 export const MODELS: Models = loadModels(modelsJson);

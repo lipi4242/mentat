@@ -7,7 +7,7 @@
 // rogzul (measure), hogy a gyorsan beirt sor se csusszon a meres moge; a
 // kesve megerkezo ELSO injektalas is nyugta (a mar atnezett bajtokon tul).
 import { saveJson, loadJsonQuarantine } from "./jsonfile.mjs";
-import { readSessionId, findTranscript, sizeOf, identOf, headerRe, HEADER_HEAD, scanUserEntries, tailOffset } from "./transcript.mjs";
+import { readSessionId, findTranscript, sizeOf, identOf, headerRe, HEADER_HEAD, TODO_HEAD, scanUserEntries, tailOffset } from "./transcript.mjs";
 
 const DONE_MAX = 500;
 
@@ -15,9 +15,12 @@ const DONE_MAX = 500;
 // (transcript.mjs) — a reakcio-sorban nincs msg=, az kimarad.
 // Szandekos: a szerkesztett uzenet sora ugyanazt a chat/msg fejlecet viseli,
 // tehat ugyanaz a kulcs — fuggo vagy lezart kulcsra nem indul uj ciklus (dedup).
+// A todo-ebresztes sora chat=todo, msg=<wake-seq> kulccsal kap nyugtat.
 const keyOf = (line) => {
   const m = String(line).match(new RegExp(String.raw`${HEADER_HEAD}(-?\d+) \| msg=(\d+)(?=[ |\]])`));
-  return m ? { chat_id: m[1], msg_id: m[2], key: `${m[1]}:${m[2]}` } : null;
+  if (m) return { chat_id: m[1], msg_id: m[2], key: `${m[1]}:${m[2]}` };
+  const t = String(line).match(new RegExp(String.raw`${TODO_HEAD}(\d+)\]: `));
+  return t ? { chat_id: "todo", msg_id: t[1], key: `todo:${t[1]}` } : null;
 };
 const keyOfItem = (it) => `${it.chat_id}:${it.msg_id}`;
 

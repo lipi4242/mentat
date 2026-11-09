@@ -3,6 +3,187 @@
   "_doc": "One entry per release step. A change moves one or more catalog capabilities (reference/manifest/capabilities/*.json): new | extended | improved | removed. Each change is one CHANGELOG bullet carrying <!-- cap: <id> -->. Check and render: python3 reference/manifest/mentat_caplog.py check | render md --lang en|hu | render json.",
   "releases": [
     {
+      "version": "0.6.0",
+      "date": null,
+      "components": {
+        "brain": "0.6.0",
+        "engine": "0.6.0",
+        "fleet": "0.6.0"
+      },
+      "changes": [
+        {
+          "id": "fleet-check",
+          "component": "brain",
+          "title": {
+            "en": "Central fleet check",
+            "hu": "Központi flotta-ellenőrzés"
+          },
+          "summary": {
+            "en": "Every box reports its agents' capability probe to the Admin's flotta plugin; a red check opens an incident, a silent box a dead-man incident, and the owner gets an e-mail when nobody fixes it.",
+            "hu": "Minden box az Admin flotta pluginjába jelenti az ágensei képesség-próbáját; a piros ellenőrzésből incidens lesz, a néma boxból halott-ember incidens, és ha senki nem javítja, a tulajdonos e-mailt kap."
+          },
+          "capabilities": [
+            {
+              "id": "admin",
+              "change": "extended"
+            },
+            {
+              "id": "fleet",
+              "change": "extended"
+            }
+          ]
+        },
+        {
+          "id": "fleet-managers",
+          "component": "brain",
+          "title": {
+            "en": "Fleet managers repair fallen agents",
+            "hu": "Flotta-menedzserek javítják a kiesett ágenst"
+          },
+          "summary": {
+            "en": "Ranked manager agents get a task for each incident, claim it for 30 minutes, repair only through five fixed repair steps, and close it only on a fresh green check; the next manager takes over when one does not answer.",
+            "hu": "A rangsorolt menedzser-ágensek minden incidensről feladatot kapnak, 30 percre átveszik, csak öt rögzített javító lépéssel javítanak, és csak friss zöld ellenőrzéssel zárnak; ha egy nem válaszol, a következő veszi át."
+          },
+          "capabilities": [
+            {
+              "id": "fleet",
+              "change": "extended"
+            }
+          ]
+        },
+        {
+          "id": "todo-wake",
+          "component": "brain",
+          "title": {
+            "en": "A handed-over todo reaches the agent within a minute",
+            "hu": "Az átadott todo egy percen belül eléri az ágenst"
+          },
+          "summary": {
+            "en": "The Telegram bridge polls the todo store every 20 seconds and writes one line into the session when the ball is with the agent; mentat-todo ack is the receipt; the same code runs as a session hook on your own computer.",
+            "hu": "A Telegram-híd 20 másodpercenként lekéri a todót, és egy sort ír a sessionbe, ha a labda az ágensnél van; a mentat-todo ack a nyugta; a saját gépen ugyanez a kód session-hookként fut."
+          },
+          "capabilities": [
+            {
+              "id": "engine.todo",
+              "change": "extended"
+            },
+            {
+              "id": "backlog",
+              "change": "improved"
+            }
+          ]
+        },
+        {
+          "id": "todo-cli",
+          "component": "brain",
+          "title": {
+            "en": "The todo command line fills the gaps",
+            "hu": "A todo parancssor pótolja a hiányokat"
+          },
+          "summary": {
+            "en": "task show/list, project list, repeating tasks, backlog keys everywhere; changes and ball no longer show your own writes and drafts; mentat-todo works without a server unit.",
+            "hu": "task show/list, project list, ismétlődő feladat, backlog-kulcs mindenhol; a changes és a ball nem mutatja a saját írást és piszkozatot; a mentat-todo szerver-egység nélkül is fut."
+          },
+          "capabilities": [
+            {
+              "id": "engine.todo",
+              "change": "improved"
+            }
+          ]
+        },
+        {
+          "id": "bug-report",
+          "component": "brain",
+          "title": {
+            "en": "Ask your agent to file a bug report",
+            "hu": "Kérd meg az ágenst, hogy jelentsen hibát"
+          },
+          "summary": {
+            "en": "The agent drafts a scrubbed issue with every part's version, shows it word for word, and posts it with your own gh only after a plain yes to that exact draft.",
+            "hu": "Az ágens kitakarított hibajelentést készít minden rész verziójával, szó szerint megmutatja, és csak az adott piszkozatra mondott tiszta igen után küldi el a te gh-ddal."
+          },
+          "capabilities": [
+            {
+              "id": "mentat.status",
+              "change": "extended"
+            }
+          ]
+        },
+        {
+          "id": "bridge-allowlist",
+          "component": "brain",
+          "title": {
+            "en": "Telegram groups: the sender counts",
+            "hu": "Telegram-csoport: a küldő számít"
+          },
+          "summary": {
+            "en": "Only an allowlisted sender reaches the agent from its group; one filter removes invisible characters from everything that reaches the session.",
+            "hu": "A csoportból csak az allowlistes küldő éri el az ágenst; egy közös szűrő minden sessionbe jutó szövegből kiveszi a láthatatlan karaktereket."
+          },
+          "capabilities": [
+            {
+              "id": "fleet",
+              "change": "improved"
+            }
+          ]
+        },
+        {
+          "id": "secrets-gate",
+          "component": "brain",
+          "title": {
+            "en": "The secrets gate blocks less of your work, more of others'",
+            "hu": "A titok-kapu kevesebbet tilt a saját munkádból, többet a másokéból"
+          },
+          "summary": {
+            "en": "The agent's own project memory is writable; transcripts and other projects' memory are a secret store; cd and run-time paths are followed; the scan no longer installs the gate.",
+            "hu": "Az ágens saját projekt-memóriája írható; az átiratok és más projektek memóriája titoktár; a kapu követi a cd-t és a futásidejű utat; a scan már nem telepít kaput."
+          },
+          "capabilities": [
+            {
+              "id": "fleet",
+              "change": "improved"
+            }
+          ]
+        },
+        {
+          "id": "capability-health",
+          "component": "brain",
+          "title": {
+            "en": "fleet doctor measures what agents actually do",
+            "hu": "A fleet doctor azt méri, amit az ágens ténylegesen csinál"
+          },
+          "summary": {
+            "en": "doctor and every postcheck run the essentials (send dry run, todo, state files, git); user-level settings change through one canary; the box row shows the release lag.",
+            "hu": "A doctor és minden postcheck lefuttatja az alapfunkciókat (küldés próbája, todo, állapotfájlok, git); a felhasználói szintű beállítás egy kanárin át változik; a box-sor mutatja a kiadás-lemaradást."
+          },
+          "capabilities": [
+            {
+              "id": "fleet",
+              "change": "improved"
+            }
+          ]
+        },
+        {
+          "id": "install-python39",
+          "component": "brain",
+          "title": {
+            "en": "Installs on the Python your Mac already has",
+            "hu": "A Mac saját Pythonjával is települ"
+          },
+          "summary": {
+            "en": "Python 3.9 or newer is the one minimum in the install check, the engine and the guides; the install guide links the engine and the fleet at the release tag.",
+            "hu": "A Python 3.9 vagy újabb az egyetlen minimum a telepítés-ellenőrzésben, a motorban és a leírásokban; a telepítési leírás a motort és a flottát a kiadás tagjére linkeli."
+          },
+          "capabilities": [
+            {
+              "id": "mentat.init",
+              "change": "improved"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "version": "0.5.1",
       "date": null,
       "components": {

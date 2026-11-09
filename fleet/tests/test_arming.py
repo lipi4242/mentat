@@ -5,6 +5,8 @@ that is the exact state Eta was in on 2026-08-12 — unit active, session alive,
 no tick ever, and `liveness.should_rearm` returning False because `tick_age_s`
 was `None`.
 """
+from __future__ import annotations
+import _hermetic  # noqa: F401  (első import: HOME → tmp, lásd tests/_hermetic.py)
 import unittest
 
 import pytest  # noqa: F401  (repo convention: run under both unittest and pytest)

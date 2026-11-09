@@ -7,7 +7,7 @@
 
 [![Kiadás](https://img.shields.io/github/v/tag/lipi4242/mentat?label=kiad%C3%A1s)](https://github.com/lipi4242/mentat/tags)
 [![Licenc](https://img.shields.io/badge/licenc-Apache--2.0-blue.svg)](../LICENSE)
-[![Python](https://img.shields.io/badge/python-3.10%2B-blue.svg)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/python-3.9%2B-blue.svg)](https://www.python.org/)
 [![HU | EN](https://img.shields.io/badge/nyelv-HU%20%7C%20EN-informational.svg)](README.md)
 
 A motor a [Mentat](../README.hu.md) része, és vele együtt érkezik: a Mentat telepítése beállítja, ha kéred a reggeli összefoglalót és az emlékeztetőket.
@@ -26,11 +26,11 @@ A legegyszerűbb: kérd meg a Mentat-kollégádat, hogy adja hozzá a motort, ő
 
 ```
 Telepítsd a Mentat motort ebbe a repóba. Futtasd pontosan ezt:
-  git clone --depth 1 --branch v0.5.1 https://github.com/lipi4242/mentat ~/src/mentat
+  git clone --depth 1 --branch v0.6.0 https://github.com/lipi4242/mentat ~/src/mentat
   ~/src/mentat/engine/sync-to.sh . --pack cases
   python3 -m anytime_engine.selftest -q
 Ha a ~/src/mentat már létezik, a klón helyett futtasd: git -C ~/src/mentat fetch --tags,
-majd git -C ~/src/mentat checkout v0.5.1.
+majd git -C ~/src/mentat checkout v0.6.0.
 Utána kérdezd meg az időzónámat, és hogy hová menjenek az emlékeztetők (fájl vagy Telegram), és futtasd:
 python3 -m anytime_engine.setup --tz <tz> --deliver <file|telegram> --lang hu, az igenem után --install-lal.
 ```

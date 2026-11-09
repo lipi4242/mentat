@@ -1,0 +1,85 @@
+name: Bug report
+description: Something in Mentat does not work as documented.
+labels: ["bug", "needs-triage"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. A security problem does **not** go here: use
+        [a private report](https://github.com/lipi4242/mentat/security/advisories/new) instead.
+
+        Never paste tokens, keys, passwords, e-mail addresses or full paths with your user name.
+        Your Mentat agent can draft this report for you with these values removed: ask it to
+        "report this bug" (the `bug-report` skill). It shows you the draft and posts nothing
+        without your yes.
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you did and what went wrong, in a few sentences.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What you expected
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: The commands or requests, with values replaced by placeholders (`<token>`, `<repo>`).
+      render: shell
+  - type: textarea
+    id: error
+    attributes:
+      label: Error output
+      description: The error message or the last lines of the log, with secrets and personal data removed.
+      render: text
+  - type: input
+    id: version
+    attributes:
+      label: Mentat version
+      description: The `version` in `release.json` of your install (for example 0.5.1).
+      placeholder: 0.5.1
+    validations:
+      required: true
+  - type: dropdown
+    id: part
+    attributes:
+      label: Which part
+      options:
+        - Brain (install, skills, reference tools)
+        - Engine (engine/)
+        - Fleet (server runtime, Telegram bridge, plugin)
+        - Admin (web app and API)
+        - Not sure
+    validations:
+      required: true
+  - type: dropdown
+    id: install
+    attributes:
+      label: How it runs
+      options:
+        - Claude Desktop
+        - Claude Code on a computer
+        - Server (fleet)
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: OS, Python and Node versions, component versions (`components` in `release.json`).
+      render: text
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before you post
+      options:
+        - label: I removed tokens, keys, passwords, e-mail addresses and personal paths.
+          required: true
+        - label: I searched the existing issues and this is not a duplicate.
+          required: true

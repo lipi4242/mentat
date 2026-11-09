@@ -28,6 +28,10 @@ def validate(rdir: Path) -> tuple[int, list[str]]:
         rc_seen[e["rc_name"]] = a; rc_seen[e["rc_name"] + "@host"] = e.get("host")
         if e["unit_source"] == "template":
             problems += [f"{a}: {f}" for f in validate_for_render(e)]
+        from fleet import tick_gate   # tick-kapu: a tick-kapu mezői (preset, időpontok, tick_cmd)
+        gate = tick_gate.config(e)
+        if gate is not None:
+            problems += [f"{a}: {f}" for f in tick_gate.problems(gate)]
         problems += [f"{a}: {f}" for f in names.name_findings(e)]
         problems += [f"{a}: hiányzó mező {f}" for f in missing_fields(e)]
         if e.get("host") and e["host"] not in boxes:

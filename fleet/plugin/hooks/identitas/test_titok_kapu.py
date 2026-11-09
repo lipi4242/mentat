@@ -125,7 +125,7 @@ class HetkoznapiMunkaSzabad(Base):
                     "stat ~/.config/szervezo/szervezo.env", "git status", "git commit -m 'token kezelés javítása'",
                     "env FOO=1 python3 src/app.py", "grep -rn print src", "cat src/app.py",
                     "python3 -c 'print(1)'", "ssh box 'cat ~/.config/x/x.env'",
-                    "cat ~/.claude/projects/y/memory/MEMORY.md", "echo .env >> .gitignore"):
+                    "echo .env >> .gitignore"):
             self.assertIsNone(self.bash(cmd), cmd)
 
     def test_kodszerkesztes(self):

@@ -13,13 +13,28 @@
 
 Please report it privately, not in a public issue or pull request.
 
-On this repository open the **Security** tab and choose **Report a vulnerability**
-(GitHub private security advisories). Describe what you found, how to reproduce it, and which
-version or commit you ran.
+Use [**Report a vulnerability**](https://github.com/lipi4242/mentat/security/advisories/new)
+(the **Security** tab of this repository; GitHub private vulnerability reporting). Only the
+maintainers see it. Describe what you found, how to reproduce it, and which version or commit you
+ran.
+
+A Mentat agent's `bug-report` skill never files a security problem in public: when the error
+looks like a leak or a way around a guard, it stops and points you here.
 
 You get an acknowledgement within a few days. A fix ships as a patch release in the supported
 line, and the advisory is published once the fix is available. We credit you in the advisory
 unless you prefer not to be named.
+
+## Verifying a release
+
+Each release tag `vX.Y.Z` is created once and never moved or deleted (a repository ruleset
+enforces it), and the GitHub Release is immutable once published. Its source archive comes with
+`SHA256SUMS` and a signed build-provenance attestation:
+
+```
+sha256sum -c SHA256SUMS
+gh attestation verify mentat-vX.Y.Z.tar.gz -R lipi4242/mentat
+```
 
 ## Scope
 

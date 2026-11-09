@@ -17,7 +17,8 @@ export function report(sum, day) {
   const c = sum.counts;
   const out = [`${day}: ${sum.inbound} bejövő; küldés: ${c.confirmed} confirmed, ${c.failed} failed, ${c.unknown} unknown`];
   // Fix sorrend a negy ismert esemenyre, utana a tobbi.
-  const known = ["inbound_unconfirmed", "webhook_failed", "deprecated_flag", "inbound_confirmed"];
+  const known = ["inbound_unconfirmed", "todo_wake_unhandled", "todo_runaway", "webhook_failed", "deprecated_flag",
+    "inbound_confirmed", "todo_wake_handled"];
   const ev = Object.keys(sum.notices || {}).sort((a, b) => (known.indexOf(a) + 1 || 99) - (known.indexOf(b) + 1 || 99));
   if (ev.length) out.push(`notice: ${ev.map((e) => `${e} ${sum.notices[e]}`).join(", ")}`);
   for (const r of sum.unanswered) out.push(`MEGVÁLASZOLATLAN chat=${r.chat_id} msg=${r.msg_id} ${r.from ?? ""}: ${clip(r.text)}`);

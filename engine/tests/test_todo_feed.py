@@ -89,6 +89,44 @@ class TestCursor(FeedCase):
         self.assertEqual((len(got["events"]), got["last_seq"], got["more"]), (500, 500, True))
 
 
+class TestOwnWrites(FeedCase):
+    """11-08 terep: a `changes` a saját írásaimat ne adja vissza hírként (két ágens kézzel szűrt)."""
+    def setUp(self):
+        super().setUp()
+        self.srv.events = [{"seq": 3, "actor_id": "P-OTHER"}, {"seq": 5, "actor_id": "P-ROCKY"},
+                           {"seq": 9, "actor_id": "P-ROCKY"}]
+
+    def test_own_writes_are_left_out_but_the_cursor_steps_over_them(self):
+        got = self.changes()
+        self.assertEqual(([e["seq"] for e in got["events"]], got["own_skipped"], got["last_seq"]), ([3], 2, 9))
+        self.assertEqual(got["ack_with"], "changes --ack 9")
+        self.assertEqual(self.cli("changes", "--ack", "9")[0], 0)
+        self.assertEqual(self.changes()["events"], [])
+
+    def test_all_shows_them(self):
+        rc, out = self.cli("changes", "--all")
+        self.assertEqual([e["seq"] for e in json.loads(out)["events"]], [3, 5, 9])
+
+    def test_ack_answers_json(self):
+        self.changes()
+        rc, out = self.cli("changes", "--ack", "5")
+        self.assertEqual((rc, json.loads(out)), (0, {"handle": "rocky", "acked": 5}))
+
+    def test_pending_ignores_own_writes(self):
+        feed = self.mod("feed")
+        from anytime_todo.api import Client
+        c = Client(os.environ["TODO_API"], "test-token-not-a-secret")
+        self.assertTrue(feed.pending(c, "rocky"))
+        self.srv.events = [{"seq": n, "actor_id": "P-ROCKY"} for n in range(1, 160)]
+        self.assertFalse(feed.pending(c, "rocky"))           # 159 saját esemény, két lapon át
+        self.srv.events.append({"seq": 170, "actor_id": "P-OTHER"})
+        self.assertTrue(feed.pending(c, "rocky"))
+        self.srv.events = [{"seq": n, "actor_id": "P-ROCKY"} for n in range(1, 700)]
+        self.assertTrue(feed.pending(c, "rocky"))            # a sapkán túl: kétség esetén ébreszt
+        self.srv.events = []
+        self.assertFalse(feed.pending(c, "rocky"))
+
+
 class TestFile(FeedCase):
     def test_unreadable_cursor_is_never_overwritten(self):
         p = self.mod("feed").path()

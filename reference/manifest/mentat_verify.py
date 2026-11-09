@@ -51,9 +51,14 @@ def generate(tree):
     return {d: sha(tree / s) for d, s in sorted(pairs.items())}
 
 
+def is_test_only(name):
+    """test_*.py and the _*.py test support (fakes, fixtures, _tmp_run): never on a user's machine."""
+    return name.startswith(("test_", "_"))
+
+
 def known(tree):
     tools = [p for d in TOOL_DIRS for p in sorted((pathlib.Path(tree) / d).glob("*.py"))
-             if not p.name.startswith("test_") and p.name != "_tmp_run.py"]
+             if not is_test_only(p.name)]
     return {p.name: sha(p) for p in sorted(tools, key=lambda p: p.name)}
 
 

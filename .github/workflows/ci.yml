@@ -1,3 +1,5 @@
+# Every job runs `.github/ci.sh <job>`: the same file the maintainers run on the composed tree
+# before a release, so what is checked here is what was checked before publishing.
 name: CI
 
 on:
@@ -8,91 +10,71 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   brain:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python: ["3.10", "3.12"]
+        python: ["3.9", "3.12"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ matrix.python }}
       - name: Manifest reference implementation and conformance fixtures
-        run: python3 -m unittest discover -s reference/manifest
+        run: bash .github/ci.sh brain
 
   engine:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python: ["3.10", "3.12"]
-    defaults:
-      run:
-        working-directory: engine
+        python: ["3.9", "3.12"]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: ${{ matrix.python }}
-      - name: Unit tests
-        run: |
-          python3 -m pip install pytest
-          python3 -m pytest -q
-      - name: Quickstart, as in the README
-        run: |
-          engine="$PWD"
-          mkdir "$RUNNER_TEMP/agent" && cd "$RUNNER_TEMP/agent"
-          git init -q
-          "$engine/sync-to.sh" . --pack cases
-          python3 -m anytime_engine.selftest
-          ANYTIME_PLUGINS=anytime_cases python3 -m anytime_engine.tick hourly --dry-run > plan.json
-          python3 -c "import json; print(len(json.load(open('plan.json'))['actions']), 'actions')"
-          test -z "$(git status --short | grep -v -e anytime_engine/ -e anytime_cases/ -e plan.json)"
+      - name: Unit tests and the README quickstart
+        run: bash .github/ci.sh engine
 
   fleet:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: fleet
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "20"
-      - name: Runner tests
-        run: PYTHONPATH=src python3 -m unittest discover -s tests -q
-      - name: Runner unit tests
-        run: PYTHONPATH=src python3 -m unittest discover -s src/fleet -p 'test_*.py' -q
-      - name: Bridge tests
-        run: node --test "bridge/test/*.test.mjs"
-      - name: Example registry is valid
-        run: FLEET_REGISTRY=examples/registry PYTHONPATH=src python3 -m fleet.cli validate
+      - name: Runner, bridge and example registry
+        run: bash .github/ci.sh fleet
 
   admin:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: admin
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 22
           cache: npm
           cache-dependency-path: |
             admin/worker/package-lock.json
             admin/admin/package-lock.json
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.12"
-      - run: npm ci --prefix worker && npm ci --prefix admin
-      - run: npm --prefix worker run typecheck
-      - run: npm --prefix worker run test
-      - run: npm --prefix admin run typecheck
-      - run: npm --prefix admin run test
-      - run: npm --prefix admin run build
-      - run: python3 -m unittest discover -s agent/cases/tests
+      - name: Worker, admin app and cases agent
+        run: bash .github/ci.sh admin

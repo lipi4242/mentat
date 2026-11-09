@@ -12,6 +12,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import re
 from typing import Any
 
 from anytime_engine import config
@@ -27,7 +28,8 @@ class UsageError(Exception):
 def client() -> tuple[Client, settings.Settings]:
     s = settings.load(config.repo_root().resolve())
     if s is None:
-        raise settings.TodoConfigError("the todo pack is not configured (TODO_API + TODO_HANDLE)")
+        raise settings.TodoConfigError("the todo pack is not configured: no handle (TODO_HANDLE, mentat.json "
+                                       "components.engine.todo_handle, or FLEET_AGENT on a box) or no TODO_API")
     return Client(s.api, s.token()), s
 
 
@@ -45,6 +47,20 @@ def rev_of(c: Client, path: str, rev: int | None) -> int:
     if not isinstance(row, dict) or not isinstance(row.get("rev"), int):
         raise TodoApiError(f"todo API answered {path} without a rev")
     return row["rev"]
+
+
+KEY = re.compile(r"^[A-Za-z][A-Za-z0-9]{0,7}-[0-9]+$")
+
+
+def resolve(c: Client, ref: str) -> str:
+    """Egy backlog-kulcs (WEB-12) → a tétel id-je; minden más változatlanul megy tovább.
+    A /tasks utak csak id-t ismernek (kulccsal 404 / 422 jönne)."""
+    if not KEY.match(ref):
+        return ref
+    item = c.get_json("/items/" + seg(ref))
+    if not isinstance(item, dict) or not item.get("id"):
+        raise TodoApiError(f"todo API answered /items/{ref} without an item")
+    return str(item["id"])
 
 
 def task_path(task_id: str) -> str:

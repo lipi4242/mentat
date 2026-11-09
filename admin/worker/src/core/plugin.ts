@@ -1,5 +1,5 @@
 import type { Hono } from 'hono';
-import type { AppEnv } from '../types';
+import type { AppEnv, Env } from '../types';
 
 export interface AdminPlugin {
   /** Stable id, also the migration-band owner name. */
@@ -12,4 +12,6 @@ export interface AdminPlugin {
    *  (the instance's own fields, config/models.json). Nothing else. */
   extends?: string[];
   registerRoutes(app: Hono<AppEnv>): void;
+  /** The Worker cron (wrangler.toml [triggers]); `now` is passed in so tests can move time. */
+  scheduled?(env: Env, now: Date): Promise<void>;
 }

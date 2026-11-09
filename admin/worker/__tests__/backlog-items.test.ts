@@ -37,6 +37,14 @@ describe('backlog projects and items', () => {
     expect((await item({ project: 'app' })).owner_id).toBe('b');
     expect((await call('POST', '/items', { project: 'WEB', title: 'x', pm: 'nobody', idem_key: 'p' })).status).toBe(422);
   });
+  it('a 422 on an AC names the field (acs[i] on create, text on ac-add)', async () => {
+    const { call, item } = await backlogApp();
+    const bad = await call('POST', '/items', { project: 'WEB', title: 'x', acs: ['ok', ''], idem_key: 'f' });
+    expect(bad.status).toBe(422); expect(bad.body.error).toContain('acs[1]');
+    const one = await item();
+    const add = await call('POST', `/items/${one.id}/acs`, { text: ' ', expected_rev: one.rev });
+    expect(add.status).toBe(422); expect(add.body.error).toMatch(/^text /);
+  });
   it('lists items ranked by position with filters', async () => {
     const { call, at, item } = await backlogApp();
     const draft = await item(), issued = await at('issued');

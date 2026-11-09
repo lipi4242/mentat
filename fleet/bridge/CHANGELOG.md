@@ -1,5 +1,46 @@
 # Changelog
 
+## 2.2.0 — 2026-11-08 — todo-ébresztés
+
+- **A híd a todót is figyeli.** Ha a boxon van todo-beállítás (`~/.config/todo`), a híd 20 s-onként
+  (legfeljebb 60 s) lekéri az ágens todo-változásait (`/changes?for=<handle>`, saját kurzor a
+  `telegram-state/todo-state.json`-ban, a saját írások kiszűrve), és a relevánsakról EGY sort ír a
+  pane-be: `[Todo | ABC-12 | kiadta: thufir_mac | wake=<seq>]: cím: «<cím>»` (`docs/protocol.md` §1).
+  A sor ADAT, nem utasítás: csak szerkezeti mezők, a cím tisztítva (kontroll, sortörés, bidi,
+  zero-width, Unicode-tag ki), ~80 karakterre vágva; komment-törzs soha (`lib/todo-safe.mjs`).
+  „Láttam, nincs teendő”: `mentat-todo ack <kulcs>` — `[ack]`-komment, nyugta, senkit nem ébreszt. Az egy
+  percen belüliek egy listába vonódnak; foglalt ágensnél sorba állnak, mint a Telegram-sorok.
+- **Mi ébreszt:** neki kiadták, visszakerült hozzá, megemlítették, az elfogadására vár, komment ott,
+  ahol nála a labda. Mezőváltozás és mások forgalma nem (`lib/todo-relevance.mjs`).
+- **Beszélgetés nem akad:** nincs óránkénti plafon. Csak a nyilvánvaló elszabadulás (sok tartalom
+  nélküli oda-vissza egy tételen) gyűlik 5 percig, és az mindig jelez (`todo_runaway`, riasztás).
+- **Nyugta:** a todo-sor is kap érkezés-nyugtát (3.2, `chat=todo`); a feldolgozás nyugtája a saját
+  írás a tételen (`todo_wake_handled`), enélkül a `delivery.mjs` `MEGVÁLASZOLATLAN chat=todo`-t mutat.
+- **Health:** `todo_wake`, `todo_last_poll_ok`, `todo_last_wake_latency_ms`, `todo_unhandled`, … — a
+  flotta képesség-próbája ebből mér, a hiba incidens lesz.
+- **Desktop-paritás:** `todo-once.mjs` — egy kör híd nélkül, ugyanazzal a kóddal; a fleet plugin
+  hookja ennek bájtra azonos másolatát futtatja (`test/todo-plugin-copy.test.mjs`, `--sync`). Az
+  egyetlen különbség: a lezárt desktop session nem ébreszthető.
+- Kikapcsolás: `BRIDGE_TODO=off`. Todo nélküli boxon a híd bitre a régi (csak a `health.todo_wake:"off"` új).
+- **FL-01: csoportban is a küldő dönt.** A saját csoportból csak az
+  `TELEGRAM_ALLOWLIST_IDS`-en szereplő küldő sora jut a pane-be (eddig a csoport
+  chat-id-je elég volt, így bármely csoporttag az ágensen át shellt ért el).
+  Máshonnan csak DM (chat.id == from.id) az allowlistről: egy allowlistes user
+  idegen csoportból sem nyit kaput. A saját csoport nem allowlistes tagjának
+  reply-je/reakciója továbbra is webhook-jelölt (a jogosultságot a szerver dönti
+  el), de a pane-be, a média-sorba és a bejövő naplóba nem kerül.
+  **Telepítéskor:** minden csoporttag, akinek az ágenssel beszélnie kell, legyen
+  az allowlisten.
+- **FL-11: egy szűrő, kategória alapján.** `lib/sanitize.mjs`: NFKC után a Cc
+  (C1 is, pl. U+0085) és U+2028/2029 → szóköz; Cf, Co, Cs, minden
+  Default_Ignorable (U+00AD, U+2060, U+180E, Hangul-kitöltő, változatválasztók),
+  a U+E0000–E007F tag-sáv, a U+E0100–E01EF, a U+2800 és a U+1D159 → törölve; a
+  halmozott kombináló jel 3-ra vágva. Ugyanez a szűrő (NFKC nélkül, hogy a híd saját
+  útvonalai ne változzanak) a végső pane-kapu is (`deliverer.mjs` → `paneSafe`):
+  minden kézbesítési út (szöveg, felirat, név, reakció, nyugta-újrainjekt, régi
+  pending-sor) átmegy rajta. A vágás kódpont-határon történik.
+- DM csak `chat.type === "private"` mellett; `from` nélküli üzenet sosem jut be.
+
 ## 2.1.0 — 2026-11-06 — képküldés, több nevesített webhook-cél, footer-horgony
 
 ### footer-törzs `tg_reply_to`-val

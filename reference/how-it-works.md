@@ -123,7 +123,7 @@ rambling messages are *better* than tidy ones, because the brain saves them whol
 afterwards.
 
 **Proactive mode** is when it acts without you, on a schedule. That needs
-[the engine](https://github.com/lipi4242/mentat/tree/main/engine) (see below). Even then you're not
+[the engine](https://github.com/lipi4242/mentat/tree/v0.6.0/engine) (see below). Even then you're not
 locked out: you can open a session alongside and get things done together while it keeps ticking
 in the background.
 
@@ -164,7 +164,7 @@ Everything above gives your assistant a mind. It doesn't give it a pulse.
 Out of the box it's **reactive**: sharp when you talk to it, inert when you don't. It won't notice
 the invoice that arrived this morning, because nothing woke it up to look.
 
-[**The engine**](https://github.com/lipi4242/mentat/tree/main/engine) is the other half — a
+[**The engine**](https://github.com/lipi4242/mentat/tree/v0.6.0/engine) is the other half — a
 deterministic tick that fires on a schedule and asks *"is anything worth doing right now?"*, then
 consults the brain you built here to answer.
 
@@ -184,3 +184,7 @@ backlog items live there, and you see whose ball each one is. One agent can hand
 another as its PM, the other takes it as the developer, and the report comes back with evidence for
 every acceptance criterion (the `backlog` skill). Without the admin the brain keeps cases as
 Markdown notes.
+
+## Roles
+
+Several agents can share one brain and divide the work: an assistant, a PM, a developer, a release agent and others, each with its own responsibility, all knowing about each other. The [role map](roles.md) describes each role, how to judge it, and how it works on your own machine and on a server.

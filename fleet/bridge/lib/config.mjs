@@ -5,6 +5,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { parseWebhookConfig } from "./webhook-config.mjs";
 import { parseWebhookTargets } from "./webhook-targets.mjs";
+import { parseTodoConfig } from "./todo-config.mjs";
 
 const REQUIRED = ["TELEGRAM_BOT_TOKEN", "TELEGRAM_GROUP_CHAT_ID",
   "TELEGRAM_ALLOWLIST_IDS", "TMUX_SESSION", "BRIDGE_STATE_DIR"];
@@ -61,6 +62,8 @@ export function loadConfig(env) {
     sessionIdFile: env.BRIDGE_SESSION_ID_FILE || `${stateDir}/session.id`,
     transcriptRoot: env.BRIDGE_TRANSCRIPT_ROOT || join(env.HOME || "", ".claude", "projects"),
     receiptFile: `${stateDir}/telegram-state/receipts.json`,
+    // Todo-ebresztes: a box todo-beallitasabol; nincs todo = KI, sosem fatalis.
+    todo: parseTodoConfig(env, stateDir),
     // Csak tesztnek (helyi hamis Telegram) — ugyanaz a nev, mint a send.mjs-ben.
     telegramApi: env.SUBETHA_TELEGRAM_API || "https://api.telegram.org",
   };

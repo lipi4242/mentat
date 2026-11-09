@@ -68,6 +68,28 @@ class BoxConfig(unittest.TestCase):
     def test_without_fleet_agent_the_box_files_are_not_read(self):
         self.assertIsNone(settings.load(self.root))
 
+    def test_desktop_known_handle_fills_api_and_token(self):
+        # asztal: nincs FLEET_AGENT, de a handle ismert → az api és a token a ~/.config/todo-ból
+        os.environ["TODO_HANDLE"] = "kata"
+        s = settings.load(self.root)
+        self.assertEqual((s.api, s.handle, s.token_file),
+                         ("https://todo.example/api/todo/v1", "kata", str(self.tok)))
+
+    def test_the_stored_token_never_goes_to_another_api(self):
+        for fleet in ("release-agent", None):
+            os.environ.pop("FLEET_AGENT", None)
+            if fleet:
+                os.environ["FLEET_AGENT"] = fleet
+            os.environ.update(TODO_HANDLE="kata", TODO_API="https://masik.example/api/todo/v1")
+            self.assertIsNone(settings.load(self.root).token_file)
+            os.environ["TODO_API"] = "https://todo.example/api/todo/v1"     # ugyanaz, mint az env-fájlban
+            self.assertEqual(settings.load(self.root).token_file, str(self.tok))
+
+    def test_desktop_handle_from_the_repo_manifest(self):
+        (self.root / "mentat.json").write_text('{"schema": 1, "components": {"engine": {"todo_handle": "kata"}}}')
+        s = settings.load(self.root)
+        self.assertEqual((s.handle, s.token(), s.api), ("kata", "not-a-real-token", "https://todo.example/api/todo/v1"))
+
 
 if __name__ == "__main__":
     unittest.main()

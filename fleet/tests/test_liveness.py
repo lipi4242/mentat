@@ -11,6 +11,8 @@ write was refused" both produced zero. On a 3.8 GB box running five agents,
 that is the difference between being protected and being first in line for the
 OOM killer, and nothing in the log distinguished them.
 """
+from __future__ import annotations
+import _hermetic  # noqa: F401  (első import: HOME → tmp, lásd tests/_hermetic.py)
 import os
 import tempfile
 import unittest
@@ -132,7 +134,7 @@ class OomHelperPreferenceTest(unittest.TestCase):
 
 class OomHelperScriptTest(unittest.TestCase):
     """A fleet/bin/oom-protect a saját argumentumait ellenőrzi (rootként fut)."""
-    HELPER = os.path.join(os.path.dirname(__file__), "..", "..", "bin", "oom-protect")
+    HELPER = os.path.join(os.path.dirname(__file__), "..", "bin", "oom-protect")
 
     def run_helper(self, *args):
         import subprocess

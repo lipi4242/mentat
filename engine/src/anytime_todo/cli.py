@@ -4,6 +4,7 @@
     python3 -m anytime_todo.cli start <id> --due D            # before the work
     python3 -m anytime_todo.cli done  <id> --due D [--rev N]  # ONLY after the work happened
     python3 -m anytime_todo.cli note  <id> --due D --text T   # cannot do it: comment, keep open
+    python3 -m anytime_todo.cli ack <id|KEY> [--note T]       # todo wake-up: seen, nothing to do
 
 The work store (todos, cases, backlog items): `me | ball | changes [--ack SEQ]`
 (cli_me.py), `task …` (cli_task.py), `case …` (cli_case.py), `item …` (cli_item.py),
@@ -34,13 +35,14 @@ from . import cli_case, cli_import, cli_item, cli_me, cli_task, due, feed, form,
 from .api import Client, TodoApiError
 
 NOUNS = {"task": cli_task.run, "case": cli_case.run, "item": cli_item.run,
-         "me": cli_me.run, "ball": cli_me.run, "changes": cli_me.run}
+         "me": cli_me.run, "ball": cli_me.run, "changes": cli_me.run, "ack": cli_me.run}
 
 
 def _client() -> tuple[Client, settings.Settings]:
     s = settings.load(config.repo_root().resolve())
     if s is None:
-        raise settings.TodoConfigError("the todo pack is not configured (TODO_API + TODO_HANDLE)")
+        raise settings.TodoConfigError("the todo pack is not configured: no handle (TODO_HANDLE, mentat.json "
+                                       "components.engine.todo_handle, or FLEET_AGENT on a box) or no TODO_API")
     return Client(s.api, s.token()), s
 
 
@@ -119,15 +121,25 @@ def _day(text: str) -> str:
         raise argparse.ArgumentTypeError(f"not a YYYY-MM-DD date: {text!r}") from None
 
 
+NOUNS["project"] = cli_me.run   # külön sor: a NOUNS-sort más PR-ek is bővítik
+HELP = """The recurring-duty verbs (list, start, done, note) take the occurrence's --due
+date and come from the todo_esedekes concern. To complete a plain todo or a case:
+`task done ID`; a backlog item ends with `item accept` or `item drop`.
+Every command prints JSON. `<noun> --help` lists the verbs (e.g. `item --help`)."""
+
+
 def main(argv: list[str] | None = None) -> int:
     argv = sys.argv[1:] if argv is None else list(argv)
     if argv[:1] == [cli_import.NAME]:
         return cli_import.run(argv[1:])
-    p = argparse.ArgumentParser(prog="python3 -m anytime_todo.cli")
+    p = argparse.ArgumentParser(prog="python3 -m anytime_todo.cli", epilog=HELP,
+                                formatter_class=argparse.RawDescriptionHelpFormatter)
     sub = p.add_subparsers(dest="cmd", required=True)
-    sub.add_parser("list")
-    for name in ("start", "done", "note"):
-        sp = sub.add_parser(name)
+    sub.add_parser("list", help="my recurring duties owed now (todo_esedekes)")
+    for name, hint in (("start", "a recurring duty: before the work"),
+                       ("done", "a recurring duty: ONLY after the work (plain todo: `task done`)"),
+                       ("note", "a recurring duty: cannot do it now, say why")):
+        sp = sub.add_parser(name, help=hint)
         sp.add_argument("id")
         sp.add_argument("--due", required=True, type=_day, help="the occurrence's due_date (YYYY-MM-DD)")
         if name == "done":

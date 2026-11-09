@@ -78,6 +78,18 @@ def normalize(entry: dict) -> dict:
     return e
 
 
+def env_files(entry: dict) -> list[str]:
+    """Pure: a unit env-fájljai (fájlnevek a ~/.config/<agent>/ alatt), betöltési sorrendben.
+
+    `env_files: [...]` (új) vagy az `env_file` (régi, egy fájl). 11-07: hidas ágensnél a híd
+    env-fájlja (`bridge.env_file`, alap telegram.env) MINDIG benne van, ELSŐként — így a send.mjs
+    tokenje a unit env-jéből jön, az ágens saját fájlja pedig felülírhatja a közös kulcsokat."""
+    own = [f for f in (entry.get("env_files") or [entry.get("env_file") or "telegram.env"]) if f]
+    b = entry.get("bridge") or {}
+    first = [b.get("env_file") or "telegram.env"] if b.get("unit") else []
+    return list(dict.fromkeys(first + own))
+
+
 def load_boxes(path: Path | None = None) -> list[dict]:
     """A boxes.json gépei. Két alakot fogad el: `{"boxes": [...]}` és a csupasz listát (régi,
     kézzel írt registry; H5 2026-10-29: a roster/doctor/ask ezen összeomlott)."""

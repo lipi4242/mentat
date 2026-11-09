@@ -19,7 +19,8 @@ mindkettő, mert a CLAUDE_CONFIG_DIR mindkettőt odaviszi):
 Idempotens: csak a hiányzó kulcsot írja, minden más kulcs megmarad. Hibás
 JSON-t nem ír felül (az ember dönt). Írás: tmp + rename, a régi jogosultsággal
 (új fájl: 0600). Tranzakción KÍVÜL fut: a .claude.json-t a box többi ágense
-is írja, egy visszaállítás az ő közbenső írásukat vinné el.
+is írja, egy visszaállítás az ő közbenső írásukat vinné el. A user settings.json írása
+kanárival megy (kanari.py, 11-07): új alapfunkció-hiba → a fájl visszaáll, és ez probléma.
 """
 from __future__ import annotations
 import json
@@ -135,7 +136,16 @@ def apply(entry: dict, *, home: Path, check: bool = False,
             out["problems"].append(f"{path} nem érvényes JSON — nem írom felül; javítsd, aztán futtasd újra")
             continue
         ch = seed(doc, arg)
-        if ch and not check:
+        if ch and not check and seed is seed_settings:
+            # 11-07: a user settings.json minden ezen a gyökéren futó ágensnek azonnal él → kanári
+            from fleet import kanari
+            try:
+                kanari.guarded(f"első indítás ({entry['agent']}): settings.json", [path.parent],
+                               lambda _r, p=path, d=doc: _write(p, d), home=home)
+            except kanari.Refused as e:
+                out["problems"].append(str(e))
+                continue
+        elif ch and not check:
             _write(path, doc)
         out["changes"] += [f"{path.name}: {c}" for c in ch]
     return out

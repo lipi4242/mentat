@@ -13,13 +13,27 @@
 
 Privátban jelezd, ne nyilvános issue-ban vagy pull requestben.
 
-Ebben a repóban nyisd meg a **Security** fület, és válaszd a **Report a vulnerability** gombot
-(GitHub privát biztonsági tanácsadó). Írd le, mit találtál, hogyan reprodukálható, és melyik
-verziót vagy commitot futtattad.
+Használd a [**Report a vulnerability**](https://github.com/lipi4242/mentat/security/advisories/new)
+gombot (a repó **Security** fülén; GitHub privát sérülékenység-bejelentés). Csak a karbantartók
+látják. Írd le, mit találtál, hogyan reprodukálható, és melyik verziót vagy commitot futtattad.
+
+Egy Mentat-ágens `bug-report` skillje biztonsági hibát sosem tesz nyilvános issue-ba: ha a hiba
+szivárgásnak vagy egy védelem megkerülésének tűnik, megáll, és ide irányít.
 
 Pár napon belül visszaigazolást kapsz. A javítás a támogatott ágon patch kiadásként érkezik, a
 tanácsadó pedig a javítás elérhetővé válása után publikálódik. Ha nem kéred másképp, a
 tanácsadóban név szerint megköszönjük.
+
+## Egy kiadás ellenőrzése
+
+Minden `vX.Y.Z` kiadási tag egyszer jön létre, és soha nem mozdul el és nem törlődik (ezt egy
+repó-ruleset kényszeríti ki); a GitHub Release a közzététel után nem változtatható. A forrásarchívum
+mellett ott a `SHA256SUMS` és egy aláírt build-provenance tanúsítvány:
+
+```
+sha256sum -c SHA256SUMS
+gh attestation verify mentat-vX.Y.Z.tar.gz -R lipi4242/mentat
+```
 
 ## Mire vonatkozik
 

@@ -59,6 +59,19 @@ def install_plugin(entry: dict, *, claude_bin: Path, home: Path, run=claude_auth
     wd = _workdir(entry, home)
     if not wd.is_dir():
         return {"ok": False, "note": f"plugin: NEM települt — nincs meg az ágens repója ({wd}); az ágens enélkül is fut"}
+    from fleet import kanari  # 11-07: a `claude plugin …` a fiók gyökerébe ír, minden ágensének → kanári
+    box: dict = {}
+
+    def write(_root):
+        box.update(_install(entry, wd, claude_bin, home, run, plugin_source))
+    try:
+        kanari.guarded(f"plugin install ({entry['agent']})", [kanari.root_of(entry, home)], write, home=home)
+    except kanari.Refused as e:
+        return {"ok": False, "note": f"plugin: visszaállítva — {e}"}
+    return box
+
+
+def _install(entry: dict, wd: Path, claude_bin: Path, home: Path, run, plugin_source) -> dict:
     env = claude_auth.unit_env(entry, home)
     repo = parse(plugin_source).add_arg
     r = run([str(claude_bin), "plugin", "marketplace", "add", repo], env, cwd=wd)

@@ -1,0 +1,24 @@
+# Labels an issue drafted by a Mentat agent's bug-report tool (it carries a marker comment).
+# The poster may have no right to set labels, so the label comes from here. The marker is a claim,
+# not proof: anyone can copy it, and all it buys is three labels (no command, no token). Nothing from the
+# issue reaches a shell: the marker is matched in the `if:` expression, the number goes via env.
+name: Triage
+
+on:
+  issues:
+    types: [opened]
+
+permissions: {}
+
+jobs:
+  agent-reported:
+    if: contains(github.event.issue.body, '<!-- mentat-bug-report v1 -->')
+    runs-on: ubuntu-latest
+    permissions:
+      issues: write
+    steps:
+      - env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ github.event.issue.number }}
+        run: gh issue edit "$NUMBER" --add-label bug --add-label agent-reported --add-label needs-triage

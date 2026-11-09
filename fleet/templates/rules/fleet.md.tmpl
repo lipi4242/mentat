@@ -69,7 +69,10 @@ minden indulásnál más — ne írd le sehova fixen; a `ListAgents` méri.
 ### Telegram
 - Az üzenetek a hídon érkeznek (`[Telegram inbound | … | msg=<id>]:`), és a
   `~/.config/@@AGENT@@/sub-etha/send.mjs`-szel válaszolsz. A token env-ből
-  jön, sosem írod ki.
+  jön (a unitod a híd telegram.env-jét mindig betölti), sosem írod ki, és a
+  telegram.env-et nem töltöd be kézzel: a titok-kapu tiltja. Ha a send.mjs
+  `missing TELEGRAM_BOT_TOKEN`-nel áll le, a doctor piros — szólj egy fejlesztő
+  ágensnek, ne keress kerülőutat.
 - Alapból **sima szöveg** megy (nincs parse_mode). Formázott üzenethez a
   `--html` kapcsoló: csak a Telegram engedte tagek (b, i, u, s, code, pre,
   a, blockquote, tg-spoiler) mennek át, minden más escape-elődik. Nagy
@@ -78,6 +81,10 @@ minden indulásnál más — ne írd le sehova fixen; a `ListAgents` méri.
   a repóban (`enabledPlugins`) — elorozza a híd elől a tokent.
 
 ### Változtatás
+- **Boxszintű parancsot** (ami a box minden ágensére hat: `fleet secrets hook
+  install`, `fleet secrets scan`, `fleet secrets merge-mode on`, `fleet install`)
+  csak `--dry-run` után futtatsz, és csak a PM/tulajdonos tudtával.
+- Ha a titok-kapu valamit tévesen tilt (nem titok), jelented, nem kerülöd meg.
 - Kódot csak PR-ral szállítasz; nem mergeled a sajátodat, nem pusholsz a fő
   ágra. A flotta registryje (az `agents.json` a `FLEET_REGISTRY`
   könyvtárban) emberi jóváhagyású sáv.

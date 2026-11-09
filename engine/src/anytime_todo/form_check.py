@@ -34,6 +34,10 @@ def check(form: dict[str, Any], item: dict[str, Any]) -> None:
     if not form["summary"]:
         errs.append("Meta: summary is required")
     if form["head_sha"] and not re.fullmatch(r"[0-9a-f]{7,40}", form["head_sha"]):
-        errs.append("Meta: head_sha must be a git commit hash")
+        errs.append(f"Meta: head_sha must be a git commit hash, 7-40 hex: {form['head_sha']!r}")
+    for pr in form["prs"]:
+        if not re.fullmatch(r"https?://\S+", pr):
+            errs.append(f"Meta: pr must be a full http(s) URL (https://github.com/OWNER/REPO/pull/N), "
+                        f"or leave the line empty: {pr!r}")
     if errs:
         raise FormError("the form cannot be submitted:\n- " + "\n- ".join(errs))

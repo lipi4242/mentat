@@ -56,48 +56,68 @@ export async function resolveAgentToken(DB: Env['DB'], plain: string): Promise<A
   return { id: row.id, label: row.label, scopes: row.scopes };
 }
 
-export async function hasAdminSession(c: Context<AppEnv>): Promise<boolean> {
-  if (!c.env.BETTER_AUTH_SECRET) return false;
+/** The signed-in admin's lower-cased e-mail, or null (no secret, no session, not on ADMIN_EMAILS). */
+export async function adminSessionEmail<E extends AppEnv>(c: Context<E>): Promise<string | null> {
+  if (!c.env.BETTER_AUTH_SECRET) return null;
   try {
     const session = await createAuth(c.env).api.getSession({ headers: c.req.raw.headers });
     const email = session?.user?.email?.toLowerCase();
-    return !!email && adminEmails(c.env).includes(email);
+    return email && adminEmails(c.env).includes(email) ? email : null;
   } catch {
-    return false;
+    return null;
   }
 }
 
+export async function hasAdminSession<E extends AppEnv>(c: Context<E>): Promise<boolean> {
+  return (await adminSessionEmail(c)) !== null;
+}
+
 /** Browser-only surface (settings, token administration). Never a machine token. */
-export async function requireAdmin(c: Context<AppEnv>): Promise<Response | null> {
+export async function requireAdmin<E extends AppEnv>(c: Context<E>): Promise<Response | null> {
   return (await hasAdminSession(c)) ? null : c.json({ error: 'unauthorized' }, 401);
 }
+
+export type Caller = { kind: 'agent'; tokenId: string; scopes: string } | { kind: 'user'; email: string };
 
 /**
  * Read or write on a data route: the human session, or an agent token that
  * actually holds the scope. The scope check exists from day one — retrofitting
- * authorization onto a live API is how gaps happen.
+ * authorization onto a live API is how gaps happen. Every plugin decides here,
+ * so a bad token answers the same everywhere (401) and a fix lands once.
  *
- * On success, `c.set('actor', ...)` carries who it was into the event trail.
+ * On success, `c.set('actor', ...)` carries who it was into the event trail,
+ * and the returned caller tells a plugin whom to map (token id or e-mail).
  */
-export async function requireWriter(c: Context<AppEnv>, scope: string | readonly string[]): Promise<Response | null> {
+export async function authorize<E extends AppEnv>(
+  c: Context<E>,
+  scope: string | readonly string[],
+): Promise<{ denied: Response } | { caller: Caller }> {
   // Any one of a list will do — e.g. a read that `cases:read` OR
   // `cases:write` satisfies. Each candidate is still an exact-token match.
   const any = typeof scope === 'string' ? [scope] : scope;
-  const supplied = c.req.header('X-Mentat-Token') ?? '';
-  // Precedence is deliberate and total: if a token header is present it
-  // decides the request outright, with no fallback to the session cookie. A
-  // request carrying a valid cookie AND a bad token gets 401, not a silent
-  // downgrade to the human identity — the caller asked to act as the agent.
-  if (supplied) {
+  const supplied = c.req.header('X-Mentat-Token');
+  const ctx = c as unknown as Context<AppEnv>;
+  // Precedence is deliberate and total: if a token header is present — even
+  // an empty one — it decides the request outright, with no fallback to the
+  // session cookie. A request carrying a valid cookie AND a bad token gets
+  // 401, not a silent downgrade to the human identity — the caller asked to
+  // act as the agent.
+  if (supplied !== undefined) {
     const tok = await resolveAgentToken(c.env.DB, supplied);
-    if (!tok) return c.json({ error: 'unauthorized' }, 401);
-    if (!any.some((s) => hasScope(tok.scopes, s))) return c.json({ error: 'forbidden', need: any.join(' | ') }, 403);
-    c.set('actor', { actor: 'agent' as const, actorTokenId: tok.id });
-    return null;
+    if (!tok) return { denied: c.json({ error: 'unauthorized' }, 401) };
+    if (!any.some((s) => hasScope(tok.scopes, s))) return { denied: c.json({ error: 'forbidden', need: any.join(' | ') }, 403) };
+    ctx.set('actor', { actor: 'agent' as const, actorTokenId: tok.id });
+    return { caller: { kind: 'agent', tokenId: tok.id, scopes: tok.scopes } };
   }
-  if (await hasAdminSession(c)) {
-    c.set('actor', { actor: 'user' as const, actorTokenId: null });
-    return null;
+  const email = await adminSessionEmail(c);
+  if (email) {
+    ctx.set('actor', { actor: 'user' as const, actorTokenId: null });
+    return { caller: { kind: 'user', email } };
   }
-  return c.json({ error: 'unauthorized' }, 401);
+  return { denied: c.json({ error: 'unauthorized' }, 401) };
+}
+
+export async function requireWriter<E extends AppEnv>(c: Context<E>, scope: string | readonly string[]): Promise<Response | null> {
+  const r = await authorize(c, scope);
+  return 'denied' in r ? r.denied : null;
 }

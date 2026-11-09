@@ -40,6 +40,10 @@ export function createReceiptWire(CFG, { tg, alert = async () => {}, log = () =>
     }
     // Rég lejárt (a híd kiesése alatt): egy körön belül EGY összesítő riasztás, reakció nélkül.
     if (r.detail === "stale") { staleIds.push(r.msg_id); return; }
+    if (r.chat_id === "todo") { // todo-ebresztes: nincs Telegram-uzenet, amire reagalni lehetne
+      say(`todo-ébresztés wake=${r.msg_id} nem jelent meg ${CFG.agentLabel} transzkriptjében (újrainjektálás után sem)`);
+      return;
+    }
     say(`msg=${r.msg_id} nem jelent meg ${CFG.agentLabel} transzkriptjében (újrainjektálás után sem)`);
     react(r.chat_id, Number(r.msg_id));
   };

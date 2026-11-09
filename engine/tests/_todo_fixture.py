@@ -32,7 +32,7 @@ if PACK_SRC is None:
 
 TOKEN = "test-token-not-a-secret"
 BASE = "/api/todo/v1"
-_ENV = ("TODO_API", "TODO_HANDLE", "TODO_TOKEN_FILE", "FLEET_AGENT", "XDG_CONFIG_HOME", "ANYTIME_TODO_RETRY_HOURS",
+_ENV = ("HOME", "TODO_API", "TODO_HANDLE", "TODO_TOKEN_FILE", "FLEET_AGENT", "XDG_CONFIG_HOME", "ANYTIME_TODO_RETRY_HOURS",
         "ANYTIME_TODO_ALERT_HOURS", "ANYTIME_RECEIPTS_PATH")
 
 
@@ -126,6 +126,8 @@ class TodoCase(IsolatedTestCase):
     def setUp(self):
         super().setUp()
         self._saved = {k: os.environ.pop(k, None) for k in _ENV}
+        # a valódi ~/.config/todo sose szóljon bele (asztali handle → api+token onnan, settings.py)
+        os.environ["HOME"] = str(self.root / "home")
         clear()
         clear_providers()
         shutil.copytree(PACK_SRC, self.root / "anytime_todo",

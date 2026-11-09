@@ -6,8 +6,9 @@ A jelző: ~/.mentat/titkok/hatar-aktiv (JSON: since, until, reason, set_by). A t
 mert a kiadó ágensek (Rilí) minden tickben `git reset --hard`-ot és commitot futtatnak a kezelt
 repók fő ágán (CISO Q2). Legfeljebb 7 nap; a lejárt jelző = nincs mód.
 
-Írja: `fleet plan-merge` (az összeolvasztás eleje), `fleet hold-outward`, a két- vagy többágenses
-`fleet secrets scan` (a merge 0. lépése). `off(set_by=X)` csak X okát veszi le; ha más ok marad,
+Írja: `fleet plan-merge` (az összeolvasztás eleje), `fleet hold-outward`, `merge-mode on`. A
+`fleet secrets scan` SOHA (11-07, 11-07: egy kétágenses leltár 7 napra boxszinten bekapcsolta,
+és Rilí minden tickben fő ágat író gitje bukott volna). `off(set_by=X)` csak X okát veszi le; ha más ok marad,
 a jelző marad. A kézi `merge-mode off` mindet leveszi.
 """
 from __future__ import annotations
@@ -82,6 +83,9 @@ def safe_on(reason: str, set_by: str, until: float | None = None) -> None:
     """A többi parancs hívja: a jelző hibája nem buktatja el a fő műveletet, de látszik."""
     try:
         on(reason, set_by, until)
+        print(f"!!! BOXSZINTŰ: az összeolvasztás-mód BE ({set_by}) — a box MINDEN ágensére: más ágens fő "
+              "ágán git-írás, tmux send-keys, kifelé ható parancs más kódjával tiltva. Kikapcsolás: "
+              "`fleet secrets merge-mode off`", file=sys.stderr)
         print(status(), file=sys.stderr)
     except OSError as e:
         print(f"! az összeolvasztás-mód jelzője nem íródott ki ({type(e).__name__})", file=sys.stderr)

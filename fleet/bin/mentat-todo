@@ -3,8 +3,9 @@
 # vendorolás nélkül. Ugyanaz, mint egy ágens-repó gyökeréből a
 # `python3 -m anytime_todo.cli …`, csak a box Mentat-checkoutjából fut.
 #
-# Ki vagyok: a unit FLEET_AGENT-je (vagy --as / TODO_HANDLE) → handle a
-# ~/.config/todo/handles fájlból („ágens=handle” soronként; hiányzó sor: az ágens neve).
+# Ki vagyok: --as / TODO_HANDLE, különben a unit FLEET_AGENT-je → handle a
+# ~/.config/todo/handles fájlból („ágens=handle” soronként; hiányzó sor: az ágens neve);
+# asztali gépen (FLEET_AGENT nélkül) a repó mentat.json-ja (engine.todo_handle).
 # Beállítás: ~/.config/todo/env (TODO_API=…), token: ~/.config/todo/<handle>.token (0600).
 # Telepítés: ln -s ~/src/mentat/fleet/bin/mentat-todo ~/.local/bin/mentat-todo
 set -eu
@@ -18,19 +19,23 @@ cfg="${XDG_CONFIG_HOME:-$HOME/.config}/todo"
 # Egy session saját XDG_CONFIG_HOME-mal (pl. több Claude-fiókos indító) a közös ~/.config/todo-t is lássa.
 [ -d "$cfg" ] || cfg="$HOME/.config/todo"
 if [ "${1:-}" = "--as" ]; then TODO_HANDLE=$2; shift 2; fi
-if [ -z "${TODO_HANDLE:-}" ]; then
-  agent=${FLEET_AGENT:-}
-  [ -n "$agent" ] || { echo "mentat-todo: nincs FLEET_AGENT (vagy add meg: --as <handle>)" >&2; exit 2; }
-  TODO_HANDLE=$(sed -n "s/^$agent=//p" "$cfg/handles" 2>/dev/null | head -n1)
-  [ -n "$TODO_HANDLE" ] || TODO_HANDLE=$agent
+if [ -z "${TODO_HANDLE:-}" ] && [ -n "${FLEET_AGENT:-}" ]; then
+  TODO_HANDLE=$(sed -n "s/^$FLEET_AGENT=//p" "$cfg/handles" 2>/dev/null | head -n1)
+  [ -n "$TODO_HANDLE" ] || TODO_HANDLE=$FLEET_AGENT
 fi
 if [ -z "${TODO_API:-}" ] && [ -r "$cfg/env" ]; then
   TODO_API=$(sed -n 's/^TODO_API=//p' "$cfg/env" | head -n1)
 fi
-[ -n "${TODO_API:-}" ] || { echo "mentat-todo: nincs TODO_API ($cfg/env)" >&2; exit 2; }
-TODO_TOKEN_FILE=${TODO_TOKEN_FILE:-$cfg/$TODO_HANDLE.token}
-[ -r "$TODO_TOKEN_FILE" ] || { echo "mentat-todo: nincs token: $TODO_TOKEN_FILE" >&2; exit 2; }
-export TODO_API TODO_HANDLE TODO_TOKEN_FILE
+if [ -n "${TODO_HANDLE:-}" ]; then
+  [ -n "${TODO_API:-}" ] || { echo "mentat-todo: nincs TODO_API ($cfg/env)" >&2; exit 2; }
+  TODO_TOKEN_FILE=${TODO_TOKEN_FILE:-$cfg/$TODO_HANDLE.token}
+  [ -r "$TODO_TOKEN_FILE" ] || { echo "mentat-todo: nincs token: $TODO_TOKEN_FILE" >&2; exit 2; }
+  export TODO_HANDLE TODO_TOKEN_FILE
+fi
+# Asztali gép (nincs FLEET_AGENT, nincs --as/TODO_HANDLE): a handle a repó mentat.json-jából
+# jön (components.engine.todo_handle), az api és a token ugyanebből a ~/.config/todo-ból
+# (anytime_todo/settings.py); ha ott sincs, a CLI mondja meg, mi hiányzik.
+if [ -n "${TODO_API:-}" ]; then export TODO_API; fi
 export ANYTIME_REPO_ROOT="${ANYTIME_REPO_ROOT:-$PWD}"
 # -P: a cwd NE kerüljön a sys.path elejére — egy ágens-repóban vendorolt régi
 # anytime_engine/ különben elfedi a checkoutét (11-07, thufir-assistant: ImportError).

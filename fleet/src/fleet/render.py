@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import re
 
-from fleet.registry import SHARED_ACCOUNT
+from fleet.registry import SHARED_ACCOUNT, env_files
 
 #: Ami a renderelt unitba kerül, az systemd- ÉS shell-értelmezésen megy át.
 #: Ezért nem escape-elünk, hanem TILTUNK: a loop_cmd és az azonosítók csak
@@ -25,8 +25,10 @@ def validate_for_render(entry: dict) -> list[str]:
             out.append(f"{key} nem slug: {entry.get(key)!r}")
     if not _SAFE_PATH.match(entry.get("workdir", "") or ""):
         out.append(f"workdir tiltott karaktert tartalmaz: {entry.get('workdir')!r}")
-    if not re.match(r"^[A-Za-z0-9_.-]+$", entry.get("env_file", "") or ""):
-        out.append(f"env_file nem fájlnév: {entry.get('env_file')!r}")
+    for f in [entry.get("env_file", "")] + list(entry.get("env_files") or []) + \
+            ([(entry.get("bridge") or {}).get("env_file")] if (entry.get("bridge") or {}).get("env_file") else []):
+        if not re.match(r"^[A-Za-z0-9_.-]+$", f or ""):
+            out.append(f"env_file nem fájlnév: {f!r}")
     if not re.match(r"^[A-Za-z0-9.-]+$", entry.get("model", "opus") or "opus"):
         out.append(f"model tiltott karaktert tartalmaz: {entry.get('model')!r}")
     lc = entry.get("loop_cmd")
@@ -109,7 +111,9 @@ def render_unit(entry: dict, *, template: str, fleet_root: str = "%h/src/mentat/
     out = out.replace("@@SESSION@@", session)
     out = out.replace("@@WORKDIR@@", workdir)
     out = out.replace("@@MODEL@@", entry.get("model") or "opus")
-    out = out.replace("@@ENV_FILE@@", f"%h/.config/{agent}/{entry['env_file']}")
+    files = [f"%h/.config/{agent}/{f}" for f in env_files(entry)]  # 11-07: több env-fájl
+    out = out.replace("@@ENV_FILE_LINES@@", "\n".join(f"EnvironmentFile=-{f}" for f in files))
+    out = out.replace("@@ENV_FILE_SOURCES@@", " ".join(f"if [ -r {f} ]; then . {f}; fi;" for f in files))
     out = out.replace("@@FLAGS@@", claude_flags(entry))
     if "@@" in out:
         raise ValueError(f"unsubstituted placeholder remains in rendered unit for {agent!r}")

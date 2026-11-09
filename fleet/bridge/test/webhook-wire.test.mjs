@@ -63,10 +63,10 @@ test("onApprovalCandidate: allowlistes, reply_to-s, nem szerkesztett -> pontos t
     tg_reply_to: 3, tg_date: 1700000000, text: "jóváhagyom" }]);
 });
 
-test("onApprovalCandidate: a sajat csoport nem-allowlistes tagja is jelolt (a jogosultsag a szerveré)", () => {
+test("onApprovalCandidate: a sajat csoport nem-allowlistes tagja is jelolt (a jogosultsag a szerveré), de a pane-be NEM jut", () => {
   const { h, delivered, cands } = harness();
   h.handleMessage(msg({ from: { id: 2, first_name: "Anna" } }));
-  assert.equal(delivered.length, 1);
+  assert.equal(delivered.length, 0, "FL-01: nem allowlistes csoporttag sora nem erheti el az agenst");
   assert.equal(cands.length, 1);
   assert.equal(cands[0].tg_from_id, "2");
   assert.equal(cands[0].tg_chat_id, "-100");

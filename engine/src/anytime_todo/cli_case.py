@@ -22,7 +22,7 @@ CASE_FIELDS = ("goal", "frame", "next_action", "waiting_on", "due_reason", "brai
 
 
 def add(sub) -> None:
-    p = sub.add_parser("case", help="cases").add_subparsers(dest="verb", required=True)
+    p = sub.add_parser("case", help="cases: new, update, review, confirm, review-due").add_subparsers(dest="verb", required=True)
     n = p.add_parser("new")
     n.add_argument("--title", required=True)
     _fields(n)

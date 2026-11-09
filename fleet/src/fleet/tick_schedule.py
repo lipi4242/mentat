@@ -30,6 +30,29 @@ from fleet.txn import Txn, StepFailed
 _KEEP = re.compile(r"^(ExecStart|WorkingDirectory|Environment)=")
 
 
+def lock_condition(agent: str) -> str:
+    """flotta-menedzser: a tick nem indul, amíg a karbantartási zár (`fleet lock`, maintenance.py) él.
+    systemd: az ExecCondition 1-es kódja = a futás kimarad (nem hiba); `$$` → `$`, `%%` → `%`.
+    Hiányzó, üres vagy nem számot tartalmazó zár: fut (mint a maintenance.is_locked)."""
+    from fleet.maintenance import _check_name
+    _check_name(agent)   # [A-Za-z0-9._-]: nem kell shell-escape, de idézőjelben is van
+    f = f"\"%h/.config/fleet/maintenance/{agent}\""
+    return ("ExecCondition=/bin/sh -c 'f=" + f + "; [ -s \"$$f\" ] || exit 0; e=$$(cut -d. -f1 \"$$f\"); "
+            "case x$$e in x|x*[!0-9]*) exit 0;; esac; [ $$e -gt $$(date +%%s) ] && exit 1; exit 0'")
+
+
+def with_lock_condition(text: str, agent: str) -> str:
+    """Idempotens: a már átvett unitba is bekerül (a `Type=oneshot` után), ha még nincs benne."""
+    # a SAJÁT feltételünket keressük (egy másik ExecCondition miatt nem maradhat ki)
+    if f"/.config/fleet/maintenance/{agent}" in text:
+        return text
+    lines = text.splitlines()
+    at = next((i + 1 for i, ln in enumerate(lines) if ln.startswith("Type=")), None)
+    if at is None:
+        at = next((i + 1 for i, ln in enumerate(lines) if ln.strip() == "[Service]"), len(lines))
+    return "\n".join(lines[:at] + [lock_condition(agent)] + lines[at:]) + "\n"
+
+
 def tick_unit(agent: str) -> str:
     return f"fleet-tick-{agent}"
 
@@ -101,7 +124,7 @@ def render(agent: str, repo: Path, engine: dict, found: list[tuple[Path, Path]])
     service = (f"# Mentat fleet: a motor tick-belépője, a flotta ütemezésében ({src}).\n"
                f"# Ne szerkeszd: `fleet join` írja (schedule_owner: fleet).\n"
                f"[Unit]\nDescription=anytime tick ({agent}) — fleet-ütemezés\n\n"
-               f"[Service]\nType=oneshot\n" + "\n".join(body) + "\n")
+               f"[Service]\nType=oneshot\n{lock_condition(agent)}\n" + "\n".join(body) + "\n")
     return {f"{u}.service": service, f"{u}.timer": timer_text(agent, cal)}
 
 
@@ -126,11 +149,14 @@ def take_over(t: Txn, *, agent: str, repo: Path, engine: dict, unit_dir: Path) -
         for name, text in render(agent, repo, engine, found).items():
             if t.write(unit_dir / name, text):
                 notes.append(f"ütemezés: {name} írva")
-    elif engine.get("exec"):
+    else:
         old = own.read_text()
-        new = "\n".join(strip_exec(ln) for ln in old.splitlines()) + "\n"
+        new = "\n".join(strip_exec(ln) for ln in old.splitlines()) + "\n" if engine.get("exec") else old
         if new != old and t.write(own, new):
             notes.append(f"ütemezés: {own.name} — a saját --exec kivéve (a mentat.json engine.exec-je fut)")
+        locked = with_lock_condition(new, agent)
+        if locked != new and t.write(own, locked):
+            notes.append(f"ütemezés: {own.name} — a tick a karbantartási zár alatt kimarad (ExecCondition)")
     timer = f"{tick_unit(agent)}.timer"
     t.sh(["systemctl", "--user", "daemon-reload"])
     was = t.try_sh(["systemctl", "--user", "is-active", timer]).stdout.strip() == "active"

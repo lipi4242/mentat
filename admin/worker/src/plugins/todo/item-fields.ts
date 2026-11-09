@@ -34,6 +34,7 @@ export async function itemFields(db: D1Database, body: Record<string, unknown>) 
 export function acTexts(value: unknown) {
   if (value === undefined) return [];
   if (!Array.isArray(value) || value.length > MAX_ACS) throw new Problem(`acs must be a list of up to ${MAX_ACS} texts`);
-  return value.map(v => acText(v));
+  return value.map((v, i) => acText(v, `acs[${i}]`));
 }
-export const acText = (v: unknown) => textField(v, 'ac text', 10000);
+// A 422 nevezze meg a hibás mezőt: POST /items acs[i], az AC-végpontokon text (11-08 terep).
+export const acText = (v: unknown, name = 'text') => textField(v, name, 10000);

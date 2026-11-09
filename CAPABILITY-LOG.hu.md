@@ -2,6 +2,27 @@
 
 A `capability-log.json`-ból generált fájl, kézzel ne írd.
 
+## 0.6.0 (még nincs kiadva)
+
+### Proaktivitás és ütemezés
+
+- Az átadott todo egy percen belül eléri az ágenst. A Telegram-híd 20 másodpercenként lekéri a todót, és egy sort ír a sessionbe, ha a labda az ágensnél van; a mentat-todo ack a nyugta; a saját gépen ugyanez a kód session-hookként fut. (Bővült: `engine.todo`)
+- A todo parancssor pótolja a hiányokat. task show/list, project list, ismétlődő feladat, backlog-kulcs mindenhol; a changes és a ball nem mutatja a saját írást és piszkozatot; a mentat-todo szerver-egység nélkül is fut. (Javult: `engine.todo`)
+
+### Munkavégzés és projektek
+
+- Az átadott todo egy percen belül eléri az ágenst. A Telegram-híd 20 másodpercenként lekéri a todót, és egy sort ír a sessionbe, ha a labda az ágensnél van; a mentat-todo ack a nyugta; a saját gépen ugyanez a kód session-hookként fut. (Javult: `backlog`)
+
+### Működés és rugalmasság
+
+- Központi flotta-ellenőrzés. Minden box az Admin flotta pluginjába jelenti az ágensei képesség-próbáját; a piros ellenőrzésből incidens lesz, a néma boxból halott-ember incidens, és ha senki nem javítja, a tulajdonos e-mailt kap. (Bővült: `admin`, `fleet`)
+- Flotta-menedzserek javítják a kiesett ágenst. A rangsorolt menedzser-ágensek minden incidensről feladatot kapnak, 30 percre átveszik, csak öt rögzített javító lépéssel javítanak, és csak friss zöld ellenőrzéssel zárnak; ha egy nem válaszol, a következő veszi át. (Bővült: `fleet`)
+- Kérd meg az ágenst, hogy jelentsen hibát. Az ágens kitakarított hibajelentést készít minden rész verziójával, szó szerint megmutatja, és csak az adott piszkozatra mondott tiszta igen után küldi el a te gh-ddal. (Bővült: `mentat.status`)
+- Telegram-csoport: a küldő számít. A csoportból csak az allowlistes küldő éri el az ágenst; egy közös szűrő minden sessionbe jutó szövegből kiveszi a láthatatlan karaktereket. (Javult: `fleet`)
+- A titok-kapu kevesebbet tilt a saját munkádból, többet a másokéból. Az ágens saját projekt-memóriája írható; az átiratok és más projektek memóriája titoktár; a kapu követi a cd-t és a futásidejű utat; a scan már nem telepít kaput. (Javult: `fleet`)
+- A fleet doctor azt méri, amit az ágens ténylegesen csinál. A doctor és minden postcheck lefuttatja az alapfunkciókat (küldés próbája, todo, állapotfájlok, git); a felhasználói szintű beállítás egy kanárin át változik; a box-sor mutatja a kiadás-lemaradást. (Javult: `fleet`)
+- A Mac saját Pythonjával is települ. A Python 3.9 vagy újabb az egyetlen minimum a telepítés-ellenőrzésben, a motorban és a leírásokban; a telepítési leírás a motort és a flottát a kiadás tagjére linkeli. (Javult: `mentat.init`)
+
 ## 0.5.1 (még nincs kiadva)
 
 ### Proaktivitás és ütemezés

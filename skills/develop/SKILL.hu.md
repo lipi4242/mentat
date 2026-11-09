@@ -92,6 +92,16 @@ lehet, hogy csak a te gépedről szól.
 
 Befejezéskor: merge-eld a branchet, töröld a worktree-t. Ne maradjon szemét.
 
+**Ha kiadó ágens mergel** (a PR `release:queue` címkét kap), és a PR-hoz a tulajdonos 👍-ja vagy
+sürgős merge kell, a kiadó ágens pedig valószínűleg alszik (messze a következő ellenőrzése), ébreszd
+fel — ebben a sorrendben:
+
+1. **Backlog (elsődleges):** todo-feladat a kiadó ágens principaljára: „PR #N: kapuzd/mergeld” + a PR
+   linkje; emberi jóváhagyásnál egy feladat az emberre is. A kiadó ágens alapból figyeli a saját
+   labdáit, ez ébreszti fel. Flottában: `fleet wake <kiadó ágens> --reason "PR #N: kapuzd/mergeld" --pr <link>`.
+2. **Tartalék, csak ha az 1. nem működik** (nincs todo-példány, nincs principalja a kiadó ágensnek,
+   nem fut a hídja — a `fleet wake` ezt 3-as kóddal jelzi, és kiírja a szöveget): peer-üzenet (`/rc`).
+
 ---
 
 ## 6. lépés — Reviewer-körök

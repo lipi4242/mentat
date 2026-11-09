@@ -93,6 +93,17 @@ there may describe only your machine.
 
 On completion: merge the branch, remove the worktree. Leave no debris.
 
+**If a release agent merges** (the PR carries `release:queue`) and the PR needs the owner's 👍 or an
+urgent merge while the release agent is probably asleep (its next check is far), wake it — in this
+order:
+
+1. **Backlog (primary):** a todo task assigned to the release agent's principal: "PR #N: gate/merge" +
+   the PR link; for a human approval, a task assigned to the human too. The release agent watches its
+   own ball by default; that is what wakes it. In a fleet: `fleet wake <release agent> --reason "PR #N:
+   gate/merge" --pr <link>`.
+2. **Fallback, only if 1. does not work** (no todo instance, no principal for the release agent, its
+   bridge is not running — `fleet wake` exits 3 and prints the text): a peer message (`/rc`).
+
 ---
 
 ## Step 6 — Reviewer rounds

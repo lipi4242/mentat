@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "version": 1,
+  "fleet": "default",
+  "managers": [
+    {"handle": "demo-agent", "agent": "demo-agent", "scope": "*", "rank": 1},
+    {"handle": "demo-helper", "agent": "demo-helper", "scope": "*", "rank": 2},
+    {"handle": "demo-helper", "agent": "demo-helper", "scope": "agent:demo-agent", "rank": 1},
+    {"handle": "demo-agent", "agent": "demo-agent", "scope": "box:demo-box", "rank": 1}
+  ]
+}

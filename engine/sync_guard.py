@@ -5,7 +5,9 @@ The version string alone cannot tell: during development many commits carry
 the same "0.3.0". So every sync records its source in the target —
 `anytime_engine/.sync-source.json` {"version", "commit", "commit_date"} (from
 the source checkout's git — the engine/ folder of a Mentat clone, or the old
-engine-only repo — else release.json) — and the next sync compares:
+engine-only repo — else the product release.json: the Mentat download's root one,
+or brain/release/release.json in a non-git copy of the dev monorepo; the version
+is always the code's __version__) — and the next sync compares:
 
     record newer than this source            -> STOP (lists what would change)
     no usable record, same version, core differs -> STOP ("azonos verzió, eltérő
@@ -51,8 +53,10 @@ def source_record(src: Path) -> dict:
         out = _git(src, "log", "-1", "--format=%H%x00%cI")
         if out:
             rec["commit"], rec["commit_date"] = out.split("\0")
-    else:  # engine/release.json (dev), else the product's root release.json (a Mentat download)
-        for rel_path in (src / "release.json", src.parent / "release.json"):
+    else:  # the old engine-only download's release.json, else the product's: the Mentat
+        # download's root one, or the dev monorepo's brain/release/ one (engine/release/ is src)
+        for rel_path in (src / "release.json", src.parent / "release.json",
+                         src.parent.parent / "brain" / "release" / "release.json"):
             try:
                 rel = json.loads(rel_path.read_text())
             except (OSError, ValueError):

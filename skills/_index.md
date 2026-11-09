@@ -12,6 +12,7 @@ in a defined order.
 | [`bekotes`](../reference/bekotes/BEKOTES.en.md) · [HU](../reference/bekotes/BEKOTES.hu.md) | The USER asks this agent to take over a business (repos, old agent memories, Linear) | `status`, the role guard, `reference/mentat-json.md` |
 | [`backlog`](backlog/SKILL.en.md) · [HU](backlog/SKILL.hu.md) | You hand work to someone or take it, decide whether finished work is accepted, track a long process as a case, or the plan has `todo_labda` | the Admin's todo + backlog, `backlog/ac-form.en.md` |
 | [`model`](model/SKILL.en.md) · [HU](model/SKILL.hu.md) | The USER wants this agent on another model (a measured open model via OpenRouter) or back on Claude | `reference/manifest/mentat_model.py` |
+| [`bug-report`](bug-report/SKILL.en.md) · [HU](bug-report/SKILL.hu.md) | Mentat itself fails in a way the docs do not explain, or the USER says "report this bug" | `.mentat/bin/mentat_bugreport.py` (redaction, duplicate search, the USER's yes before posting) |
 
 ## Installing
 

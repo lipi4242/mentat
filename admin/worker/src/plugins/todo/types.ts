@@ -1,6 +1,6 @@
 import type { AppEnv } from '../../types';
 export type Principal = { id: string; kind: 'human' | 'agent'; handle: string; display_name: string; avatar: string | null; about?: string | null };
-export type TodoEnv = { Bindings: AppEnv['Bindings']; Variables: AppEnv['Variables'] & { principal: Principal | null; email: string | null } };
+export type TodoEnv = { Bindings: AppEnv['Bindings']; Variables: AppEnv['Variables'] & { principal: Principal | null; email: string | null; tokenScopes: string | null } };
 export type Task = {
   id: string; parent_id: string | null; position: string; title: string; description: string | null;
   status: 'open' | 'done' | 'dropped'; due_date: string | null; due_time: string | null; planned_date: string | null;

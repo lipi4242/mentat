@@ -52,6 +52,6 @@ describe('work kinds and parent rules', () => {
     const { call, human } = await backlogApp();
     expect((await call('GET', '/me')).body).toMatchObject({ id: 'a', handle: 'a' });
     expect((await call('GET', '/me', undefined, human)).body).toMatchObject({ kind: 'human', handle: 'owner' });
-    expect((await call('GET', '/me', undefined, { 'X-Mentat-Token': 'nobody' })).status).toBe(403);
+    expect((await call('GET', '/me', undefined, { 'X-Mentat-Token': 'nobody' })).status).toBe(401); // unknown token: the shared guard's 401
   });
 });

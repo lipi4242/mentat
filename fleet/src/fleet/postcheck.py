@@ -20,6 +20,12 @@ mérési korlát miatt. Az `unknown` RC-t viszont kiírjuk, nem nyeljük le.
 
 2026-10-14-ig a `pending` ütemezés és az `unknown` auth OK-t adott: egy ágens
 startup-parancsa 30 napig nem ment be, és a postcheck zöld volt.
+
+Képesség (11-07, kepesseg.py): a jelek infrastruktúrát mérnek. 11-07-én minden jel zöld volt,
+és három ágens nem tudott írni a tulajdonosnak. Ezért a postcheck a küldést (dry-run), a todót,
+a saját állapotot és a gitet le is futtatja; ami piros, az `failed`. A `capability_only` jelzi,
+ha csak ez bukott: restart ezen nem segít, a reconcile ilyenkor nem karanténoz, hanem
+független úton riaszt (alerts.py).
 """
 from __future__ import annotations
 import time
@@ -105,9 +111,15 @@ def postcheck_verdict(m: dict, *, restart_at: float | None, now: float,
     return OK, []
 
 
+def _capability(entry: dict) -> dict:
+    from pathlib import Path
+    from fleet import kepesseg
+    return kepesseg.check(entry, Path.home())
+
+
 def postcheck(entry: dict, *, restart_at: float | None = None, wait_s: int = 90,
               poll_s: int = 10, sleep=time.sleep, measure=signals.measure,
-              now=time.time) -> dict:
+              now=time.time, capability=_capability) -> dict:
     """Legfeljebb `wait_s`-ig vár, hogy egy ÚJ processz feljöjjön, aztán ítél."""
     waited = 0
     m = measure(entry)
@@ -131,10 +143,15 @@ def postcheck(entry: dict, *, restart_at: float | None = None, wait_s: int = 90,
                                       grace_over=since is not None and since > PENDING_MAX_S,
                                       schedule_over=since is not None and since > window_s(entry))
     rc = m["signals"]["rc"]
+    cap = capability(entry) if status != FAILED else {"red": [], "unknown": [], "ok": []}
+    only = status != FAILED and bool(cap["red"])
+    if only:
+        status, notes = FAILED, [f"képesség: {x}" for x in cap["red"]]
     return {"agent": entry["agent"], "status": status, "ok": status == OK,
             "problems": notes if status == FAILED else [],
             "pending": notes if status == PENDING else [],
-            "unknown": [f"rc (nem kötelező): {rc['detail']}"] if rc["state"] == signals.UNKNOWN else [],
+            "unknown": ([f"rc (nem kötelező): {rc['detail']}"] if rc["state"] == signals.UNKNOWN else [])
+            + cap["unknown"], "capability_only": only, "capability_ok": cap["ok"],
             "waited_s": waited, "measure": m}
 
 
@@ -142,6 +159,8 @@ def format_postcheck(r: dict) -> str:
     head = f"postcheck {r['agent']}: {r['status'].upper()} ({r['waited_s']} s várva)"
     body = "".join(f"\n  - {p}" for p in r["problems"] + r["pending"])
     body += "".join(f"\n  ? nem mérhető: {p}" for p in r.get("unknown", []))
+    if r.get("capability_ok"):
+        body += "\n  képesség: " + " · ".join(r["capability_ok"]) + " ✓"
     sig = r["measure"]["signals"]
     tail = "\n  " + " · ".join(f"{k}={v['state']}" for k, v in sig.items())
     return head + body + tail

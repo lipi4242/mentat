@@ -53,7 +53,7 @@ REQUIRED_FIELDS = ("agent", "unit", "session", "workdir", "model", "host")
 
 #: Extra fields a ticking agent needs. A proactive agent without `loop_cmd` has
 #: nothing to arm, and without `tick_period_s` every derived threshold in
-#: liveness/watchdog/arming silently falls back to a default that is not its own.
+#: liveness/signals/arming silently falls back to a default that is not its own.
 REQUIRED_PROACTIVE_FIELDS = ("loop_cmd", "tick_period_s")
 
 #: Where an agent's engine CLI may live. Agents differ legitimately: the newer

@@ -20,6 +20,7 @@ import { parseArgs, USAGE } from "./lib/send-args.mjs";
 import { checkCaption, checkPhotoFile, sendPhotoCall } from "./lib/photo.mjs";
 import { basename } from "node:path";
 import { logNotice } from "./lib/notice.mjs";
+import { dryRun } from "./lib/dry-run.mjs";
 
 const MAX_LEN = 4096;
 
@@ -76,8 +77,23 @@ function telegramCaller(token, env) {
 
 export async function main(argv = process.argv.slice(2), env = process.env) {
   const token = env.TELEGRAM_BOT_TOKEN;
-  if (!token) { console.error("missing TELEGRAM_BOT_TOKEN"); return 1; }
   const logDir = resolveLogDir(env, fileURLToPath(import.meta.url));
+  const cut = argv.indexOf("--");
+  if ((cut < 0 ? argv : argv.slice(0, cut)).includes("--dry-run")) {
+    // 11-07: a kepesseg-proba utja — nincs halozat, nincs naplo-sor (lib/dry-run.mjs)
+    let a;
+    try { a = parseArgs(argv); } catch (e) { console.error(`${e.message}\n${USAGE}`); return e.code ?? 1; }
+    const r = dryRun(a, env, logDir);
+    for (const l of r.lines) (r.code ? console.error : console.log)(l);
+    return r.code;
+  }
+  if (!token) {
+    // 11-07: a token nelkuli futas nyomot hagy a kezbesitesi naploban (notice missing_token);
+    // a `fleet doctor` ebbol ad piros jelet. Korabban csak stderr volt: senki nem latta.
+    logNotice(logDir, "missing_token", { detail: env.SUBETHA_AGENT || env.FLEET_AGENT || undefined });
+    console.error("missing TELEGRAM_BOT_TOKEN (a unit env-jebol kell jonnie; a hiba a kezbesitesi naploba kerult)");
+    return 1;
+  }
   let args;
   try { args = parseArgs(argv); } catch (e) { console.error(`${e.message}\n${USAGE}`); return e.code ?? 1; }
   if (args.deprecated?.length) {

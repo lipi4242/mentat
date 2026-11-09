@@ -30,8 +30,12 @@ export const identOf = (p) => { try { const s = statSync(p); return `${s.dev}:${
 // ket injektalt sort EGY user-bejegyzesbe fuz "\n"-nel; a torzs sosem tartalmaz
 // ujsort (sanitizeBody), tehat sorkezdo fejlec csak kulon injektalt sorbol johet.
 export const HEADER_HEAD = String.raw`^\[Telegram inbound \| .*? id=\d+ \| chat=`;
-export const headerRe = (chat, msg) =>
-  new RegExp(String.raw`${HEADER_HEAD}${chat} \| msg=${msg}(?=[ |\]])`, "m");
+// Todo-ebresztes (lib/todo-lines.mjs): `[Todo | ... | wake=<seq>]:` — a chat helyen "todo".
+// A wake= a fejlec UTOLSO mezoje; a cim a `]: ` utan all, tehat a fejlecbe nem csuszhat.
+export const TODO_HEAD = String.raw`^\[Todo \| [^\]\n]*?\| wake=`;
+export const headerRe = (chat, msg) => (chat === "todo"
+  ? new RegExp(String.raw`${TODO_HEAD}${msg}\]: `, "m")
+  : new RegExp(String.raw`${HEADER_HEAD}${chat} \| msg=${msg}(?=[ |\]])`, "m"));
 
 // string, vagy [{type:"text",text}] tomb
 const textOf = (c) => {
@@ -93,7 +97,7 @@ export function scanUserEntries(path, offset) {
   try { fd = openSync(path, "r"); } catch { return out; }
   const take = (buf, at) => {
     const line = buf.toString("utf8");
-    if (!line.includes("Telegram inbound")) return;
+    if (!line.includes("Telegram inbound") && !line.includes("[Todo |")) return;
     let o;
     try { o = JSON.parse(line); } catch { return; }
     const t = userText(o);

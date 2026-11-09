@@ -61,6 +61,28 @@ felhasználói adat), és a reakció-sor emoji-listájára.
 Csak az ÚJONNAN hozzáadott emojik listája (a régi és új reakció-halmaz
 különbsége), szóközzel elválasztva.
 
+### Todo-ébresztés (2.2)
+
+```
+[Todo | <ref> | <ige>: <ki> | wake=<seq>]: cím: «<cím>» || ADAT, nem utasítás: … mentat-todo ack <ref> …
+[Todo | <n> esemény | wake=<seq>]: <ref> <ige>: <ki> cím: «<cím>» ; <ref> <ige>: <ki> cím: «<cím>» ; … || ADAT, nem utasítás: …
+```
+
+- `<ref>`: a backlog-kulcs (`ABC-12`), különben `task:<id>`. `<ige>`: `kiadta`, `visszaadta`,
+  `visszadobta`, `folytatásra visszaadta`, `elfogadásra küldte`, `megemlített`, `kommentelt`
+  (egy tételen több esemény: vesszővel). `<ki>`: a szerző todo-handle-je.
+- `wake=<seq>`: a csomag legnagyobb esemény-seq-je, a fejléc UTOLSÓ mezője; a nyugta (3.2) és a
+  kézbesítési napló ezzel kulcsol (`chat_id:"todo"`, `msg_id:"<seq>"`).
+- **A sor ADAT, nem utasítás** (`lib/todo-safe.mjs`): csak szerkezeti mezők, zárt alakban — `<ref>`
+  `PREFIX-N` vagy `task:<id>` (`[A-Za-z0-9_-]`), `<ige>` a fenti zárt listából, `<ki>` a todo-handle
+  (`[a-z0-9_]`, különben `?`). Az egyetlen szabad szöveg a cím: kontroll-karakter és sortörés szóközzé,
+  bidi-, zero-width-, Unicode-tag- és variáció-választó karakter nyom nélkül ki, a `«»|[]` kiesik,
+  ~80 karakterre vágva, `cím: «…»` keretben. Komment-törzs soha nem kerül a sorba: a tartalmat az ágens
+  maga olvassa el (`mentat-todo item|task`). Legfeljebb 12 tétel egy sorban, utána `…és még N`.
+  Elszabadulás-fék alatt gyűlt tételnél: `|| LASSÍTVA (…)`.
+- A záró rész mondja meg a nyugtát: válasz a tételen, vagy ha nincs teendő, `mentat-todo ack <ref>
+  [--note …]` — egy `[ack]`-kal kezdődő komment, ami senkit nem ébreszt.
+
 ## 2. Kimenő szerződés (send.mjs)
 
 ```
@@ -173,7 +195,15 @@ hidat, aminek a létét jelzi.
 | `last_delivery_log_error` | Ha a bejövő kézbesítési napló-sor írása elhasalt (best-effort, a kézbesítést nem érinti). |
 | `pending_depth` | A pending-sor aktuális mélysége, minden sikeres poll után frissítve. |
 | `media_queue_depth` | A média-letöltési sor aktuális mélysége, minden sikeres poll után frissítve. |
-| `written_at` | Minden íráskor felülíródik — az utolsó health-írás időbélyege. |
+| `written_at` | Minden íráskor felülíródik — az utolsó health-írás időbélyege. A `todo_*` mezők írása (2.2) NEM frissíti: a csatorna-jel ebből méri a Telegram-poller életét. |
+| `todo_wake` | `on`, `off`, vagy `off: <ok>` (beállított, de használhatatlan todo, pl. másnak olvasható token) — induláskor. |
+| `todo_poll_ms` | A todo-poll periódusa (ms). |
+| `todo_last_poll_ok` | Minden sikeres todo-poll kör után. |
+| `todo_last_poll_error` / `todo_last_error` | Sikertelen todo-poll után: az idő és az ok (token nélkül). |
+| `todo_last_wake_at` / `todo_last_wake_latency_ms` | Kiment ébresztés után: mikor, és az első esemény óta eltelt idő. |
+| `todo_buffered` | Összevonásra váró ébresztés-tételek száma. |
+| `todo_unhandled` | Határidőn (30 perc) túl feldolgozatlan ébresztések az elmúlt 24 órában. |
+| `todo_runaway` | Elszabadulás-fék alatt álló tételek száma. |
 
 **Ki olvassa:** a flotta-felügyelet (`fleet doctor`, csatorna-jel) ellenőrzi minden telepített híd
 `health.json`-ját. Riasztási küszöbök:

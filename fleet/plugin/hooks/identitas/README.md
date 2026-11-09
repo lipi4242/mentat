@@ -57,5 +57,13 @@ kódjával futó kifelé ható parancs is tilos.
   `~/.mentat/titkok/hatar-hibak.log`-ba ír egy sort.
 - **Korlát:** sebességcsökkentő küszöb. Szkriptfájl, értelmező és futás közben összerakott parancs
   átmegy rajta; a valódi kontroll az utólagos állapot-ellenőrzés.
+- **Futásidejű út** (`$X`, `$(…)`, `` `…` `` az útban): tilt, ha a statikus előtag titoktárban
+  (`~/.claude*`, `~/.config`, `~/.mentat`, `~/.ssh`) vagy afölött van, illetve egy leltár-fájl
+  mappájában; ilyenkor adj meg konkrét útvonalat. A `$PWD`, a `$(pwd)`, a `$CLAUDE_PROJECT_DIR` és
+  a `$(git rev-parse --show-toplevel)` statikusan feloldódik. **Szándékos megkerülés ellen nem véd:**
+  a futás közben dekódolt út (printf, base64) és a fájlból olvasott útlista (`cat $(cat lista)`)
+  átmegy. Ez a határ az OS-izoláció dolga.
+- **Saját memória:** a `~/.claude*/projects/` egésze titoktár, csak a session rögzített projektjének
+  (`CLAUDE_PROJECT_DIR`, különben a registry-workdir, végső esetben a cwd) `memory/*.md`-je szabad.
 - **A forrás** a `security/eszkozok/identitas/`; a futó fájlok itt bájtra egyeznek vele
   (`tests/test_titok_telepit.py`).

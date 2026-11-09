@@ -130,7 +130,8 @@ def descendants(pid: int, procs: list[dict]) -> list[dict]:
 def plugin_pollers(agent_pid: int | None, procs: list[dict]) -> list[dict]:
     """Pure: a telegram-plugin pollerei (bun server.ts) az ágens processze
     ALATT. Csak a leszármazottakat: egy másik ágens pollerét nem a mi dolgunk
-    leölni, és egy árva (init alatti) poller a `watchdog.reap_orphan_bun` dolga."""
+    leölni. Az árva (init alatti) pollert ma semmi nem takarítja: a régi
+    watchdog `reap_orphan_bun`-ja 11-08-án a halott modullal együtt ment."""
     if agent_pid is None:
         return []
     return [p for p in descendants(agent_pid, procs)
@@ -168,6 +169,14 @@ def schedule_verdict(*, proactive: bool, tick_age: float | None, period_s: float
 def schedule_signal(entry: dict, sid: str | None, process_started_s: int | None,
                     now: float | None = None) -> Signal:
     now = now or time.time()
+    if entry.get("tick_gate"):
+        # tick-kapu: a kadencia a tick-kapué; a tétlen időszak nem halál, az elakadt kapu igen
+        from fleet.tick_gate_health import verdict as gate_verdict
+        v = gate_verdict(entry, Path.home(), now)
+        state = {"ok": "armed", "pending": "pending", "red": "stale"}.get(v["state"], UNKNOWN)
+        return Signal("schedule", state, v["detail"], {"owner": "gate", "period_s": v.get("interval_s"),
+                      "tick_age_s": (now - v["checked_at"]) if v.get("checked_at") else None,
+                      "silent_s": (now - v["fired_at"]) if v.get("fired_at") else None})
     from fleet.tick_watch import fleet_tick
     ft = fleet_tick(entry, Path.home(), now)
     if ft is not None:

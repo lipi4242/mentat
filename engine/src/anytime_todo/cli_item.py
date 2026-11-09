@@ -42,8 +42,9 @@ def _spec_args(p: argparse.ArgumentParser, new: bool) -> None:
 
 
 def add(sub) -> None:
-    p = sub.add_parser("item", help="backlog items").add_subparsers(dest="verb", required=True)
-    n = p.add_parser("new")
+    p = sub.add_parser("item", help="backlog items: new, list, show, edit, ACs, link, and the flow verbs"
+                       ).add_subparsers(dest="verb", required=True)
+    n = p.add_parser("new", help="a draft item (PM)")
     n.add_argument("--project", required=True)
     _spec_args(n, True)
     n.add_argument("--parent")
@@ -53,22 +54,22 @@ def add(sub) -> None:
     for opt in ("--project", "--stage", "--pm", "--dev", "--ball"):
         ls.add_argument(opt)
     ls.add_argument("--older-than", type=int, help="days since the last move (issued: since issue)")
-    s = p.add_parser("show")
+    s = p.add_parser("show", help="one item with ACs, reports, links, events; --form: the submit form")
     s.add_argument("ref")
     s.add_argument("--form", action="store_true", help="print the AC form to fill for submit")
     s.add_argument("--lang", choices=sorted(form.HEAD), default="en")
-    e = p.add_parser("edit")
+    e = p.add_parser("edit", help="change the spec (PM)")
     e.add_argument("ref")
     _spec_args(e, False)
     for verb, extra in (("ac-add", []), ("ac-edit", ["ac"]), ("ac-remove", ["ac"])):
-        q = p.add_parser(verb)
+        q = p.add_parser(verb, help=f"{verb.split('-')[1]} an acceptance criterion (PM)")
         q.add_argument("ref")
         for x in extra:
             q.add_argument(x)
         if verb != "ac-remove":
             q.add_argument("--text", required=True)
         work.add_rev(q)
-    k = p.add_parser("link")
+    k = p.add_parser("link", help="attach a URL or a task (PM or dev)")
     k.add_argument("ref")
     k.add_argument("--url")
     k.add_argument("--kind", choices=("pr", "issue", "url"), default="url")

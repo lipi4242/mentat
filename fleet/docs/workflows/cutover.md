@@ -25,19 +25,28 @@ Minden sor `noop`/`skip`, vagy olyan beavatkozás, amit te is megtennél. Ha
 nem, előbb a registry vagy a mérés javul, nem a cutover.
 
 ## 2. Unitok és hidak
-Ágensenként, egyenként, először egy nem kritikus canaryvel:
+Ágensenként, egyenként, először egy nem kritikus canaryvel, kritikus ágenst
+csak idle állapotban:
 ```sh
-fleet lock <agent> --ttl 30
-fleet install <agent>          # unit + drop-in (mentés .bak-…) + felügyelet + postcheck
-fleet bridge install <agent>   # ha van híd
-systemctl --user restart <agent>-telegram-bridge.service   # csak a híd!
-fleet doctor <agent>           # csatorna=ok, nincs 409
-fleet unlock <agent>
+fleet setup <agent> --check    # semmit nem ír, megmondja, mi hiányzik
+fleet setup <agent> --no-tick  # validate → join → preflight → install → híd → plugin → titok-kapu → reconcile → doctor
 ```
-A `fleet install` újraindítja az ágenst, ha a unit változott (a postcheck
-csak így mondhat igazat); változatlan unitnál nem nyúl a futó processzhez.
-Kritikus ágenst csak idle állapotban. Bukáskor az előző unit áll vissza és
-indul újra.
+A `fleet setup` újrafuttatható. Az `install` csak változott unitnál indítja
+újra az ágenst (a postcheck csak így mondhat igazat), bukáskor az előző unit
+áll vissza és indul újra; a hidat viszont minden futáskor újratelepíti és
+újraindítja. Karbantartási zárat nem vesz fel. Kilépési kód: 0 kész · 3 még nem dőlt el · 1 hiba. A join
+az ágens-repó fleet-fájljait is írja, ezt a repóban commitold.
+
+A már flottán futó box új kiadásra emelése nem ez, hanem a
+`fleet box-upgrade --to <tag>` (előbb `--dry-run`).
+
+**Tartalék, ha a parancs nem fut:** a unit és a híd kézzel (a join, a
+plugin és a titok-kapu ilyenkor külön lépés: `fleet join <repó> --agent <agent>`, `fleet plugin
+install <agent>`, `fleet secrets hook install`):
+`fleet lock <agent> --ttl 30`, `fleet install <agent>`, híd esetén
+`fleet bridge install <agent>` és `systemctl --user restart
+<agent>-telegram-bridge.service` (csak a híd!), `fleet doctor <agent>`
+(csatorna=ok, nincs 409), végül `fleet unlock <agent>`.
 
 ## 3. Tulajdonjog átadása
 Ha a boxon fut egy korábbi felügyelő (saját watchdog-timer), előbb azt

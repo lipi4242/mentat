@@ -42,6 +42,8 @@ export function groupSends(sends) {
 
 // Megvalaszolt egy bejovo, ha van hozza confirmed `message` valasz ugyanabban a
 // chatben, reply_to = msg_id. A reakcio nyugta, nem valasz; a bejovo reakcio nem kerdes.
+// A todo-ebresztes (chat=todo) valasza nem Telegram-kuldes, hanem a sajat todo-iras a
+// tetelen: a hid `todo_wake_handled` notice-t ir rola — ez a megvalaszoltsag.
 export function summarize(rows) {
   const sends = groupSends(resolveSends(rows));
   const counts = { confirmed: 0, failed: 0, unknown: 0 };
@@ -51,6 +53,7 @@ export function summarize(rows) {
   const answered = new Set(sends
     .filter((s) => s.action === "message" && s.status === "confirmed" && s.reply_to != null)
     .map((s) => `${s.chat_id}:${s.reply_to}`));
+  for (const r of rows) if (r.type === "notice" && r.event === "todo_wake_handled") answered.add(`todo:${r.msg_id}`);
   const inbound = rows.filter((r) => r.type === "inbound" && r.kind !== "reaction" && r.msg_id != null);
   const seen = new Set();
   const unanswered = [];

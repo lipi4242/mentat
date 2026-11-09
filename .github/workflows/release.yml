@@ -1,0 +1,91 @@
+# On a release tag (pushed by the maintainers' publish step): a GitHub Release with the notes from
+# CHANGELOG.md, a source archive, its SHA256SUMS, and a signed build-provenance attestation
+# (Sigstore, keyless: no key or secret is stored anywhere). Verify a download with
+#   gh attestation verify mentat-vX.Y.Z.tar.gz -R lipi4242/mentat
+#   sha256sum -c SHA256SUMS
+# Two jobs: `build` reads the tree with a read-only token and runs nothing from it but isolated
+# python3 -I; `publish` has the write and signing rights and never checks the tree out.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions: {}
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+      - name: Check the tag is an annotated release tag of main and of this tree
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "not a release tag: $TAG" >&2; exit 1; }
+          [ "$(git cat-file -t "refs/tags/$TAG")" = tag ] || { echo "$TAG is not an annotated tag" >&2; exit 1; }
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main || { echo "$TAG is not on main" >&2; exit 1; }
+          have="$(python3 -I -c 'import json; print(json.load(open("release.json"))["version"])')"
+          [ "$have" = "${TAG#v}" ] || { echo "release.json says $have, the tag says ${TAG#v}" >&2; exit 1; }
+      - name: Source archive, checksums and notes
+        env:
+          TAG: ${{ github.ref_name }}
+        run: |
+          mkdir "$RUNNER_TEMP/dist"
+          git archive --format=tar.gz --prefix="mentat-$TAG/" -o "$RUNNER_TEMP/dist/mentat-$TAG.tar.gz" HEAD
+          (cd "$RUNNER_TEMP/dist" && sha256sum "mentat-$TAG.tar.gz" > SHA256SUMS && cat SHA256SUMS)
+          python3 -I - "${TAG#v}" > "$RUNNER_TEMP/dist/notes.md" <<'PY'
+          import re, sys
+          text = open("CHANGELOG.md", encoding="utf-8").read()
+          m = re.search(r"^## %s\b.*?\n(.*?)(?=^## |\Z)" % re.escape(sys.argv[1]), text, re.S | re.M)
+          if not m:
+              sys.exit("CHANGELOG.md has no '## %s' entry" % sys.argv[1])
+          print(m.group(1).strip())
+          print()
+          print("Verify the archive: `gh attestation verify mentat-v%s.tar.gz -R lipi4242/mentat`" % sys.argv[1])
+          PY
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: dist
+          path: ${{ runner.temp }}/dist/
+          if-no-files-found: error
+          retention-days: 7
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write      # create the release and upload its files
+      id-token: write      # the keyless Sigstore signature of the attestation
+      attestations: write  # store the attestation
+    steps:
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
+        with:
+          name: dist
+          path: dist
+      - name: Attest build provenance
+        id: attest
+        uses: actions/attest-build-provenance@4d101475d8b20a2381f78447822ac1eab6504dd8 # v4.2.2
+        with:
+          subject-path: dist/*.tar.gz
+      - name: Publish the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ github.ref_name }}
+          BUNDLE: ${{ steps.attest.outputs.bundle-path }}
+        run: |
+          (cd dist && sha256sum -c SHA256SUMS)
+          cp "$BUNDLE" "dist/mentat-$TAG.tar.gz.sigstore.json"
+          gh release create "$TAG" --draft --verify-tag --title "Mentat $TAG" --notes-file dist/notes.md \
+            "dist/mentat-$TAG.tar.gz" dist/SHA256SUMS "dist/mentat-$TAG.tar.gz.sigstore.json"
+          gh release edit "$TAG" --draft=false --latest

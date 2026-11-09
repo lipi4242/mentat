@@ -14,7 +14,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-from fleet import PLUGIN_DIR
+from fleet import PLUGIN_DIR, kanari
 
 #: A fejlesztő ágensnek szóló skillek (a többi plugin-skill a flottatagoké).
 OPERATOR_SKILLS = ("merge-agents",)
@@ -30,6 +30,12 @@ def _ours(link: Path, name: str) -> bool:
     """A symlink egy fleet-checkout `plugin/skills/<name>` könyvtárára mutat-e."""
     t = Path(os.readlink(link))
     return t.name == name and t.parent.name == "skills" and t.parent.parent.name == "plugin"
+
+
+def _link(dst: Path, src: Path, name: str) -> None:
+    """11-07: a skills/ a gyökér minden ágensének él → kanárival (kanari.py)."""
+    kanari.guarded(f"operátor-skill: /{name}", [dst.parent.parent], lambda _r: dst.symlink_to(src),
+                   home=Path.home())
 
 
 def link_operator_skills(plugin_dir: Path = PLUGIN_DIR, target: Path | None = None) -> list[str]:
@@ -53,8 +59,10 @@ def link_operator_skills(plugin_dir: Path = PLUGIN_DIR, target: Path | None = No
                 notes.append(f"skill: {dst} létezik és nem a flotta linkje — nem írom felül")
                 continue
             target.mkdir(parents=True, exist_ok=True)
-            dst.symlink_to(src)
+            _link(dst, src, name)
             notes.append(f"skill: /{name} → {src} (az új Claude-sessionökben látszik)")
+        except kanari.Refused as e:
+            notes.append(f"skill: {name} NEM linkelve — {e}")
         except OSError as e:
             notes.append(f"skill: {name} NEM linkelve ({e}); az eljárás: {src / 'SKILL.md'}")
     return notes

@@ -6,7 +6,8 @@
 Csak TILTHAT. Allow-t és ask-ot soha nem ad: a box headless, és egy engedélyező hook a
 Claude Code saját engedélykérését is átugraná. Tilt, ha a hívás
 - Read/Edit/Write/NotebookEdit-tel titokfájlt nyit (leltár: ~/.mentat/titkok/leltar.json,
-  realpath vagy dev+inode; fájlnév-heurisztika; más ágens átirata ~/.claude*/projects/**/*.jsonl),
+  realpath vagy dev+inode; fájlnév-heurisztika; ~/.claude*/projects/ egésze, csak a saját projekt
+  memory/*.md-je szabad),
 - Grep-pel titokfájlban, átirat-mappában, ~/.config/<x>/-ben vagy a HOME egészében keres,
 - Glob-bal kifejezetten titokfájlt nevez meg,
 - Bash-ban olvas, másol, linkel vagy forrásként tölt be ilyet, vagy kiírja a környezetet
@@ -61,7 +62,9 @@ def _grep(inp, cwd, lel):
     home = M.home()
     if r == home or home.startswith(r.rstrip(os.sep) + os.sep):
         return "a teljes HOME-ban keresne (benne a kulcsok és az átiratok)"
-    if M.in_transcripts(r) or M.holds_transcripts(r):
+    if M.own_memory(r, cwd):  # a saját projekt auto-memóriája (11-08); a symlinkjeit a _tree nézi
+        return M._tree(r, lel, (), cwd)
+    if M.in_transcripts(r, cwd) or M.holds_transcripts(r):
         return "átiratokat tartalmazó mappa"
     if any(r == x or x.startswith(r.rstrip(os.sep) + os.sep) for x in
            (os.path.join(home, d) for d in (".config", ".ssh", ".mentat"))):
@@ -77,7 +80,7 @@ def _glob(inp, cwd, lel):
     if base and not M.GLOB.search(base) and M.name_hit(base):
         return "kulcsfájl-név a mintában: %s" % base
     full = os.path.join(str(inp.get("path") or cwd or ""), pat)
-    return "leltárban (glob)" if any(M.fnmatch.fnmatch(x, M.resolve(full, cwd) or "") for x in lel.paths) else None
+    return "leltárban (glob)" if M.glob_hit(lel.paths, M.resolve(full, cwd) or "") else None
 
 
 def decide(tool, inp, cwd, lel=None):
@@ -94,9 +97,19 @@ def decide(tool, inp, cwd, lel=None):
     return None
 
 
+#: Heurisztikus (név- vagy mappa-alapú) tiltás: lehet téves. A téves tiltás kerülőútra tanít
+#: (11-07: egy ágens string-összefűzéssel vágta ketté a mezőnevet) — ezért itt bejelentést kérünk.
+SUSPECT = ("gyanús", "a mappában", "túl nagy mappa", "a kódban", "a mintában", "a szűrőben", "(glob)",
+           "nem elemezhető", "leltárban (mappa")
+REPORT = (" Ha ez TÉVES (a fájl/mappa nem titok): NE kerüld meg (összefűzés, másolás, más eszköz) — jelentsd "
+          "a tulajdonosnak a pontos parancssal, hogy a kapu javuljon. Rekurzív keresésnél a mappát "
+          "kizárhatod: `grep -r --exclude-dir=<mappa> …`.")
+
+
 def deny(reason):
+    hint = REPORT if any(s in reason for s in SUSPECT) else ""
     return {"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny",
-                                   "permissionDecisionReason": "Titok-kapu: %s. %s" % (reason, HELP)}}
+                                   "permissionDecisionReason": "Titok-kapu: %s. %s%s" % (reason, HELP, hint)}}
 
 
 def hook(data):

@@ -1,28 +1,32 @@
 {
   "component": "mentat",
-  "version": "0.5.1",
-  "date": "2026-11-07",
-  "severity": "patch",
-  "security": false,
-  "breaking": false,
+  "version": "0.6.0",
+  "date": "2026-11-09",
+  "severity": "minor",
+  "security": true,
+  "breaking": true,
   "migrations_from": [
     "0.5"
   ],
   "you_need_to": [
-    "Update the server checkout in one step: run fleet box-upgrade --to v0.5.1 --dry-run to see the plan, then the same command without --dry-run. It takes a snapshot, upgrades one agent first, skips busy agents and rolls back on its own if a check fails.",
-    "On a server, give every agent the backlog command: ln -s ~/src/mentat/fleet/bin/mentat-todo ~/.local/bin/ (it takes the agent's name from its unit).",
-    "If your agent uses the backlog, re-sync the engine with ~/src/mentat/engine/sync-to.sh <your-repo> --pack todo, then python3 -m anytime_engine.selftest."
+    "Before installing the 2.2.0 Telegram bridge, put everyone who talks to an agent in a group on its TELEGRAM_ALLOWLIST_IDS: other group members no longer reach the agent.",
+    "If you run Mentat Admin: export a backup, apply the migrations 0500_flotta.sql and 0501_flotta_menedzser.sql (run the 0501 preflight query first), deploy the worker, then the admin.",
+    "Upgrade every server before publishing any fleet managers: fleet box-upgrade --to v0.6.0 --dry-run, then without --dry-run; then claude plugin update fleet@mentat and fleet doctor.",
+    "To join the central fleet check: register each server in the Admin and write its token into ~/.config/fleet/flotta.env (mode 0600) with FLOTTA_URL and FLOTTA_TOKEN.",
+    "If you use fleet managers: put a flotta:config token into ~/.config/fleet/flotta-config.env, then fleet managers check, fleet managers publish --dry-run, fleet managers publish (only after every server is upgraded).",
+    "If you use the secrets gate: re-run fleet secrets scan, then fleet secrets hook install (both with --dry-run first); the scan no longer installs the gate.",
+    "Widen your own concern packs to \"<0.7\", re-sync the engine with ~/src/mentat/engine/sync-to.sh <your-repo>, then python3 -m anytime_engine.selftest."
   ],
-  "changelog": "CHANGELOG.md#051",
+  "changelog": "CHANGELOG.md#060",
   "requires_if_present": {
-    "engine": ">=0.5.0,<0.6"
+    "engine": ">=0.6.0,<0.7"
   },
   "components": {
-    "engine": "0.5.1",
-    "fleet_cli": "1.4.0",
-    "bridge": "2.1.0",
-    "plugin": "1.6.1",
-    "admin": "0.5.0"
+    "engine": "0.6.0",
+    "fleet_cli": "1.5.0",
+    "bridge": "2.2.0",
+    "plugin": "1.7.0",
+    "admin": "0.6.0"
   },
   "files": {
     "bekotes/fajlszuro.py": "83f681ef95a698338473df57d87437bd0128fd5c2fb855b8ab28f4bad080cb68",
@@ -75,6 +79,11 @@
     "mentat_brain_ops.py": "fd54d8b5ea6f73f9be04a94531fb08f25570497459557d137e3ec02e6f4732c4",
     "mentat_brain_read.py": "587fab51656182f11de91efb25bf2a19f1d2c38bbd87f6552d5e4921e7df5469",
     "mentat_brain_types.py": "111257a6a3d1d4e32535e11c6c9d70c64dc170948a9fea6220ee55a929f9c12f",
+    "mentat_bugreport.py": "0d94325ba4391b080dc7ecadd31512c55300ce772588428454aa08459f950d9e",
+    "mentat_bugreport_draft.py": "b3f9d3c1c1219bd289596dcc23a2dbd3e3b944b67adaa9de65a363a87321371e",
+    "mentat_bugreport_env.py": "d1de1bb44465c9c28db47ac8337edd7d5265f5ac3c5987e7c6f3267381db5a02",
+    "mentat_bugreport_gh.py": "b908ff00cc49e88cfb97ebb9a4fb8528f947a87c290f14919727ba9eb787f017",
+    "mentat_bugreport_redact.py": "5a0b6969f9bc24713168de9cb8581ea744a83981f8a7b774e5a15de4af70a23a",
     "mentat_caps.py": "f5eda9e1c34027ddbbf7af97e097704817c2c7e8691b105ae29f38c459c53102",
     "mentat_caps_check.py": "f7ae8ccfda9c1d18ebc70a8313f7f9450d11578c49aca87c66091b9675d26b33",
     "mentat_caps_html.py": "c44eddbf71e28b777a0c62099dfddfef096502c2ea78d2fe32720f41cd5212a1",
@@ -114,20 +123,13 @@
     "mentat_serve.py": "64a61f3b51fbbcbf20c850e338f8e9187b8252fcf5c17e03d718485be9de9102",
     "mentat_serve_proc.py": "87f25cdfdebcfd0cf711de9c33137dee7d4217dff610476d3723e23a0b0648d6",
     "mentat_serve_run.py": "277c2ea6e22840fcae0ec268c538511925a56863a7cd4ee241c4fdd91e09b8fb",
-    "mentat_verify.py": "5dd4b17c93a2d71cf00dc9bc6c6eaaf68b1beb8190179b4ef21c29344869465a",
+    "mentat_verify.py": "a15189c742d230a88ac7c1b79f2e4e186e092bbd0c94a9ca7704fafb6b80433d",
     "mentat_web.py": "60e058617cb8289aa9c8863f60ccf351288457c6b17bc967beaace65185f4a60",
     "scaffold-agents.en.md": "6a90915a5bd283d0d18065e674d0687431e977757d2be8f41a4a839ea40b8c24",
     "scaffold-agents.hu.md": "c6e2982b8e364e99195395db577b5b19018607bb36ee66b1928fb9beb9ef08d9",
     "scaffold-meta.json": "ba69b12f63d5b00991102365fd492e459cf0ab85bbff86ef15c8a7eb22d2fec3"
   },
   "files_known": {
-    "_bekotes_repo.py": "5cadbc8ae19f3b847a3e8a997555cfc3dfeab4a9b15577e921fa9b7922caeb3b",
-    "_caps_base.py": "7ffdea1e43b4d03179f8e506ebb7c1dc58b1a27aa1d3a48fcac66c6ece1fedcc",
-    "_cf_fake.py": "cd895550894f0b1414cdd0bb2b10c619dbad2aa2554c96d9c5c5e9b2dffcee3c",
-    "_contract_fixture.py": "05e8a940fbcfc09ddf20fb6390f6cfb298de74cda7f3f7625049705044496f89",
-    "_google_fake.py": "0ed8ef9530fef2a273d6693eb3db6ea9bb3a4c04e3a018436610c244aab201fe",
-    "_google_fixture.py": "2d39a8294c91150ca12aeedc176fd109c5a1ee26d488b3307748486700aa6627",
-    "_google_flow_fake.py": "66bebca5cd0c6a92628c4bebee147c1fe475748be1c15b77c4b711f657ee02a1",
     "bekotes.py": "11387b71e2a0c0d4eb72465a50e2dd1d7ff2256f49d1d238f7cefd0ad565133d",
     "blokk.py": "cc4637290199ad76db5238230821226c777eb286dac2a9b4053e346f25212233",
     "cf_api.py": "303bd199ad985b3a838033780c97bf164b30e5841112f01613c7d1369af795d5",
@@ -155,6 +157,11 @@
     "mentat_brain_ops.py": "fd54d8b5ea6f73f9be04a94531fb08f25570497459557d137e3ec02e6f4732c4",
     "mentat_brain_read.py": "587fab51656182f11de91efb25bf2a19f1d2c38bbd87f6552d5e4921e7df5469",
     "mentat_brain_types.py": "111257a6a3d1d4e32535e11c6c9d70c64dc170948a9fea6220ee55a929f9c12f",
+    "mentat_bugreport.py": "0d94325ba4391b080dc7ecadd31512c55300ce772588428454aa08459f950d9e",
+    "mentat_bugreport_draft.py": "b3f9d3c1c1219bd289596dcc23a2dbd3e3b944b67adaa9de65a363a87321371e",
+    "mentat_bugreport_env.py": "d1de1bb44465c9c28db47ac8337edd7d5265f5ac3c5987e7c6f3267381db5a02",
+    "mentat_bugreport_gh.py": "b908ff00cc49e88cfb97ebb9a4fb8528f947a87c290f14919727ba9eb787f017",
+    "mentat_bugreport_redact.py": "5a0b6969f9bc24713168de9cb8581ea744a83981f8a7b774e5a15de4af70a23a",
     "mentat_caplog.py": "7c718ac1aac84201ff4796cb6d03f5695a587499b62bc752f4c892dcf1c9e89d",
     "mentat_caplog_render.py": "0b2efdc937a14fb960cfc284a5a27d64c0f48daa8f44104b3d716e71a394cbad",
     "mentat_caps.py": "f5eda9e1c34027ddbbf7af97e097704817c2c7e8691b105ae29f38c459c53102",
@@ -203,7 +210,7 @@
     "mentat_serve.py": "64a61f3b51fbbcbf20c850e338f8e9187b8252fcf5c17e03d718485be9de9102",
     "mentat_serve_proc.py": "87f25cdfdebcfd0cf711de9c33137dee7d4217dff610476d3723e23a0b0648d6",
     "mentat_serve_run.py": "277c2ea6e22840fcae0ec268c538511925a56863a7cd4ee241c4fdd91e09b8fb",
-    "mentat_verify.py": "5dd4b17c93a2d71cf00dc9bc6c6eaaf68b1beb8190179b4ef21c29344869465a",
+    "mentat_verify.py": "a15189c742d230a88ac7c1b79f2e4e186e092bbd0c94a9ca7704fafb6b80433d",
     "mentat_web.py": "60e058617cb8289aa9c8863f60ccf351288457c6b17bc967beaace65185f4a60",
     "olvas.py": "34b01a1b9e33fd7d4f38ccf2ec752b40878169e198ce2ea03232214917878693",
     "olvas_szerep.py": "386d4763c6fa548d15dc1b206a5a936253b0f40c004243977bd0fff8e0bbbd4e",

@@ -9,9 +9,10 @@ describe('todo auth and principal bootstrap', () => {
   });
   it('rejects unknown, expired, unmapped and disabled agents', async () => {
     const { call, raw } = await todoApp();
-    expect((await call('GET', '/tasks', undefined, { 'X-Mentat-Token': 'unknown' })).status).toBe(403);
+    // Unknown and expired tokens fail in the shared guard: 401, like every plugin.
+    expect((await call('GET', '/tasks', undefined, { 'X-Mentat-Token': 'unknown' })).status).toBe(401);
     raw.prepare("UPDATE agent_token SET expires_at='2000-01-01' WHERE id='a'").run();
-    expect((await call('GET', '/tasks')).status).toBe(403);
+    expect((await call('GET', '/tasks')).status).toBe(401);
     raw.prepare("DELETE FROM todo_principal WHERE id='b'").run();
     expect((await call('GET', '/tasks', undefined, { 'X-Mentat-Token': 'b' })).status).toBe(403);
     raw.prepare("UPDATE todo_principal SET disabled_at='2026-01-01' WHERE id='c'").run();
@@ -32,7 +33,7 @@ describe('todo auth and principal bootstrap', () => {
     expect((await call('POST', '/principals', human, h)).status).toBe(200);
     expect(count()).toBe(1);
     expect((await call('GET', '/tasks', undefined, h)).status).toBe(200);
-    expect((await call('GET', '/tasks', undefined, { ...h, 'X-Mentat-Token': 'unknown' })).status).toBe(403);
+    expect((await call('GET', '/tasks', undefined, { ...h, 'X-Mentat-Token': 'unknown' })).status).toBe(401);
     expect((await call('POST', '/tasks', { title: 'Human task', idem_key: 'human' }, h)).status).toBe(201);
   });
   it('stores the agent profile image data URI at principal setup and returns it with comments', async () => {

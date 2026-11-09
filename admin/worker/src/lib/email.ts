@@ -87,34 +87,7 @@ export async function sendOtpEmail(env: Env, to: string, otp: string): Promise<v
       console.log(`[otp no-key] to=${to} otp=${otp}`);
       return;
     }
-    const b = brand(env);
-    const from = `${b.name} <${senderAddress(env)}>`;
-    const { subject, text, html } = otpEmail(otp, b);
-    // Header injection is structurally impossible here: `to` is a JSON string
-    // value, so a CR/LF inside it is escaped as \r\n data and reaches Resend
-    // as part of the address — it can never start a new header. The old
-    // Gmail path had to reject such addresses by hand; nothing to defend now.
-    const res = await fetch(RESEND_ENDPOINT, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${env.RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from,
-        to: [to],
-        subject,
-        text,
-        html,
-      }),
-    });
-    // Deliberately NOT including res.text() here. Resend's validation errors
-    // quote the offending field, and the two fields carrying the code are
-    // `text` and `html` — echoing the body back would put the OTP into this
-    // error message and from there into the Worker log. The status alone
-    // distinguishes the realistic failures (401 key, 403 unverified domain,
-    // 422 payload, 429 rate limit).
-    if (!res.ok) throw new Error(`resend send failed: ${res.status}`);
+    await resendSend(env, to, otpEmail(otp, brand(env)));
   } catch (err) {
     // Distinct, greppable marker: better-auth runs this as a background
     // task, so the thrown error never reaches the client — this log line is
@@ -122,4 +95,41 @@ export async function sendOtpEmail(env: Env, to: string, otp: string): Promise<v
     console.error('otp-delivery-failed', err);
     throw err;
   }
+}
+
+export type Mail = { subject: string; text: string; html: string };
+
+/** The one Resend call: the OTP mail and every other notice (e.g. the fleet
+ *  check's escalation mail) go through here. Throws on a non-2xx.
+ *
+ *  Header injection is structurally impossible here: `to` is a JSON string
+ *  value, so a CR/LF inside it is escaped as \r\n data and reaches Resend as
+ *  part of the address — it can never start a new header.
+ *
+ *  Deliberately NOT including res.text() in the error. Resend's validation
+ *  errors quote the offending field, and for the OTP mail the fields carrying
+ *  the code are `text` and `html` — echoing the body back would put the OTP
+ *  into this error message and from there into the Worker log. The status
+ *  alone distinguishes the realistic failures (401 key, 403 unverified domain,
+ *  422 payload, 429 rate limit). */
+export async function resendSend(env: Env, to: string, mail: Mail): Promise<void> {
+  const from = `${brand(env).name} <${senderAddress(env)}>`;
+  const res = await fetch(RESEND_ENDPOINT, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from, to: [to], subject: mail.subject, text: mail.text, html: mail.html }),
+  });
+  if (!res.ok) throw new Error(`resend send failed: ${res.status}`);
+}
+
+/** A non-OTP notice. No key: on local dev it is logged (subject only), on a
+ *  deployment it throws — the caller records the failure and retries. */
+export async function sendNotice(env: Env, to: string, mail: Mail): Promise<'sent' | 'logged'> {
+  if (!env.RESEND_API_KEY) {
+    if (!isLocalEnv(env)) throw new Error('RESEND_API_KEY missing on a non-local deployment');
+    console.log(`[notice no-key] to=${to} subject=${mail.subject}`);
+    return 'logged';
+  }
+  await resendSend(env, to, mail);
+  return 'sent';
 }

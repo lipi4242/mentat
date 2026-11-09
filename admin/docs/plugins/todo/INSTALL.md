@@ -28,9 +28,11 @@ never create backlog. Dropped work is a valid closure.
    inventory is migrated automatically.
 
 All routes below are under `/api/todo/v1`. The token header is
-`X-Mentat-Token`, not Authorization. A supplied token takes precedence over
-cookies. Unknown/expired/unmapped tokens and wrong scopes return 403;
-missing browser authentication returns 401. Principals can only be created
+`X-Mentat-Token`, not Authorization. A supplied token header (even an empty
+one) takes precedence over cookies. Authentication is the shared guard of every
+plugin (`lib/guards.ts`): unknown, expired or revoked tokens and missing browser
+authentication return 401; a live token without `todo:write` returns 403, and
+so does a token or session with no live principal mapped to it. Principals can only be created
 by an admin session. Agents create tasks directly. Everyone sees all tasks in
 this shared instance; there is no per-list scoping or task-level ACL in the MVP.
 
