@@ -130,7 +130,7 @@ The engine is **vendored** — copied into your repo, not installed from PyPI. T
 assistant's repo clones and runs anywhere, with no network and no auth.
 
 ```bash
-git clone --depth 1 --branch v0.6.0 https://github.com/lipi4242/mentat ~/src/mentat
+git clone --depth 1 --branch v0.6.1 https://github.com/lipi4242/mentat ~/src/mentat
 ~/src/mentat/engine/sync-to.sh /path/to/your-agent-repo
 ```
 

@@ -1,6 +1,6 @@
 {
   "name": "fleet",
-  "version": "1.7.0",
+  "version": "1.7.1",
   "description": "Always-on ágensflotta tagsági skilljei: roster, request, doctor, new-agent, runtime, flotta-incidens (a központi flotta-ellenőrzés feladata a felelős ágensnek; flotta-menedzser: átvétel, javítás a végrehajtón, ellenőrzött lezárás), merge-agents (ágens kivezetése/beolvasztása/frissítése — retire/merge/upgrade an agent), bug-report (kitakarított, jóváhagyott hibajelentés a nyilvános repóba); identitás-kapu (F-41): a felhasználó azonosítója nem megy harmadik félnek kérdés nélkül; nem-akadó jóváhagyás: felügyelet nélkül (flotta-ágens) az engedélykérés nem vár örökké, a modell javaslatot kap; titok-kapu: kulcsfájl, más ágens átirata és a környezet nem kerülhet a kontextusba; todo-ébresztés híd nélkül (desktop): a híd kódjával a session elején és minden új üzenetnél kiírja az új todo-eseményeket a labdádon, ugyanabban a formában — a lezárt sessiont semmi nem ébreszti.",
   "author": {
     "name": "Mentat"

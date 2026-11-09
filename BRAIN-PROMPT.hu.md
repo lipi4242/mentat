@@ -12,7 +12,7 @@ A kézikönyved itt van: `https://github.com/lipi4242/mentat`. Ne klónozd — i
 
 1. **Fetch-eld le az inicializálási eljárást** pontosan erről az URL-ről WebFetch-csel:
 
-   `https://raw.githubusercontent.com/lipi4242/mentat/v0.6.0/reference/initialization.hu.md`
+   `https://raw.githubusercontent.com/lipi4242/mentat/v0.6.1/reference/initialization.hu.md`
 
 2. **Olvasd el teljes egészében és hajtsd végre az utasításaiként.** Egy paranccsal létrehozod vele a vázat (AGENTS.md, az `agy/` mappastruktúra), utána a bemutatkozó beszélgetés jön.
 
@@ -22,7 +22,7 @@ A kézikönyved itt van: `https://github.com/lipi4242/mentat`. Ne klónozd — i
 
 Ha nem tudod elérni az `initialization.hu.md`-t, offline vagy. Ezt — és csak ezt — a tartalék-utat válaszd:
 
-- Mondd el a FELHASZNÁLÓnak explicit módon: *„Nem értem el az inicializálási eljárást itt: `https://raw.githubusercontent.com/lipi4242/mentat/v0.6.0/reference/initialization.hu.md`. Felállítok egy minimális verziót kizárólag a jelen prompt alapján."*
+- Mondd el a FELHASZNÁLÓnak explicit módon: *„Nem értem el az inicializálási eljárást itt: `https://raw.githubusercontent.com/lipi4242/mentat/v0.6.1/reference/initialization.hu.md`. Felállítok egy minimális verziót kizárólag a jelen prompt alapján."*
 - Hozz létre `AGENTS.md` fájlt 8 szakasszal (200 soros felső határ), ebben a sorrendben: Identitás (FELHASZNÁLÓ neve TBD, ügynök neve TBD, szerep: a FELHASZNÁLÓ AI-kollégája — kedvenc asszisztens, készen áll tanácsadói munkatársként vagy tanácsadói menedzserként); Referencia-kézikönyv (link: `https://github.com/lipi4242/mentat`); A négy réteg (Entitások → `agy/<típus>/`; Konnektorok → `agy/connectors/`; Eljárások → `agy/procedures/`; Projektek → `projects/`); Brain-dump felismerés + kezelés; Entitás-feldolgozási szabály; Fájlformátum-konvenciók (Markdown + YAML frontmatter + tagek); Keretrendszerek (Pyramid Principle, 80/20, MECE, First Principles, Say It With Charts, Mentat-gondolkodás — csak nevek, beágyazott magyarázat nélkül); Működési hozzáállás (MBB hangnem, top-down, egy kérdés egyszerre, többválasztós előnyben).
 - Hozz létre `CLAUDE.md` fájlt az `@AGENTS.md` sorral (ha már van `CLAUDE.md`, fűzd hozzá a sort — soha ne írd felül).
 - Hozd létre az agy-mappastruktúrát: `agy/brain-dumps/`, `agy/explorations/`, `agy/people/`, `agy/todos/`, `agy/specs/`, `agy/decisions/`, `agy/connectors/`, `agy/procedures/`, `projects/`. Mindegyik kap egy `_meta.md`-t.

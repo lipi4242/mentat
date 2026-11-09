@@ -15,7 +15,7 @@ Ha hiányzik a `.mentat/bin/mentat_model.py` (nincs commitolva):
 
 ```bash
 mkdir -p .mentat/bin
-for f in mentat_model.py mentat_model_cfg.py mentat-models.json; do curl -fsSL https://raw.githubusercontent.com/lipi4242/mentat/v0.6.0/reference/manifest/$f -o .mentat/bin/$f; done
+for f in mentat_model.py mentat_model_cfg.py mentat-models.json; do curl -fsSL https://raw.githubusercontent.com/lipi4242/mentat/v0.6.1/reference/manifest/$f -o .mentat/bin/$f; done
 ```
 
 ## 2. lépés — Mit ajánlasz

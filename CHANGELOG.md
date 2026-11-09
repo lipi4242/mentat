@@ -3,6 +3,50 @@
 Every release also ships a machine-readable `release.json` at the root of
 its tag (see `reference/mentat-json.md`, section 4).
 
+## 0.6.1
+
+A small release: fewer false stops from the secrets gate, a clearer todo command line, and admin
+app dependencies without known critical or high vulnerabilities. Nothing breaks.
+
+- **The secrets gate stops fewer ordinary commands, and says where to look instead.** <!-- cap: secrets-gate-fewer-stops -->
+  - `ps -eo pid,etimes,args`, `ps -o … -p N`, `ps -ef`, `ps aux` and `ps axo …` pass: the word
+    after `-o`, `-p` or `--sort` is a value, not a BSD option group. `ps e`, `ps eww`, `ps auxe`
+    and similar forms that print the environment stay blocked, and macOS `ps -E` and an `environ`
+    column in the format are now blocked too.
+  - The Telegram bridge's own log files (`*.jsonl` under `~/.config/<agent>/telegram-inbox/` and
+    `sub-etha/`) can be read. Token and env files there stay blocked.
+  - Transcripts stay closed, and the refusal now says why (they hold the whole conversation,
+    with every key ever read) and where to look instead: the session's memory, the engine's log
+    (`data/logs/anytime-tick.log`), `docs/` and `git log`.
+- **The todo command line says what is late and how to acknowledge.** <!-- cap: todo-ball-ack -->
+  - Every `ball` row has an `overdue` field: true when the date has passed, or it is today and
+    the time has passed (in the row's own time zone). Overdue rows come first.
+  - `changes` returns `ack_command` (the exact command, or null when there is nothing to
+    acknowledge) and `ack_when` (after you have handled every event shown; reading does not move
+    the cursor). Only new fields: existing keys keep their meaning.
+- **The admin app's dependencies have no known critical or high vulnerability.** <!-- cap: admin-deps -->
+  - The sign-in library (`better-auth`) is 1.7.18, and the build and test tools are current
+    (Vite 8, Vitest 4, wrangler 4.158). `npm audit` reports no critical and no high issue in
+    either admin package; three moderate ones remain in React Router 6, which has no fixed 6.x
+    release.
+
+The fleet plugin is 1.7.1: the secrets gate changes above, and the release pin in its
+`new-agent` skill, which now points at `v0.6.1`.
+
+Release tooling, for people who build releases: the public CI runs again. Its jobs run on a fixed
+Ubuntu 24.04 runner instead of `ubuntu-latest`, which moved to 26.04 where Python 3.9 is not
+available, and one failing Python version no longer cancels the others.
+
+### Upgrading from 0.6.0
+
+1. Update the fleet plugin on every server and on your own computer:
+   `claude plugin update fleet@mentat` (1.7.1, the secrets gate changes).
+2. Servers: `fleet box-upgrade --to v0.6.1 --dry-run`, read the plan, then run it without
+   `--dry-run`; `mentat-todo` then has the new `ball` and `changes` fields.
+3. On your own computer, if your agent uses the todo pack: re-sync the engine with
+   `~/src/mentat/engine/sync-to.sh <your repo> --pack todo`.
+4. If you run the admin app, redeploy it (worker first, then the admin); no migration is needed.
+
 ## 0.6.0
 
 A release for people who run several agents: the fleet now watches itself from one central
@@ -174,7 +218,7 @@ a seat on the machine; each has a planned fix.
 ### Upgrading from 0.5.1
 
 Brain only (no server): update from
-`https://raw.githubusercontent.com/lipi4242/mentat/v0.6.0/INSTALL.md`; your notes do not change.
+`https://raw.githubusercontent.com/lipi4242/mentat/v0.6.1/INSTALL.md`; your notes do not change.
 Run `claude plugin update fleet@mentat` if you use the fleet plugin.
 
 Servers, in this order:
@@ -186,7 +230,7 @@ Servers, in this order:
    preflight query from `admin/docs/plugins/flotta/INSTALL.md` first). Deploy the worker, then the
    admin. The worker has a 5-minute cron trigger; e-mail needs the sign-in mail's
    `RESEND_API_KEY` and sender.
-3. **Upgrade every box** before you publish any managers: `fleet box-upgrade --to v0.6.0 --dry-run`,
+3. **Upgrade every box** before you publish any managers: `fleet box-upgrade --to v0.6.1 --dry-run`,
    read the plan, then run it without `--dry-run`. It installs the 2.2.0 bridge and the repair
    steps the managers will call. Then `claude plugin update fleet@mentat` on each box and on your
    own computer (plugin 1.7.0), and `fleet doctor`. If the doctor says a unit does not load the
@@ -247,11 +291,11 @@ runs the private-name check on the tree it ships.
 
 ### Upgrading from 0.5.0
 
-Server: `fleet box-upgrade --to v0.6.0 --dry-run`, read the plan, then run it without
+Server: `fleet box-upgrade --to v0.6.1 --dry-run`, read the plan, then run it without
 `--dry-run`. To give the agents the backlog command, link `mentat-todo` as above. If an agent
 uses the backlog, re-sync its engine with `~/src/mentat/engine/sync-to.sh <your repo> --pack todo`
 and run `python3 -m anytime_engine.selftest`. Other installs: update from
-`https://raw.githubusercontent.com/lipi4242/mentat/v0.6.0/INSTALL.md`; your notes do not change.
+`https://raw.githubusercontent.com/lipi4242/mentat/v0.6.1/INSTALL.md`; your notes do not change.
 
 ## 0.5.0
 
@@ -274,7 +318,7 @@ changelog for all of them. The engine, fleet and admin changelogs up to 0.4.x ar
     The old repositories stay readable with their tags, so an install that points at them keeps
     working, but they get no new releases.
   - The three-line install prompt now points at
-    `https://raw.githubusercontent.com/lipi4242/mentat/v0.6.0/INSTALL.md`. The engine, the fleet
+    `https://raw.githubusercontent.com/lipi4242/mentat/v0.6.1/INSTALL.md`. The engine, the fleet
     and the admin all come from one checkout of the same tag (`~/src/mentat`), so their versions
     can no longer drift apart.
   - The product version is the only version you need to know. The engine's version follows it,
@@ -305,11 +349,11 @@ changelog for all of them. The engine, fleet and admin changelogs up to 0.4.x ar
 ### Upgrading from 0.4.x
 
 Brain: ask your colleague to update Mentat to 0.5.0 from
-`https://raw.githubusercontent.com/lipi4242/mentat/v0.6.0/INSTALL.md`. It fetches the 0.5.0
+`https://raw.githubusercontent.com/lipi4242/mentat/v0.6.1/INSTALL.md`. It fetches the 0.5.0
 tools; your notes do not change.
 
 Engine: clone the release once
-(`git clone --depth 1 --branch v0.6.0 https://github.com/lipi4242/mentat ~/src/mentat`) and
+(`git clone --depth 1 --branch v0.6.1 https://github.com/lipi4242/mentat ~/src/mentat`) and
 re-run `~/src/mentat/engine/sync-to.sh <your agent folder>` with the packs you use. A pack of
 your own that declares `"<0.5"` is refused; widen it to `"<0.6"` and re-sync. The old
 `~/src/anytime-engine` copy is no longer used.

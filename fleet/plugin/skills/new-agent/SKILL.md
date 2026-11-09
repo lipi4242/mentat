@@ -34,7 +34,7 @@ cd <név>-assistant && git commit --allow-empty -m "chore: <név> születik"
 
 ## 2. Agy (ha kell)
 Kövesd a bootstrap eljárást: `WebFetch
-https://raw.githubusercontent.com/lipi4242/mentat/v0.6.0/reference/initialization.md`
+https://raw.githubusercontent.com/lipi4242/mentat/v0.6.1/reference/initialization.md`
 és hajtsd végre a repóban (AGENTS.md, brain/, intro-chat). Jegyezd fel a
 verziót (a README-ben áll), a `fleet join --brain <verzió>` ezt teszi a
 manifestbe.

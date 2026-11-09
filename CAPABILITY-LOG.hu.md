@@ -2,6 +2,17 @@
 
 A `capability-log.json`-ból generált fájl, kézzel ne írd.
 
+## 0.6.1 (még nincs kiadva)
+
+### Proaktivitás és ütemezés
+
+- A todo parancssor megmondja, mi késik, és hogyan kell nyugtázni. A ball jelöli és előre veszi a lejárt sorokat; a changes visszaadja az ack_command és az ack_when mezőt. (Javult: `engine.todo`)
+
+### Működés és rugalmasság
+
+- A titok-kapu kevesebb hétköznapi parancsot állít meg. A ps -eo és a híd naplófájljai átmennek; a ps -E és az environ oszlop tiltott; az átirat-tiltás megmondja, hol keress helyette. (Javult: `fleet`)
+- Az admin alkalmazás ismert kritikus és magas súlyú sérülékenység nélkül. better-auth 1.7.18, Vite 8, Vitest 4 és wrangler 4.158: az npm audit egyik admin csomagban sem jelez kritikus vagy magas súlyú hibát. (Javult: `admin`)
+
 ## 0.6.0 (még nincs kiadva)
 
 ### Proaktivitás és ütemezés

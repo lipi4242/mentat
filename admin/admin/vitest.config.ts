@@ -1,6 +1,9 @@
 import { defineConfig } from 'vitest/config';
 
 export default defineConfig({
+  // real-worker.test.tsx loads ../worker through Vite; Vite 6+ serves nothing outside this
+  // package unless allowed (tests only, the app build is unaffected).
+  server: { fs: { allow: ['..'] } },
   test: {
     environment: 'jsdom',
     setupFiles: ['./src/test-setup.ts'],

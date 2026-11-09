@@ -2,6 +2,17 @@
 
 Generated from `capability-log.json` - do not edit by hand.
 
+## 0.6.1 (not released yet)
+
+### Proactivity and scheduling
+
+- The todo command line says what is late and how to acknowledge. ball marks overdue rows and lists them first; changes returns ack_command and ack_when. (Improved: `engine.todo`)
+
+### Operation and flexibility
+
+- The secrets gate stops fewer ordinary commands. ps -eo and the bridge's log files pass; ps -E and an environ column are blocked; a refused transcript read names where to look instead. (Improved: `fleet`)
+- Admin app without known critical or high vulnerabilities. better-auth 1.7.18, Vite 8, Vitest 4 and wrangler 4.158: npm audit reports no critical and no high issue in either admin package. (Improved: `admin`)
+
 ## 0.6.0 (not released yet)
 
 ### Proactivity and scheduling

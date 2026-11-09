@@ -119,7 +119,7 @@ egy okos új kollégát eligazítanál — előbb a kontextus, aztán amit kérs
 csapongó üzenet **jobb**, mint a rendezett, mert az agy egészben elmenti, és utána bányássza ki.
 
 **Proaktív mód** az, amikor nélküled cselekszik, ütemezetten. Ehhez kell az
-[motor](https://github.com/lipi4242/mentat/tree/v0.6.0/engine) (lásd lejjebb). De ilyenkor sem vagy
+[motor](https://github.com/lipi4242/mentat/tree/v0.6.1/engine) (lásd lejjebb). De ilyenkor sem vagy
 kizárva: nyithatsz mellé egy sessiont, és intézhettek együtt ügyeket, miközben a háttérben ketyeg.
 
 ## A személyiség
@@ -160,7 +160,7 @@ A fentiek elmét adnak az asszisztensednek. Pulzust nem.
 Alapból **reaktív**: éles, amikor beszélsz hozzá, és tetszhalott, amikor nem. Nem veszi észre a ma
 reggel érkezett számlát, mert semmi nem ébresztette fel, hogy megnézze.
 
-A [**motor**](https://github.com/lipi4242/mentat/tree/v0.6.0/engine) a másik fele — egy
+A [**motor**](https://github.com/lipi4242/mentat/tree/v0.6.1/engine) a másik fele — egy
 determinisztikus tick, ami ütemezetten elsül, és azt kérdezi: *„van most bármi, amit érdemes
 csinálni?"*, majd az itt felépített agyból válaszolja meg.
 

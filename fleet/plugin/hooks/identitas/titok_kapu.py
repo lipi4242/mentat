@@ -105,9 +105,17 @@ REPORT = (" Ha ez TÉVES (a fájl/mappa nem titok): NE kerüld meg (összefűzé
           "a tulajdonosnak a pontos parancssal, hogy a kapu javuljon. Rekurzív keresésnél a mappát "
           "kizárhatod: `grep -r --exclude-dir=<mappa> …`.")
 
+#: Az átirat-tiltás SZÁNDÉKOS (11-09): a ~/.claude*/projects/*.jsonl a session teljes szövege,
+#: benne minden kiolvasott kulcs és más ágensek beszélgetése — a saját is. Az ok mellé a kiút kell.
+TRANSCRIPT = (" Az átirat (~/.claude*/projects/**/*.jsonl, a saját sessioné is) szándékosan zárt: a teljes "
+              "beszélgetést tartalmazza, benne minden valaha kiolvasott kulcsot. Amit a korábbi munkából "
+              "keresel, azt itt találod: a session memóriája (~/.claude*/projects/<projekt>/memory/*.md), a "
+              "motor naplója (<repó>/data/logs/anytime-tick.log), a repó docs/ és git log-ja.")
+
 
 def deny(reason):
     hint = REPORT if any(s in reason for s in SUSPECT) else ""
+    hint += TRANSCRIPT if "átirat" in reason else ""
     return {"hookSpecificOutput": {"hookEventName": "PreToolUse", "permissionDecision": "deny",
                                    "permissionDecisionReason": "Titok-kapu: %s. %s%s" % (reason, HELP, hint)}}
 

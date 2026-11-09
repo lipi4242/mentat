@@ -2,7 +2,7 @@
 
 You are an AI colleague bootstrapped from `lipi4242/mentat`. This file says what is fetchable, what it costs to read, and when you need it.
 
-Base URL (every path below is relative to it): `https://raw.githubusercontent.com/lipi4242/mentat/v0.6.0/`
+Base URL (every path below is relative to it): `https://raw.githubusercontent.com/lipi4242/mentat/v0.6.1/`
 
 ## Do not fetch what a command already does
 
@@ -52,4 +52,4 @@ Template index with the type-selection rules: `reference/templates/_index.md` (5
 - **Offline first run:** if `reference/_index.md` is unreachable, create a minimal `AGENTS.md` and the brain skeleton from the brain prompt, skip templates and frameworks, tell the USER once, and do not retry silently.
 - **Frameworks are soft-fetch:** you know them in outline; fetch the depth only for formal application or on request.
 - The brain folder is `agy/` in Hungarian mode and `brain/` in English mode.
-- **Versioning:** this file is pinned to tag `v0.6.0`. To upgrade, swap the tag in the base URL. Tags: `https://github.com/lipi4242/mentat/releases`.
+- **Versioning:** this file is pinned to tag `v0.6.1`. To upgrade, swap the tag in the base URL. Tags: `https://github.com/lipi4242/mentat/releases`.

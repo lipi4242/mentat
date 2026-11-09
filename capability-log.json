@@ -3,6 +3,72 @@
   "_doc": "One entry per release step. A change moves one or more catalog capabilities (reference/manifest/capabilities/*.json): new | extended | improved | removed. Each change is one CHANGELOG bullet carrying <!-- cap: <id> -->. Check and render: python3 reference/manifest/mentat_caplog.py check | render md --lang en|hu | render json.",
   "releases": [
     {
+      "version": "0.6.1",
+      "date": null,
+      "components": {
+        "brain": "0.6.1",
+        "engine": "0.6.1",
+        "fleet": "0.6.1",
+        "admin": "0.6.1"
+      },
+      "changes": [
+        {
+          "id": "secrets-gate-fewer-stops",
+          "component": "brain",
+          "title": {
+            "en": "The secrets gate stops fewer ordinary commands",
+            "hu": "A titok-kapu kevesebb hétköznapi parancsot állít meg"
+          },
+          "summary": {
+            "en": "ps -eo and the bridge's log files pass; ps -E and an environ column are blocked; a refused transcript read names where to look instead.",
+            "hu": "A ps -eo és a híd naplófájljai átmennek; a ps -E és az environ oszlop tiltott; az átirat-tiltás megmondja, hol keress helyette."
+          },
+          "capabilities": [
+            {
+              "id": "fleet",
+              "change": "improved"
+            }
+          ]
+        },
+        {
+          "id": "todo-ball-ack",
+          "component": "brain",
+          "title": {
+            "en": "The todo command line says what is late and how to acknowledge",
+            "hu": "A todo parancssor megmondja, mi késik, és hogyan kell nyugtázni"
+          },
+          "summary": {
+            "en": "ball marks overdue rows and lists them first; changes returns ack_command and ack_when.",
+            "hu": "A ball jelöli és előre veszi a lejárt sorokat; a changes visszaadja az ack_command és az ack_when mezőt."
+          },
+          "capabilities": [
+            {
+              "id": "engine.todo",
+              "change": "improved"
+            }
+          ]
+        },
+        {
+          "id": "admin-deps",
+          "component": "brain",
+          "title": {
+            "en": "Admin app without known critical or high vulnerabilities",
+            "hu": "Az admin alkalmazás ismert kritikus és magas súlyú sérülékenység nélkül"
+          },
+          "summary": {
+            "en": "better-auth 1.7.18, Vite 8, Vitest 4 and wrangler 4.158: npm audit reports no critical and no high issue in either admin package.",
+            "hu": "better-auth 1.7.18, Vite 8, Vitest 4 és wrangler 4.158: az npm audit egyik admin csomagban sem jelez kritikus vagy magas súlyú hibát."
+          },
+          "capabilities": [
+            {
+              "id": "admin",
+              "change": "improved"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "version": "0.6.0",
       "date": null,
       "components": {

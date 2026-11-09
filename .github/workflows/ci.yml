@@ -1,5 +1,6 @@
 # Every job runs `.github/ci.sh <job>`: the same file the maintainers run on the composed tree
-# before a release, so what is checked here is what was checked before publishing.
+# before a release, so what is checked here is what was checked before publishing. Runners are
+# pinned (ubuntu-24.04): ubuntu-latest moved to 26.04, where setup-python has no Python 3.9.
 name: CI
 
 on:
@@ -16,8 +17,9 @@ concurrency:
 
 jobs:
   brain:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
+      fail-fast: false
       matrix:
         python: ["3.9", "3.12"]
     steps:
@@ -31,8 +33,9 @@ jobs:
         run: bash .github/ci.sh brain
 
   engine:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
+      fail-fast: false
       matrix:
         python: ["3.9", "3.12"]
     steps:
@@ -46,7 +49,7 @@ jobs:
         run: bash .github/ci.sh engine
 
   fleet:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -61,7 +64,7 @@ jobs:
         run: bash .github/ci.sh fleet
 
   admin:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:

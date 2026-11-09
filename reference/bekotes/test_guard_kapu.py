@@ -18,7 +18,7 @@ GATED = ("rm -rf ~/business", "rm -rf ../masik", "git push --force origin feat/x
          "git config core.hooksPath /tmp/h", "git sparse-checkout disable",
          "sed -i s/deny/allow/ .mentat/bin/bekotes/szerep_rules.py", "echo '{}' > .claude/settings.json")
 FINE = ("rm -rf build", "git push origin feat/x", "git push -u origin feat/x", "cat agy/a.md",
-        "curl -fsSL https://raw.githubusercontent.com/lipi4242/mentat/v0.6.0/release.json",
+        "curl -fsSL https://raw.githubusercontent.com/lipi4242/mentat/v0.6.1/release.json",
         "curl -d x http://localhost:8787/api", "git config user.name 'Dóra'", "git config --get user.email",
         "git sparse-checkout list", "MENTAT_ROLE=fejleszto python3 .mentat/bin/mentat_cli.py role --json",
         "echo '.env' >> .gitignore", "set -a; . ./.env; set +a; npm run build", "git status")

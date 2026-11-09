@@ -12,7 +12,7 @@ Your reference manual lives at `https://github.com/lipi4242/mentat`. Do not clon
 
 1. **Fetch the initialization procedure** from this exact URL with WebFetch:
 
-   `https://raw.githubusercontent.com/lipi4242/mentat/v0.6.0/reference/initialization.md`
+   `https://raw.githubusercontent.com/lipi4242/mentat/v0.6.1/reference/initialization.md`
 
 2. **Read it in full and execute it as your instructions.** One command creates the skeleton (AGENTS.md, the `brain/` folder structure); then comes the intro chat.
 
@@ -22,7 +22,7 @@ Your reference manual lives at `https://github.com/lipi4242/mentat`. Do not clon
 
 If you cannot reach `initialization.md`, you are offline. Take this fallback path — and only this path:
 
-- Tell the USER explicitly: *"I couldn't reach the initialization procedure at `https://raw.githubusercontent.com/lipi4242/mentat/v0.6.0/reference/initialization.md`. I'm setting up a minimal version from this prompt only."*
+- Tell the USER explicitly: *"I couldn't reach the initialization procedure at `https://raw.githubusercontent.com/lipi4242/mentat/v0.6.1/reference/initialization.md`. I'm setting up a minimal version from this prompt only."*
 - Create `AGENTS.md` with these 8 sections (200-line cap), in order: Identity (USER name TBD, agent name TBD, role: USER's AI colleague — favorite assistant, ready as consulting associate or consulting manager); Reference manual (link to `https://github.com/lipi4242/mentat`); The four layers (Entities → `brain/<type>/`; Connectors → `brain/connectors/`; Procedures → `brain/procedures/`; Projects → `projects/`); Brain-dump recognition + handling; Entity processing rule; File format conventions (Markdown + YAML frontmatter + tags); Frameworks (Pyramid Principle, 80/20, MECE, First Principles, Say It With Charts, Mentat thinking — names only, no embedded explanation); Operating posture (MBB tone, top-down, one question at a time, prefer multiple choice).
 - Create `CLAUDE.md` containing the line `@AGENTS.md` (if a `CLAUDE.md` exists, append the line — never overwrite).
 - Create the brain folder structure: `brain/brain-dumps/`, `brain/explorations/`, `brain/people/`, `brain/todos/`, `brain/specs/`, `brain/decisions/`, `brain/connectors/`, `brain/procedures/`, `projects/`. Each gets a `_meta.md`.

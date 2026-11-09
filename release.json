@@ -1,32 +1,29 @@
 {
   "component": "mentat",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "date": "2026-11-09",
-  "severity": "minor",
+  "severity": "patch",
   "security": true,
-  "breaking": true,
+  "breaking": false,
   "migrations_from": [
-    "0.5"
+    "0.6"
   ],
   "you_need_to": [
-    "Before installing the 2.2.0 Telegram bridge, put everyone who talks to an agent in a group on its TELEGRAM_ALLOWLIST_IDS: other group members no longer reach the agent.",
-    "If you run Mentat Admin: export a backup, apply the migrations 0500_flotta.sql and 0501_flotta_menedzser.sql (run the 0501 preflight query first), deploy the worker, then the admin.",
-    "Upgrade every server before publishing any fleet managers: fleet box-upgrade --to v0.6.0 --dry-run, then without --dry-run; then claude plugin update fleet@mentat and fleet doctor.",
-    "To join the central fleet check: register each server in the Admin and write its token into ~/.config/fleet/flotta.env (mode 0600) with FLOTTA_URL and FLOTTA_TOKEN.",
-    "If you use fleet managers: put a flotta:config token into ~/.config/fleet/flotta-config.env, then fleet managers check, fleet managers publish --dry-run, fleet managers publish (only after every server is upgraded).",
-    "If you use the secrets gate: re-run fleet secrets scan, then fleet secrets hook install (both with --dry-run first); the scan no longer installs the gate.",
-    "Widen your own concern packs to \"<0.7\", re-sync the engine with ~/src/mentat/engine/sync-to.sh <your-repo>, then python3 -m anytime_engine.selftest."
+    "Update the fleet plugin on every server and on your own computer: claude plugin update fleet@mentat (1.7.1, fewer false stops from the secrets gate).",
+    "Servers: fleet box-upgrade --to v0.6.1 --dry-run, read the plan, then run it without --dry-run.",
+    "On your own computer, if your agent uses the todo pack: re-sync the engine with ~/src/mentat/engine/sync-to.sh <your-repo> --pack todo.",
+    "If you run Mentat Admin: redeploy it (worker first, then the admin); there is no migration."
   ],
-  "changelog": "CHANGELOG.md#060",
+  "changelog": "CHANGELOG.md#061",
   "requires_if_present": {
     "engine": ">=0.6.0,<0.7"
   },
   "components": {
-    "engine": "0.6.0",
+    "engine": "0.6.1",
     "fleet_cli": "1.5.0",
     "bridge": "2.2.0",
-    "plugin": "1.7.0",
-    "admin": "0.6.0"
+    "plugin": "1.7.1",
+    "admin": "0.6.1"
   },
   "files": {
     "bekotes/fajlszuro.py": "83f681ef95a698338473df57d87437bd0128fd5c2fb855b8ab28f4bad080cb68",

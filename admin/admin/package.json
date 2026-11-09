@@ -1,6 +1,6 @@
 {
   "name": "mentat-admin",
-  "version": "0.6.0",
+  "version": "0.6.1",
   "private": true,
   "type": "module",
   "scripts": {
@@ -17,7 +17,7 @@
     "@refinedev/core": "^4.54.0",
     "@refinedev/react-router-v6": "^4.6.2",
     "antd": "^5.21.0",
-    "better-auth": "1.6.23",
+    "better-auth": "1.7.18",
     "dayjs": "^1.11.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0",
@@ -27,10 +27,13 @@
     "@cloudflare/workers-types": "^5.20260726.1",
     "@types/react": "~18.3.0",
     "@types/react-dom": "~18.3.0",
-    "@vitejs/plugin-react": "^4.3.0",
+    "@vitejs/plugin-react": "^6.3.0",
     "jsdom": "^25.0.1",
     "typescript": "~5.9.2",
-    "vite": "^5.4.0",
-    "vitest": "^3.2.7"
+    "vite": "^8.3.7",
+    "vitest": "^4.1.12"
+  },
+  "overrides": {
+    "path-to-regexp": "^8.4.2"
   }
 }

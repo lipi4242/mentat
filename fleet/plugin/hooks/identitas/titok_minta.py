@@ -182,6 +182,24 @@ def lel_under_root(lel, d):
     return any(x.startswith(d) and secret_root(os.path.dirname(x)) for x in lel.paths)
 
 
+#: A Telegram-híd naplómappái (11-09): `~/.config/<ágens>/telegram-inbox/` (events-*.jsonl,
+#: delivery-*.jsonl) és `~/.config/<ágens>/sub-etha/` (a híd kódja). A napló üzenetszöveg és
+#: Telegram-update, kulcs nem: a bot-token csak a hívás URL-jében él (fleet/bridge/lib/inbox.mjs,
+#: delivery-log.mjs). Csak az ártalmatlan nevű, SEMMIRE nem illő `*.jsonl` minta mentes; a token- és
+#: env-fájlok, más kiterjesztés vagy mappa marad tiltva, az illő fájlokat a kapu egyenként nézi.
+BRIDGE_LOG_DIRS = ("sub-etha", "telegram-inbox")
+LOG_GLOB = re.compile(r"^[A-Za-z0-9_.*?\-]*\.jsonl$")
+LOG_SUSPECT = re.compile(r"key|token|secret|credential|passw|env", re.I)
+
+
+def bridge_log_glob(p):
+    """`p` (feloldott glob) a híd egyik naplómappájában álló, ártalmatlan nevű `*.jsonl` minta-e."""
+    d, base = os.path.split(p)
+    rel = os.path.relpath(d, home()).split(os.sep)
+    return (len(rel) == 3 and rel[0] == ".config" and rel[2] in BRIDGE_LOG_DIRS and not rel[1].startswith(".")
+            and bool(LOG_GLOB.match(base)) and not LOG_SUSPECT.search(base))
+
+
 def name_why(base):
     """Erős név (.env, kulcs, credentials) szigorú; a csak szó-alapú (…key…, …token…) „gyanús":
     annak a tiltása mellé a kapu bejelentést kér, nem kerülőutat (11-07)."""
@@ -318,6 +336,8 @@ def secret(path, cwd, lel, rec=False, skip=()):
     if glob_hit(lel.paths, p):
         return "leltárban (glob)"
     if not hits and own_memory(os.path.dirname(p), cwd):
+        return None
+    if not hits and bridge_log_glob(p):  # a híd üzenetnaplója (11-09)
         return None
     if not hits and (secret_root(os.path.dirname(p)) or in_transcripts(os.path.dirname(p), cwd)):
         return "titok-mappa (glob)"

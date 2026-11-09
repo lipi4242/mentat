@@ -5,7 +5,10 @@ import { show, button, click, tick } from '../todo/testkit';
 import { ItemPage } from './ItemPage';
 import { ProjectPage } from './ProjectPage';
 
-const worker = (rel: string) => new URL(`../../../../worker/${rel}`, import.meta.url).pathname;
+// A plain path from the module's folder: Vite 6+ rewrites `new URL(\`…${rel}\`, import.meta.url)`
+// into an asset glob, so the URL form no longer reaches the worker sources.
+const here = (import.meta as unknown as { dirname: string }).dirname;
+const worker = (rel: string) => `${here}/../../../../worker/${rel}`;
 afterEach(() => { vi.unstubAllGlobals(); document.body.innerHTML = ''; });
 
 async function boot() {

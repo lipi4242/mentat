@@ -5,7 +5,7 @@
 ## Egyszer: az eszközök
 
 ```bash
-curl -fsSL --create-dirs -o ".mentat/bin/#1" "https://raw.githubusercontent.com/lipi4242/mentat/v0.6.0/reference/manifest/{mentat_google.py,mentat_google_auth.py,google_api.py,google_secrets.py,google_signin.py,google_people.py,google_calendar.py,google_mail.py,google_drive.py}"
+curl -fsSL --create-dirs -o ".mentat/bin/#1" "https://raw.githubusercontent.com/lipi4242/mentat/v0.6.1/reference/manifest/{mentat_google.py,mentat_google_auth.py,google_api.py,google_secrets.py,google_signin.py,google_people.py,google_calendar.py,google_mail.py,google_drive.py}"
 python3 -m pip install --user google-auth-oauthlib   # csak a bejelentkezéshez kell; ha hiányzik, az eszköz szól
 ```
 

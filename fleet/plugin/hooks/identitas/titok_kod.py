@@ -58,12 +58,50 @@ def envdump(name, args):
     if name == "printenv" or (name == "set" and not args) or (name in ("export", "declare") and
                                                             (not args or "-p" in args or "-x" in args)):
         return "környezet kiírása (%s)" % name
-    if name == "ps" and any(not a.startswith("-") and "e" in a for a in args):
-        return "környezet kiírása (ps e)"
+    if name == "ps" and _ps_env(args):
+        return "környezet kiírása (ps e / ps -E)"
     if name in ("systemctl", "launchctl") and any("environment" in a.lower() for a in args):
         return "környezet kiírása (%s)" % name
     return None
 
+
+#: ps: a kapcsoló UTÁNI szó érték (formátum, pid-, user-lista), nem BSD-csoport. 11-09: a
+#: `ps -eo pid,etimes,args` a `pid,etimes,args` „e"-je miatt `ps e`-nek látszott.
+PS_DASH_VALUE = set("oOpqtuUgGCsk")
+PS_BSD_VALUE = set("oOpUtk")
+PS_LONG_VALUE = {"--format", "--sort", "--pid", "--ppid", "--quick-pid", "--sid", "--user", "--User", "--group",
+                 "--Group", "--tty", "--cols", "--columns", "--rows", "--lines", "--width"}
+
+
+def _ps_env(args):
+    """Kiírja-e a ps a környezetet: BSD `e` (`ps e`, `ps auxe`, `ps eww`), macOS `-E`, vagy env-mező a
+    formátumban. A `-e` (minden processz) és az értékek (`-o pid,etimes`) szabadok."""
+    value = False
+    for a in args:
+        if value:
+            value = False
+            if "env" in a.lower():
+                return True
+        elif a.startswith("--"):
+            if "env" in a.lower():
+                return True
+            value = a in PS_LONG_VALUE
+        elif a.startswith("-"):
+            for i, c in enumerate(a[1:]):
+                if c == "E":
+                    return True
+                if c in PS_DASH_VALUE:
+                    rest = a[i + 2:]
+                    if "env" in rest.lower():
+                        return True
+                    value = not rest
+                    break
+        elif "e" in a:  # BSD-csoport: az `e` bárhol benne (`axoe` is) tilt
+            return True
+        else:
+            k = next((i for i, c in enumerate(a) if c in PS_BSD_VALUE), None)
+            value = k is not None and not a[k + 1:]
+    return False
 
 
 SEARCHERS = {"grep", "egrep", "fgrep", "zgrep", "rg", "ag"}

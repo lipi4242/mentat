@@ -19,10 +19,10 @@ engine reads for recurring duties.
 
 Needs Node.js 22 or newer and git. No Cloudflare account, no agent. If you already
 have `~/src/mentat` (the engine and the fleet use the same checkout), skip the clone
-and run `git -C ~/src/mentat fetch --tags && git -C ~/src/mentat checkout v0.6.0`.
+and run `git -C ~/src/mentat fetch --tags && git -C ~/src/mentat checkout v0.6.1`.
 
 ```bash
-git clone --depth 1 --branch v0.6.0 https://github.com/lipi4242/mentat ~/src/mentat
+git clone --depth 1 --branch v0.6.1 https://github.com/lipi4242/mentat ~/src/mentat
 cd ~/src/mentat/admin
 npm ci --prefix worker && npm ci --prefix admin     # most of the time
 npm --prefix admin run build                        # the UI the worker serves
