@@ -97,7 +97,17 @@ work around it; a recursive grep can exclude a folder with `grep -r --exclude-di
 - **Env:** the unit's pane shell (`ExecStart … /bin/sh -c`) sources the env files — under tmux,
   `EnvironmentFile=` alone does not reach claude. Order: for a bridged agent the bridge's
   `telegram.env` (`bridge.env_file`) FIRST, then the registry `env_files` / `env_file` (the agent's own
-  file overrides shared keys), then `claude-auth.env` and `.mentat/model.env`. `FLEET_AGENT` always.
+  file overrides shared keys), then the registry `extra_env_files`, then `claude-auth.env` and
+  `.mentat/model.env`. `FLEET_AGENT` always.
+- **`extra_env_files` (optional):** a list of further env files outside `~/.config/<a>/` — e.g. a
+  project's own env file so wrangler gets `CLOUDFLARE_API_TOKEN`. Each item is `/absolute/path`,
+  `%h/…` (the user's home, a systemd specifier), or anything else relative to `workdir`
+  (`config/cf.env` → `<workdir>/config/cf.env`). Only the pane shell sources them, in the given order,
+  guarded (`if [ -r P ]; then . P; fi`) — a missing file does not stop startup. No `EnvironmentFile=`
+  line is emitted and the Telegram bridge unit never gets them. Allowed characters: letters, digits,
+  `/ _ . -`, and `%` only in the `%h/` prefix; spaces, quotes, `;`, `$`, backticks and `..` are
+  rejected by both `fleet validate` and the renderer. Absent or empty → the unit is byte-identical to
+  before. Example: `"extra_env_files": ["%h/tisza-project/.env"]`.
 - **Sending:** `node ~/.config/<a>/sub-etha/send.mjs --chat <id> [--reply-to <id>] -- "text"` or
   `--text-stdin`; the token comes from that env, the agent never sources telegram.env. Without a
   token send.mjs writes a `missing_token` notice to the delivery log and the doctor turns red.

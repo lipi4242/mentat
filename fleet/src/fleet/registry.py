@@ -62,6 +62,10 @@ def normalize(entry: dict) -> dict:
       * `supervision` hiányzik → "fleet" (a másik érték: "none" — pl. egy
                     Macen futó, időszakosan elérhető tag)
       * `proactive` hiányzik → False
+      * `extra_env_files` opcionális, NEM töltjük ki: további env-fájlok, amiket CSAK a unit
+                    pane-shellje tölt be (őrzötten), a saját env-fájlok után, a claude-auth.env
+                    előtt. Elem: `/abszolút`, `%h/…` vagy a workdirhez relatív. Validálás:
+                    render.extra_env_problems. Hiányzik/üres → a unit bájtra ugyanaz.
     """
     e = dict(entry)
     name = e.get("agent", "")

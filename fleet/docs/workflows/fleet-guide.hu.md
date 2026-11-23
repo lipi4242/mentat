@@ -107,7 +107,17 @@ kerülőutat; rekurzív keresésnél a mappát `grep -r --exclude-dir=<mappa>` z
 - **Env:** a unit pane-shellje (`ExecStart … /bin/sh -c`) tölti be az env-fájlokat — tmux alatt az
   `EnvironmentFile=` önmagában nem jut el a claude-ig. Sorrend: hidas ágensnél ELŐBB a híd
   `telegram.env`-je (`bridge.env_file`), aztán a registry `env_files` / `env_file` fájljai (az ágensé
-  írja felül a közös kulcsot), aztán `claude-auth.env` és `.mentat/model.env`. `FLEET_AGENT` mindig.
+  írja felül a közös kulcsot), aztán a registry `extra_env_files` fájljai, aztán `claude-auth.env` és
+  `.mentat/model.env`. `FLEET_AGENT` mindig.
+- **`extra_env_files` (opcionális):** további env-fájlok listája, a `~/.config/<a>/`-n kívülről —
+  például egy projekt saját env-fájlja, hogy a wrangler megkapja a `CLOUDFLARE_API_TOKEN`-t. Egy elem
+  háromféle lehet: `/abszolút/út`, `%h/…` (a felhasználó home-ja, systemd-specifier), vagy minden
+  más a `workdir`-hez relatív (`config/cf.env` → `<workdir>/config/cf.env`). Csak a pane-shell tölti
+  be, megadott sorrendben, őrzötten (`if [ -r P ]; then . P; fi`) — a hiányzó fájl nem állítja meg az
+  indulást. Nem lesz belőle `EnvironmentFile=` sor, és a Telegram-híd unitja sem kapja meg. Engedett
+  karakterek: betű, szám, `/ _ . -`, és `%` csak a `%h/` előtagban; szóköz, idézőjel, `;`, `$`,
+  backtick és `..` tilos — a `fleet validate` és a renderelés is elutasítja. Ha a mező hiányzik vagy
+  üres, a unit bájtra ugyanaz, mint nélküle. Példa: `"extra_env_files": ["%h/tisza-project/.env"]`.
 - **Küldés:** `node ~/.config/<a>/sub-etha/send.mjs --chat <id> [--reply-to <id>] -- "szöveg"` vagy
   `--text-stdin`; a token a fenti env-ből jön, a telegram.env-et az ágens nem tölti be. Token
   nélkül a send.mjs `missing_token` notice-t ír a kézbesítési naplóba, a doctor ettől piros.

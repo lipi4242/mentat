@@ -15,6 +15,38 @@ from fleet.registry import SHARED_ACCOUNT, env_files
 #: ártalmatlan karaktereket tartalmazhatnak (Codex F1-review).
 _SAFE_CMD = re.compile(r"^[A-Za-z0-9 /:_.,=-]+$")
 _SAFE_PATH = re.compile(r"^[A-Za-z0-9/_.%-]+$")
+#: `extra_env_files` eleme: abszolút (`/…`), `%h/…` (systemd home) vagy a workdirhez relatív.
+#: Csak ártalmatlan karakterek; `%` kizárólag a `%h/` előtagban (más systemd-specifier tilos).
+_SAFE_EXTRA_ENV = re.compile(r"^(%h/)?[A-Za-z0-9/_.-]+$")
+
+
+def extra_env_paths(entry: dict) -> list[str]:
+    """Pure: a registry `extra_env_files` elemei feloldott útvonalként, betöltési sorrendben.
+    `/…` és `%h/…` változatlan, minden más a workdirhez relatív. Hiányzó/üres mező → []."""
+    workdir = (entry.get("workdir") or "").rstrip("/")
+    out = []
+    for f in entry.get("extra_env_files") or []:
+        if isinstance(f, str) and f:
+            out.append(f if f.startswith(("/", "%h/")) else f"{workdir}/{f}")
+    return out
+
+
+def extra_env_problems(entry: dict) -> list[str]:
+    """Pure: az `extra_env_files` mező hibái. Shell- és systemd-értelmezésen megy át, ezért
+    nem escape-elünk, hanem tiltunk (szóköz, idézőjel, ; $ ` és társai, `..`)."""
+    v = entry.get("extra_env_files")
+    if v is None:
+        return []
+    if not isinstance(v, list):
+        return [f"extra_env_files nem lista (útvonalak listája kell): {v!r}"]
+    out = []
+    for f in v:
+        if not isinstance(f, str) or not f:
+            out.append(f"extra_env_files eleme nem (nem üres) szöveg: {f!r}")
+        elif not _SAFE_EXTRA_ENV.match(f) or "/../" in f"/{f}/" or f.endswith("/"):
+            out.append(f"extra_env_files eleme tiltott: {f!r} (engedett: betű, szám, / _ . -, "
+                       "opcionális %h/ előtag; nincs szóköz, idézőjel, ; $ ` vagy ..)")
+    return out
 
 
 def validate_for_render(entry: dict) -> list[str]:
@@ -29,6 +61,7 @@ def validate_for_render(entry: dict) -> list[str]:
             ([(entry.get("bridge") or {}).get("env_file")] if (entry.get("bridge") or {}).get("env_file") else []):
         if not re.match(r"^[A-Za-z0-9_.-]+$", f or ""):
             out.append(f"env_file nem fájlnév: {f!r}")
+    out += extra_env_problems(entry)
     if not re.match(r"^[A-Za-z0-9.-]+$", entry.get("model", "opus") or "opus"):
         out.append(f"model tiltott karaktert tartalmaz: {entry.get('model')!r}")
     lc = entry.get("loop_cmd")
@@ -113,7 +146,10 @@ def render_unit(entry: dict, *, template: str, fleet_root: str = "%h/src/mentat/
     out = out.replace("@@MODEL@@", entry.get("model") or "opus")
     files = [f"%h/.config/{agent}/{f}" for f in env_files(entry)]  # 11-07: több env-fájl
     out = out.replace("@@ENV_FILE_LINES@@", "\n".join(f"EnvironmentFile=-{f}" for f in files))
-    out = out.replace("@@ENV_FILE_SOURCES@@", " ".join(f"if [ -r {f} ]; then . {f}; fi;" for f in files))
+    # extra_env_files: CSAK a pane-shell tölti be (nincs EnvironmentFile=, a híd sem kapja), a saját
+    # env-fájlok UTÁN, a claude-auth.env ELŐTT; őrzött `.`, mert a dash kilép a hiányzó fájlon.
+    sourced = files + extra_env_paths(entry)
+    out = out.replace("@@ENV_FILE_SOURCES@@", " ".join(f"if [ -r {f} ]; then . {f}; fi;" for f in sourced))
     out = out.replace("@@FLAGS@@", claude_flags(entry))
     if "@@" in out:
         raise ValueError(f"unsubstituted placeholder remains in rendered unit for {agent!r}")
