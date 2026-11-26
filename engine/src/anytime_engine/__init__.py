@@ -35,4 +35,4 @@ Consumer repos vendor a copy via `sync-to.sh` — never edit the vendored copy
 directly.
 """
 
-__version__ = "0.6.1"
+__version__ = "0.7.0"

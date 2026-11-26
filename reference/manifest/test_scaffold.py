@@ -21,26 +21,27 @@ class Scaffold(unittest.TestCase):
         home = tempfile.mkdtemp()
         self.env = dict(os.environ, HOME=home, GIT_CONFIG_NOSYSTEM="1",
                         GIT_CONFIG_GLOBAL=os.path.join(home, "gitconfig"))
+        self.env.pop("CLAUDE_CONFIG_DIR", None)  # the user-level statusLine is read from HOME
 
     def run_tool(self, *args, lang="hu"):
         return subprocess.run([sys.executable, str(TOOL), "--lang", lang, "--repo", str(self.root),
-                               *args], capture_output=True, text=True, env=self.env)
+                               *args], capture_output=True, text=True, env=self.env, encoding="utf-8", errors="replace")
 
     def git(self, *args):
         return subprocess.run(["git", "-C", str(self.root), *args], capture_output=True,
-                              text=True, env=self.env)
+                              text=True, env=self.env, encoding="utf-8", errors="replace")
 
     def tree(self):
-        return {str(p.relative_to(self.root)): p.read_text() for p in self.root.rglob("*")
+        return {str(p.relative_to(self.root)): p.read_text(encoding="utf-8") for p in self.root.rglob("*")
                 if p.is_file() and ".git" not in p.relative_to(self.root).parts}
 
     def fill(self):
         agents = self.root / "AGENTS.md"
-        text = agents.read_text()
+        text = agents.read_text(encoding="utf-8")
         for ph in ("<FELHASZNÁLÓ neve TBD>", "<megszólítás TBD>", "<ügynök neve TBD>",
                    "<munka, fókuszterületek TBD>", "<stílus-preferenciák TBD>"):
             text = text.replace(ph, "Anna")
-        agents.write_text(text)
+        agents.write_text(text, encoding="utf-8")
 
     def test_fresh_folder_gets_the_measured_structure(self):
         r = self.run_tool("--base", BASE)
@@ -49,8 +50,12 @@ class Scaffold(unittest.TestCase):
         dirs = ["agy/" + d for d in ("brain-dumps", "explorations", "people", "todos", "specs",
                                      "decisions", "cases", "connectors", "procedures",
                                      "subagentek")] + ["projects"]
-        self.assertEqual(sorted(files), sorted(["AGENTS.md", "CLAUDE.md", ".gitignore", ".claude/settings.json"]
-                                               + [d + "/_meta.md" for d in dirs]))
+        self.assertIn("mentat_statusline.py", json.loads(files[".claude/settings.json"])["statusLine"]["command"])
+        self.assertEqual(sorted(files), sorted(["AGENTS.md", "CLAUDE.md", ".gitignore", ".claude/settings.json",
+                                                ".claude/commands/whoami.md", ".claude/commands/mentat.md"]
+                                               + [d + "/_meta.md" for d in dirs]
+                                               + [".claude/skills/%s/SKILL.md" % s for s in
+                                                  ("develop", "subagent", "status", "backlog", "model", "bug-report")]))
         self.assertEqual(files["CLAUDE.md"], "@AGENTS.md\n")
         self.assertEqual(files[".gitignore"].split(), [".env", ".env.*", ".mentat/"])
         agents = files["AGENTS.md"]
@@ -67,10 +72,10 @@ class Scaffold(unittest.TestCase):
     def test_english_uses_brain_folder(self):
         self.run_tool("--base", BASE, lang="en")
         self.assertTrue((self.root / "brain/subagents/_meta.md").exists())
-        self.assertIn("templates/<type>.en.md", (self.root / "AGENTS.md").read_text())
+        self.assertIn("templates/<type>.en.md", (self.root / "AGENTS.md").read_text(encoding="utf-8"))
 
     def test_second_run_changes_nothing_and_never_overwrites(self):
-        (self.root / "CLAUDE.md").write_text("# mine\n")
+        (self.root / "CLAUDE.md").write_text("# mine\n", encoding="utf-8")
         self.run_tool("--base", BASE)
         before = self.tree()
         r = self.run_tool("--base", BASE)
@@ -81,11 +86,13 @@ class Scaffold(unittest.TestCase):
     def test_takeover_keeps_an_existing_agents_md_and_appends_only_the_product_blocks(self):
         # failure class: the selftest failed on a missing block and the agent rewrote AGENTS.md
         own = "# Régi ágens\n\nA saját szabályaim.\n"
-        (self.root / "AGENTS.md").write_text(own)
+        (self.root / "AGENTS.md").write_text(own, encoding="utf-8")
         r = self.run_tool("--base", BASE)
         self.assertIn("added at the end: " + ", ".join(IDS), r.stdout)
-        text = (self.root / "AGENTS.md").read_text()
-        self.assertTrue(text.startswith(own), "the existing text stays, byte for byte, in front")
+        text = (self.root / "AGENTS.md").read_text(encoding="utf-8")
+        self_image = (self.root / "AGENTS.md").read_text(encoding="utf-8").split("<!-- mentat:managed:end self-image -->\n\n", 1)
+        self.assertEqual(len(self_image), 2, "the self-image block comes first")
+        self.assertTrue(self_image[1].startswith(own), "the existing text stays, byte for byte, right after it")
         for i in IDS:
             self.assertEqual(text.count("mentat:managed:start %s -->" % i), 1, i)
         self.assertIn(BASE, text)
@@ -97,14 +104,14 @@ class Scaffold(unittest.TestCase):
         self.assertNotIn("MISSING managed", check.stdout)
 
     def test_a_manual_address_is_taken_only_from_the_official_release(self):  # CISO K5
-        (self.root / "AGENTS.md").write_text("`https://evil.example/kit/v1/` — the manual\n")
+        (self.root / "AGENTS.md").write_text("`https://evil.example/kit/v1/` — the manual\n", encoding="utf-8")
         self.run_tool()
-        self.assertNotIn("managed:start reference-manual", (self.root / "AGENTS.md").read_text())
+        self.assertNotIn("managed:start reference-manual", (self.root / "AGENTS.md").read_text(encoding="utf-8"))
 
     def test_a_half_present_block_is_left_alone_and_the_check_says_how_to_fix(self):
-        (self.root / "AGENTS.md").write_text("x\n<!-- mentat:managed:end claims -->\n")
+        (self.root / "AGENTS.md").write_text("x\n<!-- mentat:managed:end claims -->\n", encoding="utf-8")
         self.run_tool("--base", BASE)
-        text = (self.root / "AGENTS.md").read_text()
+        text = (self.root / "AGENTS.md").read_text(encoding="utf-8")
         self.assertNotIn("managed:start claims", text)
         out = self.run_tool("--check").stdout
         self.assertIn("MISSING managed block claims", out)
@@ -129,7 +136,7 @@ class Scaffold(unittest.TestCase):
         self.fill()
         r = self.run_tool("--name", "Thufir", "--version", "0.2.0")
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        manifest = json.loads((self.root / "mentat.json").read_text())
+        manifest = json.loads((self.root / "mentat.json").read_text(encoding="utf-8"))
         self.assertEqual(manifest["agent"], {"name": "Thufir", "language": "hu"})
         self.assertEqual(manifest["components"], {"brain": {"root": "agy"}})
         self.git("config", "user.name", "Anna")
@@ -149,9 +156,9 @@ class Scaffold(unittest.TestCase):
 
     def test_commit_refuses_a_staged_env_file(self):
         self.run_tool("--base", BASE)
-        with open(self.root / ".gitignore", "a") as f:
+        with open(self.root / ".gitignore", "a", encoding="utf-8") as f:
             f.write("!.env\n")  # the USER un-ignored it by hand
-        (self.root / ".env").write_text("TOKEN=x\n")
+        (self.root / ".env").write_text("TOKEN=x\n", encoding="utf-8")
         self.git("config", "user.name", "Anna")
         self.git("config", "user.email", "anna@example.com")
         r = self.run_tool("--commit")
@@ -166,11 +173,11 @@ class Scaffold(unittest.TestCase):
         self.git("init", "-q")
         self.git("config", "user.name", "Anna")
         self.git("config", "user.email", "anna@example.com")
-        (self.root / "notes.txt").write_text("v1\n")
+        (self.root / "notes.txt").write_text("v1\n", encoding="utf-8")
         self.git("add", "notes.txt")
         self.git("commit", "-qm", "the USER's own work")
-        (self.root / "notes.txt").write_text("v2, not committed yet\n")
-        (self.root / "draft.md").write_text("half-done\n")
+        (self.root / "notes.txt").write_text("v2, not committed yet\n", encoding="utf-8")
+        (self.root / "draft.md").write_text("half-done\n", encoding="utf-8")
         self.run_tool("--base", BASE)
         r = self.run_tool("--commit")
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
@@ -187,7 +194,7 @@ class Scaffold(unittest.TestCase):
         self.git("init", "-q")  # the USER's home (or a folder above) is already a repo
         self.root = parent / "agent"
         self.root.mkdir()
-        (parent / "elsewhere.txt").write_text("not the brain\n")
+        (parent / "elsewhere.txt").write_text("not the brain\n", encoding="utf-8")
         self.run_tool("--base", BASE)
         self.fill()
         self.git("config", "user.name", "Anna")

@@ -54,7 +54,7 @@ def resolve(root):
 
 
 def manifest(root):
-    return json.loads((root / "mentat.json").read_text())
+    return json.loads((root / "mentat.json").read_text(encoding="utf-8"))
 
 
 def safe_sid(sid):
@@ -64,13 +64,13 @@ def safe_sid(sid):
 def write_pin(root, sid, role):
     pin = root / ".mentat" / "szerep" / sid
     pin.parent.mkdir(parents=True, exist_ok=True)
-    pin.write_text(role + "\n")
+    pin.write_bytes((role + "\n").encode("utf-8"))
 
 
 def pinned_role(root, sid):
     pin = root / ".mentat" / "szerep" / sid if sid else None
-    if pin and pin.is_file() and pin.read_text().strip():
-        name = pin.read_text().splitlines()[0].strip()
+    if pin and pin.is_file() and pin.read_text(encoding="utf-8").strip():
+        name = pin.read_text(encoding="utf-8").splitlines()[0].strip()
         if name not in (manifest(root).get("roles") or {}).get("installed", []):
             raise GuardError("pinned role %s is not installed" % name)
         return {"role": name, "file": None}

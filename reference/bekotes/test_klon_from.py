@@ -42,11 +42,11 @@ class KlonFrom(unittest.TestCase):
 
     def test_elokeszit_reports_bad_from_without_echo(self):
         cfg = self.root / BIZ / "bekotes.json"
-        d = json.loads(cfg.read_text())
+        d = json.loads(cfg.read_text(encoding="utf-8"))
         d["sources"].append({"name": "rossz", "kind": "repo", "path": "munka/rossz",
                              "from": "https://bob:tok3n@127.0.0.1:9/x.git"})
         d["sources"].append({"name": "mem2", "kind": "memory", "path": "munka/nincs-memoria"})
-        cfg.write_text(json.dumps(d, ensure_ascii=False))
+        cfg.write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
         write(self.root, "munka/regi-memoria/bob@example.com.md", "---\ndescription: d\n---\nx\n")
         r = bk(self.root, "elokeszit", "--business", "zoldag")
         self.assertEqual(r.returncode, 0, r.stderr)

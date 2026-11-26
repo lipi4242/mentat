@@ -25,7 +25,7 @@ ME = ["--git-email", "anna@example.com"]  # the USER's own address; the tool nev
 
 def fake_bin(d, name, body):
     p = pathlib.Path(d) / name
-    p.write_text("#!/bin/sh\n" + body + "\n")
+    p.write_text("#!/bin/sh\n" + body + "\n", encoding="utf-8")
     p.chmod(0o755)
 
 
@@ -45,11 +45,11 @@ class InitBase(unittest.TestCase):
 
     def run_init(self, *extra, env=None):
         return subprocess.run([sys.executable, str(TOOL), "--repo", str(self.root), *self.answers, *extra],
-                              capture_output=True, text=True, env=env or self.env)
+                              capture_output=True, text=True, env=env or self.env, encoding="utf-8", errors="replace")
 
     def git(self, *args):
         return subprocess.run(["git", "-C", str(self.root), *args], capture_output=True, text=True,
-                              env=self.env).stdout.strip()
+                              env=self.env, encoding="utf-8", errors="replace").stdout.strip()
 
 
 class Init(InitBase):
@@ -60,16 +60,20 @@ class Init(InitBase):
         self.assertEqual(lines[-1], "MENTAT-INIT OK")
         self.assertLessEqual(len(lines), 12, r.stdout)
         self.assertIn("munkamappán kívül", r.stdout)  # the boundary, in human words
-        agents = (self.root / "AGENTS.md").read_text()
+        agents = (self.root / "AGENTS.md").read_text(encoding="utf-8")
         for done in ("Kertész Anna", "Thufir", "tegez"):
             self.assertIn(done, agents)
         for gone in ("<FELHASZNÁLÓ neve TBD>", "<megszólítás TBD>", "<ügynök neve TBD>"):
             self.assertNotIn(gone, agents)
         self.assertIn("<munka, fókuszterületek TBD>", agents)  # the conversation fills these
-        self.assertEqual(json.loads((self.root / "mentat.json").read_text())["agent"]["name"], "Thufir")
+        self.assertTrue(agents.startswith("<!-- mentat:managed:start self-image -->\n"))
+        import mentat_self_image as si
+        self.assertEqual(si.problems(agents, si.block(si.facts(self.root, "hu"))), [])  # no TBD, no drift
+        self.assertIn("Thufir vagyok, személyi asszisztens", agents)
+        self.assertEqual(json.loads((self.root / "mentat.json").read_text(encoding="utf-8"))["agent"]["name"], "Thufir")
         self.assertEqual(self.git("config", "user.name"), "Kertész Anna")
         self.assertEqual(len(self.git("log", "--oneline").splitlines()), 1)
-        pre = json.loads((self.root / ".claude/settings.json").read_text())["hooks"]["PreToolUse"][-1]["hooks"][0]
+        pre = json.loads((self.root / ".claude/settings.json").read_text(encoding="utf-8"))["hooks"]["PreToolUse"][-1]["hooks"][0]
         self.assertEqual(pre.get("onFailure"), "block")
 
     def test_the_vendored_guard_is_probed_with_an_outside_read(self):
@@ -79,7 +83,7 @@ class Init(InitBase):
             shutil.copy(HERE / f, bk / f)
         r = self.run_init()
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        with (bk / "szerep_kint.py").open("a") as f:  # a guard that runs fine but sees nothing outside
+        with (bk / "szerep_kint.py").open("a", encoding="utf-8") as f:  # a guard that runs fine but sees nothing outside
             f.write("\n\ndef outside(*a, **k):\n    return []\n")
         r = self.run_init()
         self.assertIn("MENTAT-INIT HIBA", r.stdout)
@@ -90,7 +94,7 @@ class Init(InitBase):
         shutil.copytree(HERE.parent / "bekotes", bk, ignore=shutil.ignore_patterns("test_*", "__pycache__"))
         for f in ("mentat_roles.py", "mentat_manifest.py", "mentat_rules.py"):
             shutil.copy(HERE / f, bk / f)
-        with (bk / "szerep_kint.py").open("a") as f:  # every path "outside": every call asked
+        with (bk / "szerep_kint.py").open("a", encoding="utf-8") as f:  # every path "outside": every call asked
             f.write("\n\ndef outside(root, tool, inp, cwd, sid=None):\n    return [('x', 'olvas', False)]\n")
         r = self.run_init()
         self.assertIn("MENTAT-INIT HIBA", r.stdout)

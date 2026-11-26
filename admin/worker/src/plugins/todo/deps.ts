@@ -1,6 +1,7 @@
 import type { Hono } from 'hono';
 import { current, marked, mutate } from './store';
 import { keys, object, Problem, textField, type TodoEnv } from './types';
+import { requireWriter } from './access';
 const acyclic = `NOT EXISTS (WITH RECURSIVE links(id) AS (
   SELECT ? UNION SELECT d.depends_on_id FROM todo_dep d JOIN links l ON d.task_id=l.id
 ) SELECT 1 FROM links WHERE id = ?)`;
@@ -8,6 +9,7 @@ export function registerDeps(app: Hono<TodoEnv>) {
   app.post('/tasks/:id/deps', async c => {
     const body = object(await c.req.json()); keys(body, ['depends_on_id','remove','expected_rev']);
     const row = await current(c, body); if (row instanceof Response) return row;
+    await requireWriter(c, row);
     const dep = textField(body.depends_on_id, 'depends_on_id'), db = c.env.DB;
     if (body.remove !== undefined && typeof body.remove !== 'boolean') throw new Problem('remove must be boolean');
     if (!await db.prepare('SELECT 1 FROM todo_task WHERE id = ?').bind(dep).first()) throw new Problem('depends_on_id does not exist');

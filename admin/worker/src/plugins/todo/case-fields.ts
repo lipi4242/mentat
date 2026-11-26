@@ -1,7 +1,8 @@
 // The todo_case extension row: validation and the statements that write it.
 // Only POST /tasks (kind 'case') creates the row; PATCH /tasks edits it.
 import { marked, now } from './store';
-import { keys, object, Problem, type Fields } from './types';
+import type { Context } from 'hono';
+import { keys, object, Problem, type Fields, type TodoEnv } from './types';
 
 const TEXT = ['goal', 'frame', 'next_action', 'waiting_on', 'due_reason', 'brain_ref'] as const;
 export const CASE_FIELDS = [...TEXT, 'review_every'];
@@ -27,6 +28,23 @@ export function caseFields(input: unknown): Fields {
 export function caseInsert(db: D1Database, id: string, set: Fields, actor: string, human: boolean) {
   const row: Fields = { ...set, task_id: id, confirmed_at: human ? now() : null, confirmed_by: human ? actor : null };
   return db.prepare(`INSERT INTO todo_case (${Object.keys(row).join(',')}) VALUES (${Object.keys(row).map(() => '?').join(',')})`).bind(...Object.values(row));
+}
+
+/**
+ * Every field whose change alters what the owner confirmed, by name: the task's text and every case
+ * field. A new case field must be listed here too (todo-confirmation-fields.test.ts checks it).
+ */
+export const CONFIRMATION_FIELDS = ['title', 'description', ...TEXT, 'review_every'] as const;
+
+/**
+ * A confirmed case whose content changes is confirmed again only by a human edit; an agent's edit
+ * clears the confirmation, so an approval never stays on a text written after it.
+ */
+export function confirmationAfterEdit(c: Context<TodoEnv>, id: string, set: Fields, extension: Fields, op: string) {
+  if (!CONFIRMATION_FIELDS.some(k => k in set || k in extension)) return [];
+  const human = c.get('principal')?.kind === 'human';
+  return [c.env.DB.prepare(`UPDATE todo_case SET confirmed_at = ?, confirmed_by = ? WHERE task_id = ? AND confirmed_at IS NOT NULL AND ${marked}`)
+    .bind(human ? now() : null, human ? c.get('principal')!.id : null, id, op)];
 }
 
 export function caseUpdate(db: D1Database, id: string, set: Fields, op: string) {

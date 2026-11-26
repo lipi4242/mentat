@@ -6,6 +6,8 @@ import sys
 
 import hely
 import szerep_hook
+import szerep_onkep
+import mentat_self_image
 import mentat_roles
 import mentat_rules as rules
 
@@ -52,7 +54,7 @@ def _command(repo, lang):
             % (desc, EMPTY[lang], intro, ROLE_CMD, ok, bad, perm))
     p = repo / ".claude" / "commands" / "szerep.md"
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(text, encoding="utf-8")
+    p.write_bytes(text.encode("utf-8"))
 
 
 def _fill(text, business, sources, root):
@@ -89,12 +91,16 @@ def run(a):
             continue
         dest.parent.mkdir(parents=True, exist_ok=True)
         tpl = (HERE / "szerepek" / ("%s.%s.md" % (n, a.lang))).read_text(encoding="utf-8")
-        dest.write_text(_fill(tpl, business, sources, root), encoding="utf-8")
+        dest.write_bytes(_fill(szerep_onkep.pointer(tpl, n, a.lang), business, sources, root).encode("utf-8"))
         print("szerep: %s" % dest.relative_to(repo))
+    if szerep_onkep.write(repo, root, names, a.lang):
+        print("önkép: %s/%s" % (root, szerep_onkep.FILE))
+    if mentat_self_image.write(repo, a.lang):
+        print("self-image: AGENTS.md (első blokk)")
     _command(repo, a.lang)
     meta = repo / root / "sablonok" / "email" / "_meta.md"
     if not meta.exists():
         meta.parent.mkdir(parents=True, exist_ok=True)
-        meta.write_text(EMAIL_META[a.lang], encoding="utf-8")
+        meta.write_bytes(EMAIL_META[a.lang].encode("utf-8"))
     print("hookok: .claude/settings.json; parancs: .claude/commands/szerep.md")
     return 0

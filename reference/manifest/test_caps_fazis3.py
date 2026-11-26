@@ -41,7 +41,7 @@ class Export(CapsBase):
         self.assertFalse([c for c in self.export()[0]["capabilities"] if c["id"].startswith("own.")])
         home = pathlib.Path(self.home) / ".mentat"
         home.mkdir(exist_ok=True)
-        (home / "kepessegfa-megosztas.txt").write_text("own.project.lista\nown.project.titkos\n")
+        (home / "kepessegfa-megosztas.txt").write_text("own.project.lista\nown.project.titkos\n", encoding="utf-8")
         doc, err = self.export()
         own = [c for c in doc["capabilities"] if c["id"].startswith("own.")]
         self.assertEqual([c["id"] for c in own], ["own.project.lista"])
@@ -57,7 +57,7 @@ class Export(CapsBase):
         home = pathlib.Path(self.home) / ".mentat"
         home.mkdir(exist_ok=True)
         (home / "kepessegfa-megosztas.txt").write_text(
-            "own.project.hivas\nown.project.szamla\nown.project.utal\nown.project.rendben\n")
+            "own.project.hivas\nown.project.szamla\nown.project.utal\nown.project.rendben\n", encoding="utf-8")
         doc, err = self.export()
         own = [c["id"] for c in doc["capabilities"] if c["id"].startswith("own.")]
         self.assertEqual(own, ["own.project.rendben"])
@@ -69,7 +69,7 @@ class Export(CapsBase):
 class FleetInFind(CapsBase):
     def fleet(self, payload, code=0):
         bin_dir = pathlib.Path(tempfile.mkdtemp())
-        (bin_dir / "fleet").write_text("#!/bin/sh\necho '%s'\nexit %d\n" % (json.dumps(payload).replace("'", ""), code))
+        (bin_dir / "fleet").write_text("#!/bin/sh\necho '%s'\nexit %d\n" % (json.dumps(payload).replace("'", ""), code), encoding="utf-8")
         os.chmod(bin_dir / "fleet", 0o755)
         self.write(".mentat/local.json", json.dumps({"schema": 1, "fleet": {"agent_id": "t-1", "host": "box"}}))
         return bin_dir
@@ -77,7 +77,7 @@ class FleetInFind(CapsBase):
     def find_with(self, bin_dir, query):
         env = dict(os.environ, HOME=self.home, PATH="%s%s%s" % (bin_dir, os.pathsep, no_fleet_path()))
         r = subprocess.run([sys.executable, str(TOOL), "--repo", str(self.root), "where", "--find", query, "--json"],
-                           capture_output=True, text=True, env=env)
+                           capture_output=True, text=True, env=env, encoding="utf-8", errors="replace")
         self.assertEqual(r.returncode, 0, r.stderr)
         return json.loads(r.stdout)
 

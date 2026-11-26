@@ -36,7 +36,7 @@ def brain(lang="en"):
     (root / "data").mkdir()
     (root / "data" / "guests.csv").write_text(GUESTS, encoding="utf-8")
     (root / "mentat.json").write_text(json.dumps(
-        {"schema": 1, "agent": {"language": lang}, "components": {"brain": {"root": folder}}}))
+        {"schema": 1, "agent": {"language": lang}, "components": {"brain": {"root": folder}}}), encoding="utf-8")
     return root
 
 
@@ -50,7 +50,7 @@ def run(tool, root, *args, stdin=None):
     home = tempfile.mkdtemp()
     env = dict(os.environ, HOME=home)
     return subprocess.run([sys.executable, str(HERE / tool), "--repo", str(root), *args],
-                          capture_output=True, text=True, env=env, input=stdin)
+                          capture_output=True, text=True, env=env, input=stdin, encoding="utf-8", errors="replace")
 
 
 def approved(root, proposal=None, cid="dinner"):

@@ -4,6 +4,7 @@ import { keys, object, Problem, type Fields, type TodoEnv } from './types';
 import { nextDate, todayIn } from './recurrence';
 import { refuseItem } from './kinds';
 import { caseChildren } from './case-complete';
+import { requireWriter } from './access';
 // A dropped/archived branch stays released, including its descendants.
 const checklist = `WITH RECURSIVE checklist(id) AS (
   SELECT id FROM todo_task WHERE parent_id = ? AND archived = 0 AND status <> 'dropped'
@@ -15,6 +16,7 @@ export function registerComplete(app: Hono<TodoEnv>) {
     const row = await current(c, body); if (row instanceof Response) return row;
     refuseItem(row, 'complete');
     if (row.status !== 'open' || row.archived) throw new Problem('complete requires an open, unarchived task');
+    await requireWriter(c, row); // after the state check: a done task says "done", not "not yours"
     const actor = c.get('principal')!.id, db = c.env.DB, at = now();
     const set: Fields = { status: 'done', done_at: at, done_by: actor, assignee_id: null, assignee_note: null };
     if (row.kind === 'case') {

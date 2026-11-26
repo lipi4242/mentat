@@ -2,6 +2,9 @@
 
     python3 -m anytime_engine.tick hourly [--exec CMD] [--dry-run]
     python3 -m anytime_engine.tick --mark <concern>      # executor: "I did it"
+    python3 -m anytime_engine.tick hourly --lock         # skip while another tick runs
+    python3 -m anytime_engine.tick hourly --once         # session start, no scheduler (once.py)
+    python3 -m anytime_engine.tick hourly --render       # the work as prompts; nothing due: exit 4
 
 One tick: validate -> load state -> reduce -> save -> hand the plan to the
 executor -> ONLY THEN stamp. The stamps are the fleet contract:
@@ -32,6 +35,7 @@ tick IS such a dry run, and says so: "kifelé-tartás aktív — dry-run, eddig:
 from __future__ import annotations
 
 import argparse
+import contextlib
 import json
 import os
 import subprocess
@@ -40,16 +44,17 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Callable
 
-from . import clock, config, heartbeat, hold
+from . import clock, config, heartbeat, hold, once, ticklock
 from . import engine_manifest
 from . import mentat_manifest as mm
 from .plugins import PluginError
 from .reducer import reduce
 from .registry import discover, validate
-from . import lasttick, receipts
+from . import lasttick, receipts, route
 from .state import State, StateUnavailable
 
 SCHEDULED_TRIGGERS = frozenset({"hourly", "review"})
+NOTHING_DUE = 4   # tick --render: no action planned (one line, so a wrapper stops without JSON)
 TRIGGERS = ("hourly", "review", "startup", "telegram", "webhook")
 
 Executor = Callable[[dict[str, Any]], int]
@@ -68,11 +73,12 @@ def _atomic_write_json(path: Path, data: dict[str, Any]) -> None:
 
 def run_tick(trigger: str, *, executor: Executor | None = None,
              dry_run: bool = False, owner_token: str | None = None,
-             now: datetime | None = None) -> dict[str, Any]:
+             now: datetime | None = None, scheduled: bool = True) -> dict[str, Any]:
     """Run one tick for already-registered concerns. Returns the plan.
 
     Raises TickError (registry invalid, executor non-zero) — or whatever the
-    executor raised — and in every such case writes no stamp.
+    executor raised — and in every such case writes no stamp. scheduled=False (tick
+    --once, a session-start tick): no last-tick.json, which says a SCHEDULER ticked.
     """
     errors = validate()
     if errors:
@@ -103,15 +109,21 @@ def run_tick(trigger: str, *, executor: Executor | None = None,
         rc = executor(plan)
         if rc != 0:
             raise TickError(f"executor exited {rc}; tick not stamped")
+    # route.Routed: what no executor took is said, never stamped as done (exit 3 in main)
+    plan["unhandled"] = list(getattr(executor, "unhandled", []))
+    if plan["unhandled"]:
+        lasttick.write(plan)
 
     # ── the work is done: now, and only now, stamp ──
     token = owner_token or heartbeat.current_owner_token() or heartbeat.generate_owner_token()
     heartbeat.write_heartbeat(token)
-    if trigger in SCHEDULED_TRIGGERS:
+    if scheduled and trigger in SCHEDULED_TRIGGERS:
         _atomic_write_json(config.last_tick_path(), {
             "trigger": trigger,
             "at": clock.stamp(),
             "actions": len(plan["actions"]),
+            **({"handled": len(plan["actions"]) - len(plan["unhandled"]),
+                "unhandled": len(plan["unhandled"])} if executor is not None else {}),
         })
     return plan
 
@@ -162,12 +174,24 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--mark", metavar="CONCERN", action="append",
                    help="record that the executor finished this concern (repeatable)")
     p.add_argument("--result", default="ok", help="result recorded with --mark")
+    p.add_argument("--lock", action="store_true",
+                   help="skip (one line, exit 0) while another tick holds the tick lock")
+    p.add_argument("--once", action="store_true",
+                   help="session start without a scheduler: tick (locked) only if no scheduled "
+                        "tick landed within the hour; no recorded executor; print the work")
+    p.add_argument("--render", action="store_true",
+                   help="print each action's prompt (its rules and data) instead of the plan JSON, "
+                        f"and run no executor; nothing due: one line, exit {NOTHING_DUE}")
     args = p.parse_args(argv)
 
     if args.mark:
         return _mark(args.mark, args.result)
     if not args.trigger:
         p.error("a trigger is required (or --mark CONCERN)")
+    ran_at = once.scheduled_at() if args.once else None
+    if ran_at:
+        print(f"[tick] once: skipped, the scheduled tick ran at {ran_at}", file=sys.stderr)
+        return 0
     if args.now not in (None, "now") and not args.dry_run:
         p.error("--now <time> only with --dry-run: a real tick at a made-up time would "
                 "stamp that day as done. For a real tick right now: bare --now")
@@ -175,7 +199,9 @@ def main(argv: list[str] | None = None) -> int:
     try:
         # mentat.json rule 6: a manifest we cannot read (or a newer schema)
         # means no tick at all — before any concern code is imported.
-        exec_cmd = args.exec_cmd or (None if args.dry_run else
+        if args.render and args.exec_cmd:
+            raise ValueError("--render prints the work for its reader; it hands nothing to --exec")
+        exec_cmd = args.exec_cmd or (None if args.dry_run or args.once or args.render else
                                      engine_manifest.section().get("exec"))
         now = clock.parse(args.now) if args.now else None
         if not args.no_discover:
@@ -184,12 +210,26 @@ def main(argv: list[str] | None = None) -> int:
     except (mm.ManifestError, PluginError, ValueError) as e:   # ClockError too
         print(f"[tick] NOT landed: {e}", file=sys.stderr)
         return 1
-    executor = shell_executor(exec_cmd) if exec_cmd else None
-    try:
-        plan = run_tick(args.trigger, executor=executor, dry_run=args.dry_run, now=now)
-    except TickError as e:
-        print(f"[tick] NOT landed: {e}", file=sys.stderr)
-        return 1
+    executor = route.Routed(exec_cmd, shell_executor) if exec_cmd else None
+    locked = ticklock.held() if args.lock or args.once else contextlib.nullcontext(True)
+    with locked as got:
+        if not got:
+            print("[tick] skipped: another tick is running (tick lock held)", file=sys.stderr)
+            return 0
+        try:
+            plan = run_tick(args.trigger, executor=executor, dry_run=args.dry_run, now=now,
+                            scheduled=not args.once)
+        except TickError as e:
+            print(f"[tick] NOT landed: {e}", file=sys.stderr)
+            return 1
+    if (args.once or args.render) and executor is None:   # the reader is the executor
+        text = once.brief(plan, "Engine tick at session start" if args.once else "Engine tick")
+        if text:
+            print(text)
+        elif args.render:
+            print(f"[tick] {args.trigger}: nothing due")
+            return NOTHING_DUE
+        return 0
     if plan.get("kifele_tartas"):
         print(f"[tick] {args.trigger} NOT landed (kifelé-tartás): {len(plan['actions'])} "
               "action(s) held back, nothing sent, no stamp", file=sys.stderr)
@@ -197,6 +237,11 @@ def main(argv: list[str] | None = None) -> int:
         print(json.dumps(plan, indent=2, ensure_ascii=False, default=str))
     else:   # stdout belongs to the executor's log; the plan is in last-plan.json
         print(f"[tick] {args.trigger} landed: {len(plan['actions'])} action(s)")
+    if plan.get("unhandled"):
+        print(f"[tick] {args.trigger}: {len(plan['unhandled'])} action(s) taken by NO executor: "
+              f"{', '.join(plan['unhandled'])} — the recorded executor is another pack's own, and "
+              "these packs name none (docs/concern-packs.md)", file=sys.stderr)
+        return 3
     return 0
 
 

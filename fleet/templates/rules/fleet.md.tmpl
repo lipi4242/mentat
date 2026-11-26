@@ -38,9 +38,19 @@ minden indulásnál más — ne írd le sehova fixen; a `ListAgents` méri.
   reconcile` 5 percenként érvényesíti a registry kívánt állapotát: ha a
   processzed nincs, újraindít; ha a registry `dormant`-ra állít, leállít.
 - **Soha ne indítsd újra magad a saját sessionödből** (`systemctl restart`
-  a saját unitodra). Kérj újraindítást kívülről: egy fejlesztő ágenstől
-  (`/fleet:doctor <név> --fix`), vagy `fleet restart <név>` egy másik
-  gépről vagy ágensből.
+  a saját unitodra, `systemd-run`, saját restart-szkript). Ha újraindulás
+  kell, futtasd: `fleet request-restart` (csak a saját ágensedre megy), vagy
+  szólj Thufirnak, a flottamenedzsernek, aki ugyanezt teszi. Ez csak jelölőt
+  tesz le; a restartot mindig a timer-reconcile végzi (Thufirnál is, soha nem
+  a saját session): a köröd vége után `--resume`-mal (a beszélgetés
+  megmarad), postcheckkel, és az első üzenetben megírja, miért.
+- **Prompt-frissítés után nem kell kérned semmit.** Ha a betöltött promptod
+  (CLAUDE.md és @include-jai, AGENTS.md, `.claude/rules|commands|skills|agents`,
+  `.claude/settings.json`) kiadott (commitolt) változása 15 perce stabil, a
+  reconcile tétlen állapotodban magától `--resume`-mal újraindít; dolgozás
+  közben megvár. Kézi, nem commitolt vagy hooks-változásra nem indít újra,
+  csak jelez a tulajdonosnak. Ha `[fleet] Újraindultál…` üzenet érkezik, a felsorolt
+  fájlok friss változata már be van töltve.
 - A `/loop` és a `CronCreate` **7 nap után lejár, és a `--resume` nem hozza
   vissza** a lejártakat. A startup skilled fegyverezze fel újra a tickedet;
   ha több jobod van, azokat is. Egy élő processz üres ütemezéssel a
@@ -85,6 +95,9 @@ minden indulásnál más — ne írd le sehova fixen; a `ListAgents` méri.
   install`, `fleet secrets scan`, `fleet secrets merge-mode on`, `fleet install`)
   csak `--dry-run` után futtatsz, és csak a PM/tulajdonos tudtával.
 - Ha a titok-kapu valamit tévesen tilt (nem titok), jelented, nem kerülöd meg.
+- **Titok értéke soha nem megy chatbe vagy üzenetbe**, egy másik ágensnek sem.
+  Átadás csak `fleet secrets put` (stdin-ről) vagy `move`/`copy` úton,
+  tételes jóváhagyással; a címzettnek csak a kulcs nevét és helyét írod.
 - Kódot csak PR-ral szállítasz; nem mergeled a sajátodat, nem pusholsz a fő
   ágra. A flotta registryje (az `agents.json` a `FLEET_REGISTRY`
   könyvtárban) emberi jóváhagyású sáv.

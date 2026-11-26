@@ -78,7 +78,8 @@ describe('backlog state machine', () => {
     const row = await item();
     expect((await act(row.id, 'issue', { dev: 'c' })).status).toBe(422);
     expect((await act(row.id, 'issue', { dev: 'nobody' })).status).toBe(422);
-    expect((await act(row.id, 'issue', { dev: 'a' })).body).toMatchObject({ stage: 'issued', dev_id: 'a' });
+    expect((await act(row.id, 'issue', { dev: 'a' })).status).toBe(403); // the PM agent is not its own developer
+    expect((await act(row.id, 'issue', { dev: 'b' })).body).toMatchObject({ stage: 'issued', dev_id: 'b' });
   });
   it('lets a human admin do PM verbs and records the human as the actor', async () => {
     const { item, act, get } = await backlogApp();

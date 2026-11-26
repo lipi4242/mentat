@@ -45,8 +45,9 @@ describe('todo auth and principal bootstrap', () => {
     raw.prepare("DELETE FROM todo_principal WHERE id='c'").run();
     const avatar = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+a5XcAAAAASUVORK5CYII=';
     const body = { kind: 'agent', agent_token_id: 'c', handle: 'bot', display_name: 'Bot', avatar, idem_key: 'bot' };
-    expect((await call('POST', '/principals', body, { cookie })).body.avatar).toBe(avatar);
-    const task = await create();
+    const bot = (await call('POST', '/principals', body, { cookie })).body;
+    expect(bot.avatar).toBe(avatar);
+    const task = await create({ assignee_id: bot.id }); // the bot must see the task to comment on it
     await call('POST', `/tasks/${task.id}/comments`, { body: 'Hello', expected_rev: 1 }, { 'X-Mentat-Token': 'c' });
     expect((await call('GET', `/tasks/${task.id}`)).body.comments[0]).toMatchObject({ display_name: 'Bot', handle: 'bot', kind: 'agent', avatar });
   });

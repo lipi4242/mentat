@@ -59,6 +59,20 @@ egyes **entitások** a fájlok:
 a valóság megköveteli: ha folyton olyasmiről beszélsz, aminek nincs polca, az asszisztens javasol
 egyet. Nem talál ki polcokat, amikre sosem volt szükséged.
 
+Ezek az új polcok a tieid: egy borkereskedőnek `bor` típus jár, egy szakácsnak `recept`, mindegyik
+a saját mezőivel (évjárat, szín, főzési idő) és a saját mappájával. Az asszisztens egyszer megkérdez,
+utána egy paranccsal létrehozza a típust; a leírása az agyban marad, a `types/` mappában, a
+jegyzeteid mellett. Ha egy mappát te vagy az asszisztens már kézzel elkezdtél, azt **örökbe fogadja**:
+a mezőket a jegyzetekből olvassa ki, magukhoz a jegyzetekhez nem nyúl. Ettől kezdve a keresés, a
+határidők és az átnevezés ugyanúgy működik az új típuson, mint a beépítetteken, a `check` pedig
+szól, ha egy jegyzetből hiányzik egy mező, amit a típus megkövetel.
+
+A típusok veled együtt alakulnak. Egy hosszú brain dump után az asszisztens a meglévő polcokra
+osztja szét, amit mondtál, és keresi, mi tér vissza újra meg újra saját polc nélkül; ha talál ilyet,
+egyszer megkérdez. A polcokat később át lehet nevezni, össze lehet vonni vagy szét lehet választani;
+a jegyzetek és a köztük lévő hivatkozások mennek velük, és minden ilyen változás döntésként marad
+meg, így látszik, hogyan alakult ki az agy szerkezete.
+
 ### Tud szakembert felvenni
 
 Van munka, amit jobb, ha nem te csinálsz. A **subagent** egy újrahasználható
@@ -119,7 +133,7 @@ egy okos új kollégát eligazítanál — előbb a kontextus, aztán amit kérs
 csapongó üzenet **jobb**, mint a rendezett, mert az agy egészben elmenti, és utána bányássza ki.
 
 **Proaktív mód** az, amikor nélküled cselekszik, ütemezetten. Ehhez kell az
-[motor](https://github.com/lipi4242/mentat/tree/v0.6.1/engine) (lásd lejjebb). De ilyenkor sem vagy
+[motor](https://github.com/lipi4242/mentat/tree/v0.7.0/engine) (lásd lejjebb). De ilyenkor sem vagy
 kizárva: nyithatsz mellé egy sessiont, és intézhettek együtt ügyeket, miközben a háttérben ketyeg.
 
 ## A személyiség
@@ -160,7 +174,7 @@ A fentiek elmét adnak az asszisztensednek. Pulzust nem.
 Alapból **reaktív**: éles, amikor beszélsz hozzá, és tetszhalott, amikor nem. Nem veszi észre a ma
 reggel érkezett számlát, mert semmi nem ébresztette fel, hogy megnézze.
 
-A [**motor**](https://github.com/lipi4242/mentat/tree/v0.6.1/engine) a másik fele — egy
+A [**motor**](https://github.com/lipi4242/mentat/tree/v0.7.0/engine) a másik fele — egy
 determinisztikus tick, ami ütemezetten elsül, és azt kérdezi: *„van most bármi, amit érdemes
 csinálni?"*, majd az itt felépített agyból válaszolja meg.
 

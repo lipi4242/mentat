@@ -38,17 +38,17 @@ class KintBase(GuardBase):
         shutil.move(str(src), str(self.root))
         mem = self.home / ".claude" / "projects" / "-Users-x-other" / "memory"
         mem.mkdir(parents=True)
-        (mem / "ugyfel.md").write_text(SECRET + "\n")
+        (mem / "ugyfel.md").write_text(SECRET + "\n", encoding="utf-8")
         (self.home / ".claude-personal" / "projects").mkdir(parents=True)
         (self.home / "code" / "other").mkdir(parents=True)
-        (self.home / "code" / "other" / ".env").write_text("LINEAR_API_KEY=%s\n" % SECRET)
+        (self.home / "code" / "other" / ".env").write_text("LINEAR_API_KEY=%s\n" % SECRET, encoding="utf-8")
         (self.home / "business").mkdir()
-        (self.home / "business" / "x.txt").write_text("1\n")
-        (self.root / "agy" / "a.md").write_text("a\n")
+        (self.home / "business" / "x.txt").write_text("1\n", encoding="utf-8")
+        (self.root / "agy" / "a.md").write_text("a\n", encoding="utf-8")
         slug = re.sub(r"[^A-Za-z0-9]", "-", str(self.root.resolve()))
         own = self.home / ".claude" / "projects" / slug / "tool-results"
         own.mkdir(parents=True)
-        (own / "out.txt").write_text("ok\n")
+        (own / "out.txt").write_text("ok\n", encoding="utf-8")
         self.own = own / "out.txt"
         self.mem = mem / "ugyfel.md"
 
@@ -105,7 +105,7 @@ class Boundary(KintBase):
         for mode, env in cases:
             with mock.patch.dict(os.environ, {"MENTAT_HEADLESS": "1"} if env else {}):
                 self.assertEqual(self.bash("cat ~/business/x.txt", mode=mode), "deny", mode)
-        (self.root / ".claude" / "fleet.json").write_text(json.dumps({"agent": "rocky"}))
+        (self.root / ".claude" / "fleet.json").write_text(json.dumps({"agent": "rocky"}), encoding="utf-8")
         r = self.run_guard(self.payload("Read", {"file_path": str(self.mem)}))
         out = json.loads(r.stdout)["hookSpecificOutput"]
         self.assertEqual(out["permissionDecision"], "deny")
@@ -128,11 +128,11 @@ class Consent(KintBase):
         self.post("Bash", {"command": "cat ~/business/x.txt"})
         self.assertEqual(self.bash("cat ~/business/x.txt"), "allow")
         self.assertEqual(self.bash("ls ~/code"), "ask")
-        log = (self.root / ".mentat/naplo/kivuli.jsonl").read_text()
+        log = (self.root / ".mentat/naplo/kivuli.jsonl").read_text(encoding="utf-8")
         rows = [json.loads(x) for x in log.splitlines()]
         self.assertEqual([r["dontes"] for r in rows], ["ask", "jovahagyva", "allow", "ask"])
         self.assertNotIn("cat ", log)
-        listed = json.loads((self.root / ".mentat/engedelyek.json").read_text())["engedelyek"]
+        listed = json.loads((self.root / ".mentat/engedelyek.json").read_text(encoding="utf-8"))["engedelyek"]
         self.assertEqual([e["ut"] for e in listed], [str(self.home / "business/x.txt")])
 
     def test_consent_is_exact_per_file_and_operation_and_never_a_root(self):  # CISO B-1
@@ -186,7 +186,7 @@ class NoRoles(KintBase):
 class FleetAgent(KintBase):
     def test_own_bridge_allowed_other_agents_asked(self):
         (self.root / ".claude").mkdir(exist_ok=True)
-        (self.root / ".claude" / "fleet.json").write_text(json.dumps({"agent": "rocky"}))
+        (self.root / ".claude" / "fleet.json").write_text(json.dumps({"agent": "rocky"}), encoding="utf-8")
         for name in ("rocky", "paul"):
             (self.home / ".config" / name / "sub-etha").mkdir(parents=True)
         for cmd in ("node ~/.config/rocky/sub-etha/send.mjs --chat 1 --text-stdin",

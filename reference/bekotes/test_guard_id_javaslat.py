@@ -25,25 +25,25 @@ class Suggest(KintBase):
         git("init", "-q")
         git("remote", "add", "origin", "https://github.com/acme/agent.git")
         (self.root / "agy" / "connectors").mkdir(parents=True, exist_ok=True)
-        (self.root / "agy" / "connectors" / "crm.md").write_text("# CRM\nAPI: https://api.sajatcrm.example.org/v1\n")
+        (self.root / "agy" / "connectors" / "crm.md").write_text("# CRM\nAPI: https://api.sajatcrm.example.org/v1\n", encoding="utf-8")
         (self.root / "projects" / "app").mkdir(parents=True)
-        (self.root / "projects" / "app" / "wrangler.toml").write_text('routes = [{ pattern = "app.example.net/*" }]\n')
-        (self.root / "projects" / "app" / "README.md").write_text("Élesben: https://lista.acme.workers.dev\n")
+        (self.root / "projects" / "app" / "wrangler.toml").write_text('routes = [{ pattern = "app.example.net/*" }]\n', encoding="utf-8")
+        (self.root / "projects" / "app" / "README.md").write_text("Élesben: https://lista.acme.workers.dev\n", encoding="utf-8")
         (self.root / "projects" / "app" / "front").mkdir()
         (self.root / "projects" / "app" / "front" / "wrangler.jsonc").write_text(
-            '{"routes": [{"pattern": "front.example.org", "custom_domain": true}]}\n')
-        (self.root / "AGENTS.md").write_text("Admin: https://admin-api.acme.workers.dev/health\n")
+            '{"routes": [{"pattern": "front.example.org", "custom_domain": true}]}\n', encoding="utf-8")
+        (self.root / "AGENTS.md").write_text("Admin: https://admin-api.acme.workers.dev/health\n", encoding="utf-8")
         (self.home / ".ssh").mkdir()
-        (self.home / ".ssh" / "config").write_text("Host doboz\n  HostName box.example.net\nHost *\n  User x\n")
+        (self.home / ".ssh" / "config").write_text("Host doboz\n  HostName box.example.net\nHost *\n  User x\n", encoding="utf-8")
         (self.home / ".ssh" / "known_hosts").write_text(
             "198.51.100.7 ssh-ed25519 AAAA\n[nas.example.net]:2222,203.0.113.9 ssh-rsa AAAA\n|1|hash= ssh-rsa AAAA\n"
-            "github.com ssh-ed25519 AAAA\n")
+            "github.com ssh-ed25519 AAAA\n", encoding="utf-8")
         (self.root / "projects" / "app" / "node_modules").mkdir()
-        (self.root / "projects" / "app" / "node_modules" / "wrangler.toml").write_text('pattern = "vendor.example.org"\n')
+        (self.root / "projects" / "app" / "node_modules" / "wrangler.toml").write_text('pattern = "vendor.example.org"\n', encoding="utf-8")
 
     def tool(self, *args):
         return subprocess.run([sys.executable, str(TOOL), "--repo", str(self.root), *args],
-                              capture_output=True, text=True, env=dict(os.environ))
+                              capture_output=True, text=True, env=dict(os.environ), encoding="utf-8", errors="replace")
 
     def test_the_four_sources_and_nothing_already_first_party(self):
         out = self.tool().stdout
@@ -59,7 +59,7 @@ class Suggest(KintBase):
         r = self.tool("--write", "github:acme", "evil.example.org")
         self.assertEqual(r.returncode, 1)
         f = self.home / ".mentat" / "elsofel.txt"
-        self.assertEqual(f.read_text().split(), ["github:acme"])
+        self.assertEqual(f.read_text(encoding="utf-8").split(), ["github:acme"])
         self.assertEqual(stat.S_IMODE(os.stat(f).st_mode), 0o600)
 
     def test_the_guard_asks_the_user_for_write_and_denies_headless(self):
@@ -83,13 +83,13 @@ class Suggest(KintBase):
 
     def test_no_cache_where_git_does_not_ignore_it(self):  # CISO #81, 1
         (self.home / ".mentat").mkdir(exist_ok=True)
-        (self.home / ".mentat" / "identitas.txt").write_text(ADDR + "\n")
-        (self.root / ".gitignore").write_text("")
+        (self.home / ".mentat" / "identitas.txt").write_text(ADDR + "\n", encoding="utf-8")
+        (self.root / ".gitignore").write_text("", encoding="utf-8")
         self.session()
         self.assertFalse((self.root / ".mentat" / "identitas.json").exists())
-        (self.root / ".gitignore").write_text(".mentat/\n")
+        (self.root / ".gitignore").write_text(".mentat/\n", encoding="utf-8")
         self.session()
-        self.assertIn(ADDR, json.loads((self.root / ".mentat" / "identitas.json").read_text())["ids"])
+        self.assertIn(ADDR, json.loads((self.root / ".mentat" / "identitas.json").read_text(encoding="utf-8"))["ids"])
 
 
 if __name__ == "__main__":

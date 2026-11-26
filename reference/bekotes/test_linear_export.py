@@ -12,7 +12,7 @@ class LinearExportTest(unittest.TestCase):
     def test_no_key_exit_2(self):
         env = {k: v for k, v in os.environ.items() if k != "LINEAR_API_KEY"}
         r = subprocess.run([sys.executable, str(HERE / "linear_export.py"), "--team", "ZOL",
-                            "--out", "/nonexistent/x.json"], capture_output=True, text=True, env=env)
+                            "--out", "/nonexistent/x.json"], capture_output=True, text=True, env=env, encoding="utf-8", errors="replace")
         self.assertEqual(r.returncode, 2)
         self.assertEqual(len(r.stderr.strip().splitlines()), 1)
 

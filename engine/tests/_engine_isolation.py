@@ -20,7 +20,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent / "src"))
 
-from anytime_engine import config  # noqa: E402
+from anytime_engine import config, launchd, schedule  # noqa: E402
 from anytime_engine import state as state_mod  # noqa: E402
 
 _ENV_KEYS = (
@@ -28,6 +28,10 @@ _ENV_KEYS = (
     "ANYTIME_REVIEW_TIMES", "ANYTIME_REVIEW_WINDOWS", "ANYTIME_PLUGINS",
     "ANYTIME_TZ", "ANYTIME_CASES_MORNING",
 )
+
+
+def _no_launchctl(cmd):
+    raise AssertionError(f"a test tried to run {cmd!r}: set launchd.RUNNER to a fake")
 
 
 class IsolatedTestCase(unittest.TestCase):
@@ -44,6 +48,10 @@ class IsolatedTestCase(unittest.TestCase):
         config._repo_root = None
         self._saved_state_path = getattr(state_mod, "STATE_PATH", None)
         state_mod.STATE_PATH = None
+        # the schedule as a Linux box makes it, whatever host runs the tests; a test
+        # that reaches a real launchctl fails instead of loading a LaunchAgent
+        self._saved_sched = (schedule.PLATFORM, launchd.RUNNER)
+        schedule.PLATFORM, launchd.RUNNER = "linux", _no_launchctl
         warned = getattr(config, "_warned", None)
         if warned is not None:
             warned.clear()
@@ -56,5 +64,6 @@ class IsolatedTestCase(unittest.TestCase):
                 os.environ[k] = v
         config._repo_root = self._saved_root
         state_mod.STATE_PATH = self._saved_state_path
+        schedule.PLATFORM, launchd.RUNNER = self._saved_sched
         shutil.rmtree(self.root, ignore_errors=True)
         super().tearDown()

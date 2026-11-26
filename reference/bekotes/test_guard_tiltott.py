@@ -15,9 +15,9 @@ class GuardTiltott(unittest.TestCase):
         self.root = make_agent()
         self.addCleanup(shutil.rmtree, self.root, True)
         cfg = self.root / BIZ / "bekotes.json"
-        d = json.loads(cfg.read_text())
+        d = json.loads(cfg.read_text(encoding="utf-8"))
         d["sources"].append({"name": "w", "kind": "repo", "path": "munka/w", "tiltott": ["**/*.jpg"]})
-        cfg.write_text(json.dumps(d, ensure_ascii=False))
+        cfg.write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
         self.assertEqual(szerepek(self.root).returncode, 0)
 
     def decide(self, tool, inp, role=None, cwd=None):
@@ -27,7 +27,7 @@ class GuardTiltott(unittest.TestCase):
         payload = {"session_id": "s-%s" % (role or "x"), "cwd": str(cwd or self.root),
                    "tool_name": tool, "tool_input": inp}
         r = subprocess.run([sys.executable, str(self.root / ".mentat/bin/bekotes/szerep_guard.py")],
-                           input=json.dumps(payload), capture_output=True, text=True, env=e)
+                           input=json.dumps(payload), capture_output=True, text=True, env=e, encoding="utf-8", errors="replace")
         self.assertEqual(r.returncode, 0, r.stderr)
         return json.loads(r.stdout)["hookSpecificOutput"]["permissionDecision"] if r.stdout.strip() else "allow"
 

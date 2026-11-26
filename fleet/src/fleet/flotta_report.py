@@ -41,7 +41,7 @@ TIMEOUT_S = 10
 _KEYS = ((r"^küldés", "kuldes"), (r"^todo-ébresztés", "todo-ebresztes"), (r"^todo", "todo"),
          (r"^saját állapot", "allapot"), (r"^git", "git"),
          (r"^képesség:", "repo"), (r"^tick-kapu:", "tick"), (r"TILTVA", "kapu"), (r"nincs TELEGRAM_BOT_TOKEN", "token"),
-         (r"token nélkül", "nema-kuldes"))
+         (r"token nélkül", "nema-kuldes"), (r"^engedélykérő ablak", "ablak"))
 
 
 def check_key(line: str) -> str:

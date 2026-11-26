@@ -43,10 +43,12 @@ def vendor(root, lang="hu"):
     """Run BEKOTES step 0 verbatim in its local-tree mode (REF set: cp, no curl)."""
     fake = root / ".nocurl"
     fake.mkdir(exist_ok=True)
-    (fake / "curl").write_text("#!/bin/sh\necho curl-called >&2\nexit 1\n")
+    (fake / "curl").write_text("#!/bin/sh\necho curl-called >&2\nexit 1\n", encoding="utf-8")
     (fake / "curl").chmod(0o755)
-    env = dict(os.environ, REF=str(REF), PATH="%s:%s" % (fake, os.environ.get("PATH", "")))
-    r = subprocess.run(["bash", "-c", step0(lang)], cwd=root, env=env, capture_output=True, text=True)
+    env = dict(os.environ, REF=str(REF), PATH=os.pathsep.join((str(fake), os.environ.get("PATH", ""))))
+    # which(), not a bare "bash": on Windows CreateProcess finds System32's WSL bash before Git Bash
+    r = subprocess.run([shutil.which("bash") or "bash", "-c", step0(lang)], cwd=root, env=env,
+                       capture_output=True, text=True, encoding="utf-8")
     shutil.rmtree(fake)
     assert r.returncode == 0 and not r.stderr and ": " not in r.stdout, r.stdout + r.stderr
 
@@ -105,7 +107,7 @@ def env(root):
 
 def bk(root, *args):
     return subprocess.run([sys.executable, str(root / ".mentat/bin/bekotes/bekotes.py"), *args],
-                          capture_output=True, text=True, cwd=root, env=env(root))
+                          capture_output=True, text=True, cwd=root, env=env(root), encoding="utf-8", errors="replace")
 
 
 def leltar(root):

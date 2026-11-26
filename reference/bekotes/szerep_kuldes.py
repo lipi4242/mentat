@@ -45,7 +45,7 @@ def check(data, root):
         if mark.is_file() and mark.read_text(encoding="utf-8").strip() == turn:
             return None  # bounced once for this USER message: let it go
         mark.parent.mkdir(parents=True, exist_ok=True)
-        mark.write_text(turn, encoding="utf-8")
+        mark.write_bytes(turn.encode("utf-8"))
         return reason + (" (The message was not sent: rewrite it and send again.)" if lang == "en"
                          else " (Az üzenet nem ment el; írd át, és küldd újra.)")
     except Exception:  # noqa: BLE001 — a net: never block a reply on its own error

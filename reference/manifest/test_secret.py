@@ -12,20 +12,20 @@ TOOL = pathlib.Path(__file__).resolve().parent / "mentat_secret.py"
 
 def run(root, *args, stdin=""):
     return subprocess.run([sys.executable, "-I", str(TOOL), "--repo", str(root), *args], input=stdin,
-                          capture_output=True, text=True, timeout=30)
+                          capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace")
 
 
 class Secret(unittest.TestCase):
     def setUp(self):
         self.root = pathlib.Path(tempfile.mkdtemp())
         subprocess.run(["git", "init", "-q", str(self.root)], check=True)
-        (self.root / ".gitignore").write_text(".env\n")
+        (self.root / ".gitignore").write_text(".env\n", encoding="utf-8")
 
     def test_put_writes_0600_and_has_never_prints_the_value(self):
         r = run(self.root, "put", "CF_TOKEN", stdin="  titkos-ertek-9  \n")
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         env = self.root / ".env"
-        self.assertEqual(env.read_text(), "CF_TOKEN=titkos-ertek-9\n")
+        self.assertEqual(env.read_text(encoding="utf-8"), "CF_TOKEN=titkos-ertek-9\n")
         self.assertEqual(env.stat().st_mode & 0o777, 0o600)
         h = run(self.root, "has", "CF_TOKEN")
         self.assertEqual(h.returncode, 0)

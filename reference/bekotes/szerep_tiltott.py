@@ -13,6 +13,7 @@ import pathlib
 import posixpath
 
 from fajlszuro import SECRET_GLOBS
+from szerep_bash import win_path
 
 DEV_ROLE = "fejleszto"
 WILD = set("*?[")
@@ -53,8 +54,8 @@ def read_rules(root, brain_root, role):
     return out
 
 
-def _forms(p):
-    return {os.path.normpath(str(p)).lower(), os.path.realpath(str(p)).lower()}
+def _forms(p):  # "/"-separated on Windows too (C:/users/x): the ancestor test below compares by "/"
+    return {win_path(os.path.normpath(str(p))).lower(), win_path(os.path.realpath(str(p))).lower()}
 
 
 def _locations(root, brain_root):

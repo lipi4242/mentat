@@ -38,7 +38,7 @@ def write(root, query, index, cands, rec):
            "recommendation": rec, "decision": None}
     path = pathlib.Path(root) / rel
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(doc, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    path.write_bytes((json.dumps(doc, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
     return rel.as_posix()
 
 
@@ -77,9 +77,9 @@ def decide(root, receipt, decision, current_hash, candidate=None, why="", approv
     doc["decision"] = {"decision": decision, "candidate": candidate, "why": why or "",
                        "approved": approved or "", "decided_at": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())}
     body = json.dumps(doc, indent=2, ensure_ascii=False) + "\n"
-    path.write_text(body, encoding="utf-8")
+    path.write_bytes(body.encode("utf-8"))
     line = {"receipt": path.name, "sha256": hashlib.sha256(body.encode("utf-8")).hexdigest(),
             "decided_at": doc["decision"]["decided_at"]}
-    with open(path.parent / LEDGER, "a", encoding="utf-8") as f:
+    with open(path.parent / LEDGER, "a", encoding="utf-8", newline="\n") as f:
         f.write(json.dumps(line) + "\n")
     return 0, "OK %s %s" % (decision, candidate or "")

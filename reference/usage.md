@@ -21,11 +21,19 @@ The brain is a private git repository, so the same agent can live in more than o
 |---|---|---|
 | Your own computer | Claude Code (desktop app or terminal); on Windows also Git for Windows | Getting started. Works for non-technical users; the install takes a few minutes. |
 | Several computers | The same private repo (for example on GitHub) cloned on each; the agent saves with git, and you pull before you start on the other machine | One person with a laptop and a desktop, or one agent helping on several family computers. |
-| A server, always on | A Linux server with the [fleet](https://github.com/lipi4242/mentat/tree/v0.6.1/fleet) runner; Telegram for talking to it | An agent that works on a schedule and answers you on your phone, also when your computer is off. |
+| A server, always on | A Linux server with the [fleet](https://github.com/lipi4242/mentat/tree/v0.7.0/fleet) runner; Telegram for talking to it | An agent that works on a schedule and answers you on your phone, also when your computer is off. |
 | Several sessions on one computer | Open more than one Claude Code session in the same folder; optionally a role per session (`MENTAT_ROLE=<role> claude`) | Working on two things at once. The sessions share one long-term memory. |
 | From your phone or the web | Run `/rc` (remote control) in a session | Continuing a session started on your computer from elsewhere. |
 
 One rule across setups: the engine's schedule runs in one place only. If two machines tick for the same agent, reminders go out twice. The fleet runner keeps it on the server; on a personal computer, `setup --doctor` shows what is installed.
+
+### Help: /mentat
+
+`/mentat` tells you what the agent can do, gives three first tasks, and says the same on every machine: its text is hand-written and versioned, not composed by the model. `/mentat status` shows in four lines who is working with you, whether the todo is on, who schedules the runs, and the next step. `/mentat todo` walks you through switching on the todo and the backlog, first on your own computer.
+
+### Who is working with you: the status line and /whoami
+
+A line at the bottom of Claude Code shows who is working with you: the agent's name and role, in a fleet also whose fleet it belongs to, then the model, how full the context is, how much of your usage limit is used (when Claude Code provides it), the folder with its branch, and a short tip. Missing data simply leaves its part out. Installing writes it into the project's `.claude/settings.json`. If you already have your own status line (for example another tool's), it stays unless you say yes, and the decision is recorded in `.mentat/statusline.json`. Where there is no status line, such as the Claude desktop app, the `/whoami` command prints the same.
 
 ## Typical situations
 

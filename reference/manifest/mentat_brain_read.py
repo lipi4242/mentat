@@ -3,6 +3,7 @@ import datetime
 import re
 import unicodedata
 
+import mentat_brain_tipus as tp
 import mentat_brain_types as bt
 
 CLOSED = {"done", "cancelled", "dropped", "superseded", "skipped", "decided"}
@@ -28,8 +29,8 @@ def notes(root, brain):
         yield p, fm, t.strip(), text
 
 
-def deadline(fm):
-    when = (fm.get("due_at") or fm.get("due") or "").split()[0:1]
+def deadline(fm, due_field=""):
+    when = (fm.get("due_at") or fm.get("due") or fm.get(due_field) or "").split()[0:1]
     return when[0] if when and re.match(r"\d{4}-\d\d-\d\d$", when[0]) else ""
 
 
@@ -52,12 +53,12 @@ def is_open(fm):
 def due(a, root, brain):
     today = bt.local_today(root)
     horizon = today + datetime.timedelta(days=a.days)
-    rows, all_notes = [], list(notes(root, brain))
+    rows, all_notes, defs = [], list(notes(root, brain)), tp.load(root, brain)
     names = {p.stem: (fm.get("name") or title) for p, fm, title, _ in all_notes if fm.get("type") == "person"}
     for p, fm, title, text in all_notes:
         if not is_open(fm) or "type" not in fm:
             continue
-        when = deadline(fm)
+        when = deadline(fm, (defs.get(fm["type"]) or {}).get("due_field", ""))
         if when and when > horizon.isoformat():
             continue
         if not when and not (a.all and fm["type"] in ("todo", "case", "specification")):
@@ -81,13 +82,16 @@ def fold(s):
 def find(a, root, brain):
     words, hits = [fold(w) for w in a.words], []
     for p, fm, title, text in notes(root, brain):
+        if a.type and fm.get("type") != a.type:
+            continue
         low = fold(text + " " + p.name)
         if all(w in low for w in words):
             score = sum(fold(title + p.name).count(w) * 5 + low.count(w) for w in words)
             line = next((ln.strip() for ln in text.splitlines()
                          if ln.strip() != "---" and all(w in fold(ln) for w in words[:1])), title)
             when = deadline(fm) if is_open(fm) else ""
-            hits.append((-score, str(p.relative_to(root)), line[:110] + (" [due %s]" % when if when else "")))
+            rel = "%s [%s]" % (p.relative_to(root).as_posix(), fm.get("type") or "?")
+            hits.append((-score, rel, line[:110] + (" [due %s]" % when if when else "")))
     for _, rel, line in sorted(hits)[:a.limit]:
         print("%s: %s" % (rel, line))
     print("%d hit(s)%s" % (len(hits), "" if len(hits) <= a.limit else ", showing %d (--limit)" % a.limit))

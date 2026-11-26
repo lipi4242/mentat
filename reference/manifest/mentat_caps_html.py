@@ -82,5 +82,5 @@ def write(root, views, index, lang, by_id, who=""):
     page = page.replace("<title>Képességfa</title>", "<title>%s</title>" % L[lang]["title"])
     path = pathlib.Path(root) / OUT
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(page, encoding="utf-8")
+    path.write_bytes(page.encode("utf-8"))
     return OUT.as_posix()

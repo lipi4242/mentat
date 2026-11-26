@@ -4,7 +4,29 @@ Todo tracks a shared task tree, assignments, checklists, labels and comments.
 Completing a recurring task advances the same row beyond today; missed dates
 never create backlog. Dropped work is a valid closure.
 
-## Install and identify callers
+## Connect an agent (one command)
+
+From the admin checkout (`~/src/mentat/admin/worker`):
+
+```bash
+npm run connect -- --repo <agent repo> --url http://localhost:8787 --local --plugins todo [--handle <name>]
+```
+
+(`--remote --url https://<your admin>` for a Cloudflare instance.) It does the
+steps below for the agent: a token with `todo:write` (plus `cases:write` if the
+repo already uses cases) in the repo's `.env` as `MENTAT_ADMIN_TOKEN`, the
+agent principal mapped to that token, and the handle in `mentat.json`
+`components.admin.todo_handle`. A repo that already has a token without
+`todo:write` gets a new one, and the old one is revoked once the new one
+answers. Check it with `mentat-todo me`: it prints the agent's own principal
+with no `--as`. What is left by hand: 1) run the command; 2) sign in once
+(`npm run login-link`) and create your own human principal on **Résztvevők**.
+
+A session in a repo with no `mentat.json` handle (e.g. your own work repo) uses
+the machine-wide default: `TODO_HANDLE=<handle>` in `~/.config/todo/env`, next
+to `TODO_API=`, with the token in `~/.config/todo/<handle>.token` (0600).
+
+## Install and identify callers by hand
 
 1. The product registries are `config/plugins.ts` and `admin/src/instance.ts`.
    Todo owns migration band **0400–0499**. For a dedicated todo instance,
@@ -22,7 +44,7 @@ never create backlog. Dropped work is a valid closure.
    Include its Telegram bot photo as `avatar` using **Agent avatar at token setup** below.
    Tokens remain core credentials: expiry/revocation takes effect immediately.
 4. Store the plaintext token only in the agent's existing secret store or a
-   gitignored, mode-0600 environment file. Set `MENTAT_TOKEN` from there;
+   gitignored, mode-0600 environment file. Set `MENTAT_ADMIN_TOKEN` from there;
    do not paste tokens into chat, commits or curl command history. Record the
    instance URL and `todo` in the agent repo's Mentat configuration. No brain
    inventory is migrated automatically.
@@ -63,7 +85,7 @@ idempotent and create-only: replaying its key does not update an existing avatar
 ## Agent examples
 
 Assumes `jq`, `MENTAT_URL` (worker origin), and a securely loaded
-`MENTAT_TOKEN`. Persist the create key before the first request and reuse it
+`MENTAT_ADMIN_TOKEN`. Persist the create key before the first request and reuse it
 until that request succeeds. First payload wins; a replay returns 200 and
 creates no extra event.
 
@@ -71,31 +93,31 @@ creates no extra event.
 TODO_API="$MENTAT_URL/api/todo/v1"
 # Example stable key: replace for each new logical task, retain for retries.
 TASK_JSON=$(curl --fail-with-body -sS "$TODO_API/tasks" \
-  -H "X-Mentat-Token: $MENTAT_TOKEN" -H 'Content-Type: application/json' \
+  -H "X-Mentat-Token: $MENTAT_ADMIN_TOKEN" -H 'Content-Type: application/json' \
   -d '{"title":"Reggeli check-in","repeat_rule":"weekdays","due_date":"2026-10-28","idem_key":"morning-check-in-v1"}')
 TASK_ID=$(printf '%s' "$TASK_JSON" | jq -r '.id')
 REV=$(printf '%s' "$TASK_JSON" | jq -r '.rev')
 
 # Make a child; owner defaults to the calling principal.
 curl --fail-with-body -sS "$TODO_API/tasks" \
-  -H "X-Mentat-Token: $MENTAT_TOKEN" -H 'Content-Type: application/json' \
+  -H "X-Mentat-Token: $MENTAT_ADMIN_TOKEN" -H 'Content-Type: application/json' \
   -d "$(jq -n --arg p "$TASK_ID" '{title:"Egy kis lépés",parent_id:$p,idem_key:"morning-child-v1"}')"
 
 # Every task mutation, including comments/labels/deps, needs its current rev.
 curl --fail-with-body -sS -X PATCH "$TODO_API/tasks/$TASK_ID" \
-  -H "X-Mentat-Token: $MENTAT_TOKEN" -H 'Content-Type: application/json' \
+  -H "X-Mentat-Token: $MENTAT_ADMIN_TOKEN" -H 'Content-Type: application/json' \
   -d "$(jq -n --argjson r "$REV" '{expected_rev:$r,set:{description:"@owner Egy közös lépés"}}')"
 
 # Read back before a different write; never blindly refresh rev to retry complete.
-TASK_JSON=$(curl --fail-with-body -sS "$TODO_API/tasks/$TASK_ID" -H "X-Mentat-Token: $MENTAT_TOKEN")
+TASK_JSON=$(curl --fail-with-body -sS "$TODO_API/tasks/$TASK_ID" -H "X-Mentat-Token: $MENTAT_ADMIN_TOKEN")
 REV=$(printf '%s' "$TASK_JSON" | jq -r '.rev')
 curl --fail-with-body -sS "$TODO_API/tasks/$TASK_ID/complete" \
-  -H "X-Mentat-Token: $MENTAT_TOKEN" -H 'Content-Type: application/json' \
+  -H "X-Mentat-Token: $MENTAT_ADMIN_TOKEN" -H 'Content-Type: application/json' \
   -d "$(jq -n --argjson r "$REV" '{expected_rev:$r}')"
 
 # Change feed: persist the last processed seq, follow pages until empty.
 curl --fail-with-body -sS "$TODO_API/changes?since=0&limit=100&for=my_agent" \
-  -H "X-Mentat-Token: $MENTAT_TOKEN"
+  -H "X-Mentat-Token: $MENTAT_ADMIN_TOKEN"
 ```
 
 On **409**, `{error,current}` contains the current task. Inspect it and

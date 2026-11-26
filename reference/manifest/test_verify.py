@@ -54,6 +54,7 @@ class Listing(unittest.TestCase):
     def test_freeze_writes_a_current_list_and_the_flag(self):
         tree = pathlib.Path(tempfile.mkdtemp())
         shutil.copytree(TREE / "reference", tree / "reference")
+        shutil.copytree(TREE / "skills", tree / "skills")  # the curl step downloads the skills too
         (tree / "release.json").write_text(json.dumps({"version": "9.9.9", "files": {}}), encoding="utf-8")
         subprocess.run([sys.executable, str(HERE / "mentat_verify.py"), "--write", str(tree), "--freeze"],
                        check=True, capture_output=True)
@@ -79,7 +80,7 @@ class Verify(unittest.TestCase):
         p.write_text(p.read_text(encoding="utf-8") + "\nprint('x')\n", encoding="utf-8")
         r = subprocess.run([sys.executable, str(self.bin / "mentat_init.py"), "--repo", str(self.root),
                             "--lang", "en", "--user", "A B", "--address", "tegez", "--agent", "T",
-                            "--base", "https://example.com/v9/", "--no-prove"], capture_output=True, text=True)
+                            "--base", "https://example.com/v9/", "--no-prove"], capture_output=True, text=True, encoding="utf-8", errors="replace")
         self.assertNotEqual(r.returncode, 0)
         self.assertIn("MENTAT-INIT HIBA", r.stdout)
         self.assertIn("bekotes/szerep_guard.py", r.stdout)
@@ -98,7 +99,7 @@ class Verify(unittest.TestCase):
     def run_init(self, *py_flags):
         return subprocess.run([sys.executable, *py_flags, str(self.bin / "mentat_init.py"), "--repo", str(self.root),
                                "--lang", "en", "--user", "A B", "--address", "tegez", "--agent", "T",
-                               "--base", "https://example.com/v9/", "--no-prove"], capture_output=True, text=True)
+                               "--base", "https://example.com/v9/", "--no-prove"], capture_output=True, text=True, encoding="utf-8", errors="replace")
 
     def test_a_missing_listed_file_stops_with_its_name(self):  # CISO: a partial download
         (self.bin / "bekotes" / "szerep_kapu.py").unlink()

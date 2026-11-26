@@ -18,7 +18,7 @@ STOP = set("the a an and or of to in on for with is was not no it this that be a
 
 def _gh(args, timeout=30):
     try:
-        return subprocess.run(["gh", *args], capture_output=True, text=True, timeout=timeout)
+        return subprocess.run(["gh", *args], capture_output=True, text=True, timeout=timeout, encoding="utf-8", errors="replace")
     except (OSError, subprocess.TimeoutExpired) as exc:
         return subprocess.CompletedProcess(args, 99, "", str(exc))
 

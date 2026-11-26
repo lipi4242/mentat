@@ -53,7 +53,7 @@ def load(root, cid):
 def save(root, c):
     p = path(root, c["id"])
     p.parent.mkdir(parents=True, exist_ok=True)
-    p.write_text(json.dumps(c, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    p.write_bytes((json.dumps(c, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
 
 
 def approved(root, cid):

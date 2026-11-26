@@ -16,6 +16,8 @@ Python API: `accept(root, contract_id, output_path, recipients=None, lang=None, 
 import argparse
 import pathlib
 import sys
+for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows: a pipe is the ANSI code page, not UTF-8
+    getattr(_s, "reconfigure", lambda **k: None)(encoding="utf-8", errors="replace")
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import mentat_accept_checks as checks  # noqa: E402

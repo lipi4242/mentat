@@ -14,7 +14,7 @@ TEXT = {
     "hu": {"title": "Bekötés", "resp": "Mire felelsz — a források és állapotuk:",
            "map": "Tudástérkép: `%s` (terkep.md, business.md, rendszerek.md, emberek.md); "
                   "minden állítás forrással: (forrás: <forrás>:<útvonal vagy azonosító>).",
-           "main": "Fő szerep: @%s", "nomain": "Fő szerep: nincs beállítva (bekotes.py szerepek)",
+           "main": "A fő szereped szabályai (felelősség, tiltások): @%s", "nomain": "Fő szerep: nincs beállítva (bekotes.py szerepek)",
            "other": "További szerepek (MENTAT_ROLE=<név> claude, vagy /szerep <név>): %s",
            "none": "nincs leltár",
            "human": "Emberi döntés kell: pénz, kiadás (a kiadó ágens), küldés, jogosultság-bővítés — a tulajdonosnál.",
@@ -24,7 +24,7 @@ TEXT = {
     "en": {"title": "Onboarded business", "resp": "What you are responsible for — the sources and their state:",
            "map": "Knowledge map: `%s` (terkep.md, business.md, rendszerek.md, emberek.md); "
                   "every statement cites its source: (forrás: <source>:<path or id>).",
-           "main": "Main role: @%s", "nomain": "Main role: not set (bekotes.py szerepek)",
+           "main": "Your main role's rules (responsibility, denials): @%s", "nomain": "Main role: not set (bekotes.py szerepek)",
            "other": "Other roles (MENTAT_ROLE=<name> claude, or /szerep <name>): %s",
            "none": "no inventory",
            "human": "Human decision needed: money, releases (the release agent), sending, widening permissions — with the owner.",
@@ -88,6 +88,6 @@ def run(a):
     else:
         new = (text.rstrip("\n") + "\n\n" + block) if text.strip() else block
     if new != text:
-        path.write_text(new, encoding="utf-8")
+        path.write_bytes(new.encode("utf-8"))
     print("AGENTS.md: %s blokk" % bid)
     return 0

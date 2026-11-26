@@ -31,7 +31,7 @@ def _json(path):
 
 def _out(cmd):
     try:
-        p = subprocess.run(cmd, capture_output=True, text=True, timeout=5)
+        p = subprocess.run(cmd, capture_output=True, text=True, timeout=5, encoding="utf-8", errors="replace")
     except (OSError, subprocess.TimeoutExpired):
         return None
     m = re.search(r"\d+\.\d+(\.\d+)?", p.stdout) if p.returncode == 0 else None
@@ -89,7 +89,7 @@ def environment_text(f):
 
 def _git(repo, key):
     try:
-        p = subprocess.run(["git", "-C", str(repo), "config", key], capture_output=True, text=True, timeout=5)
+        p = subprocess.run(["git", "-C", str(repo), "config", key], capture_output=True, text=True, timeout=5, encoding="utf-8", errors="replace")
     except (OSError, subprocess.TimeoutExpired):
         return None
     return p.stdout.strip() or None

@@ -18,7 +18,7 @@ class IdentityGate(KintBase):
     def setUp(self):
         super().setUp()
         (self.home / ".mentat").mkdir()
-        (self.home / ".mentat" / "identitas.txt").write_text(ADDR + "\n")
+        (self.home / ".mentat" / "identitas.txt").write_text(ADDR + "\n", encoding="utf-8")
 
     def reason(self, tool, inp, mode):
         r = self.run_guard(self.payload(tool, inp, mode))
@@ -54,11 +54,11 @@ class IdentityGate(KintBase):
     def test_session_start_caches_the_identifiers_privately(self):
         import subprocess
         subprocess.run(["git", "-C", str(self.root), "init", "-q"], capture_output=True)
-        (self.root / ".gitignore").write_text(".mentat/\n")  # the cache only where git ignores it
+        (self.root / ".gitignore").write_text(".mentat/\n", encoding="utf-8")  # the cache only where git ignores it
         r = self.run_guard({"hook_event_name": "SessionStart", "session_id": "s1"}, args=("--session-start",))
         self.assertEqual(r.returncode, 0, r.stderr)
         cache = self.root / ".mentat" / "identitas.json"
-        self.assertIn(ADDR, json.loads(cache.read_text())["ids"])
+        self.assertIn(ADDR, json.loads(cache.read_text(encoding="utf-8"))["ids"])
         self.assertEqual(stat.S_IMODE(os.stat(cache).st_mode), 0o600)
         (self.home / ".mentat" / "identitas.txt").unlink()
         self.assertEqual(self.d("WebFetch", {"url": OPENALEX, "prompt": "x"}), "ask")  # from the cache

@@ -12,7 +12,7 @@ def private(path, text):
     """Write a file only its owner can read (the state holds the form's token)."""
     tmp = "%s.%d.tmp" % (path, os.getpid())
     fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
-    with os.fdopen(fd, "w", encoding="utf-8") as f:
+    with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as f:
         f.write(text)
     os.replace(tmp, path)
 
@@ -46,7 +46,7 @@ def alive(st):
     else:
         cmd = ["ps", "-o", "command=", "-p", str(pid)]
     try:
-        out = subprocess.run(cmd, capture_output=True, text=True).stdout
+        out = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace").stdout
     except OSError:
         return False
     return "mentat_serve_run.py" in out and str(st.get("state", "\0")) in out

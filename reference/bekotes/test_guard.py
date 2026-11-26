@@ -17,7 +17,7 @@ def make_repo(roles=ROLES):
     root = pathlib.Path(tempfile.mkdtemp())
     doc = {"schema": 1, "components": {"brain": {"root": "agy"}}}
     doc.update(roles or {})
-    (root / "mentat.json").write_text(json.dumps(doc))
+    (root / "mentat.json").write_text(json.dumps(doc), encoding="utf-8")
     (root / "agy" / "szerepek").mkdir(parents=True)
     for n in ("asszisztens", "fejleszto", "kiado"):
         shutil.copy(HERE / "szerepek" / (n + ".hu.md"), root / "agy" / "szerepek" / (n + ".md"))
@@ -46,7 +46,7 @@ class GuardBase(unittest.TestCase):
             env["MENTAT_ROLE"] = role
         payload = dict({"cwd": str(self.root), "session_id": "s1"}, **payload)
         return subprocess.run([sys.executable, str(GUARD), *args], input=json.dumps(payload),
-                              capture_output=True, text=True, env=env, cwd=self.root)
+                              capture_output=True, text=True, env=env, cwd=self.root, encoding="utf-8", errors="replace")
 
     def decide(self, tool, inp, role=None, sid="s1", **extra):
         r = self.run_guard(dict({"tool_name": tool, "tool_input": inp, "session_id": sid}, **extra), role)
@@ -92,7 +92,7 @@ class GuardTest(GuardBase):
     def test_role_is_pinned_per_session(self):
         self.decide("Read", {"file_path": "a"}, "fejleszto")
         pin = self.root / ".mentat" / "szerep" / "s1"
-        self.assertEqual(pin.read_text().splitlines()[0], "fejleszto")
+        self.assertEqual(pin.read_text(encoding="utf-8").splitlines()[0], "fejleszto")
         # a later run with a different env still uses the pin
         self.assertEqual(self.decide("Bash", {"command": "git push origin feat/x"}), "allow")
 
@@ -107,8 +107,8 @@ class GuardTest(GuardBase):
         self.assertEqual(ctx["hookEventName"], "SessionStart")
         self.assertIn("Szerep ebben a futásban: fejleszto (env)", ctx["additionalContext"])
         self.assertIn("agy/szerepek/fejleszto.md", ctx["additionalContext"])
-        self.assertEqual((self.root / ".mentat" / "szerep" / "s1").read_text().splitlines()[0], "fejleszto")
-        self.assertIn(".mentat/", (self.root / ".gitignore").read_text().split())
+        self.assertEqual((self.root / ".mentat" / "szerep" / "s1").read_text(encoding="utf-8").splitlines()[0], "fejleszto")
+        self.assertIn(".mentat/", (self.root / ".gitignore").read_text(encoding="utf-8").split())
 
     def test_session_start_default_is_silent(self):
         r = self.run_guard({}, None, ["--session-start"])
@@ -119,7 +119,7 @@ class GuardTest(GuardBase):
         caller = pathlib.Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, caller, True)
         (caller / ".ssh").mkdir()
-        (caller / ".ssh" / "config").write_text("Host doboz\n  HostName 192.0.2.7\n")
+        (caller / ".ssh" / "config").write_text("Host doboz\n  HostName 192.0.2.7\n", encoding="utf-8")
         with mock.patch.dict(os.environ, {"HOME": str(caller)}):
             r = self.run_guard({}, None, ["--session-start"])
         self.assertEqual(r.stdout.strip(), "")

@@ -12,7 +12,7 @@ import argparse
 import json
 import pathlib
 
-INSTALL = "INSTALL.md step 2 (reference/initialization.md) again, with the USER's yes"
+INSTALL = "FIRST-INSTALL.md step 2 (reference/initialization.md) again, with the USER's yes"
 ENGINE = ("the same mentat_init.py command again, with --engine --tz <the USER's timezone> "
           "(it installs the engine pinned to this release; nothing else changes)")
 RULE = {"hu": "SZABÁLY: a hiányzó részt mondd ki egyszerű szavakkal, és ajánld fel a telepítését; helyette "

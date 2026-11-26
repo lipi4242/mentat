@@ -74,7 +74,7 @@ class GuardForbiddenReads(unittest.TestCase):
         payload = {"session_id": "s-" + (role or "x"), "cwd": str(self.root), "tool_name": "Read",
                    "tool_input": {"file_path": path}}
         r = subprocess.run([sys.executable, str(self.root / ".mentat/bin/bekotes/szerep_guard.py")],
-                           input=json.dumps(payload), capture_output=True, text=True, env=e)
+                           input=json.dumps(payload), capture_output=True, text=True, env=e, encoding="utf-8", errors="replace")
         self.assertEqual(r.returncode, 0, r.stderr)
         return json.loads(r.stdout)["hookSpecificOutput"]["permissionDecision"] if r.stdout.strip() else "allow"
 

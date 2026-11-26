@@ -16,13 +16,13 @@ CLI = pathlib.Path(__file__).resolve().parent / "mentat_cli.py"
 def run_env(root, extra, *args):
     return subprocess.run([sys.executable, str(CLI), *args, "--repo", str(root)],
                           capture_output=True, text=True,
-                          env=dict(os.environ, **extra))
+                          env=dict(os.environ, **extra), encoding="utf-8", errors="replace")
 
 
 def run(root, *args):
     env = {k: v for k, v in os.environ.items() if k != "MENTAT_ROLE"}
     return subprocess.run([sys.executable, str(CLI), *args, "--repo", str(root)],
-                          capture_output=True, text=True, env=env)
+                          capture_output=True, text=True, env=env, encoding="utf-8", errors="replace")
 
 
 class Roles(unittest.TestCase):
@@ -34,13 +34,32 @@ class Roles(unittest.TestCase):
     def test_roles_written_and_default_installed(self):
         r = run(self.root, "roles", "--default", "asszisztens", "--install", "fejleszto")
         self.assertEqual(r.returncode, 0, r.stderr)
-        m = json.loads((self.root / "mentat.json").read_text())
+        m = json.loads((self.root / "mentat.json").read_text(encoding="utf-8"))
         self.assertEqual(m["roles"], {"default": "asszisztens",
                                       "installed": ["asszisztens", "fejleszto"]})
 
     def test_roles_bad_name_refused(self):
         r = run(self.root, "roles", "--default", "Bad Name")
         self.assertEqual(r.returncode, 1)
+
+    def test_role_without_file_or_template_refused_and_manifest_unchanged(self):
+        run(self.root, "roles", "--default", "asszisztens")
+        before = (self.root / "mentat.json").read_bytes()
+        for args in (("--default", "penzugy"), ("--default", "asszisztens", "--install", "penzugy")):
+            r = run(self.root, "roles", *args)
+            self.assertEqual(r.returncode, 1, args)
+            self.assertIn("penzugy", r.stderr)
+            self.assertIn(str(pathlib.Path("agy") / "szerepek" / "penzugy.md"), r.stderr)
+            self.assertEqual((self.root / "mentat.json").read_bytes(), before, args)
+
+    def test_role_with_own_file_or_shipped_template_installs(self):
+        own = self.root / "agy" / "szerepek" / "penzugy.md"
+        own.parent.mkdir(parents=True)
+        own.write_text("---\nname: penzugy\ndeny: []\n---\n", encoding="utf-8")
+        r = run(self.root, "roles", "--default", "penzugy", "--install", "consultant,kiado")
+        self.assertEqual(r.returncode, 0, r.stderr)
+        m = json.loads((self.root / "mentat.json").read_text(encoding="utf-8"))
+        self.assertEqual(m["roles"]["installed"], ["penzugy", "consultant", "kiado"])
 
     def test_role_env_overrides_default_only_if_installed(self):
         run(self.root, "roles", "--default", "asszisztens", "--install", "fejleszto")
@@ -64,9 +83,9 @@ class Roles(unittest.TestCase):
 
     def _set_roles(self, roles):
         p = self.root / "mentat.json"
-        m = json.loads(p.read_text())
+        m = json.loads(p.read_text(encoding="utf-8"))
         m["roles"] = roles
-        p.write_text(json.dumps(m))
+        p.write_text(json.dumps(m), encoding="utf-8")
 
     def test_role_refuses_invalid_section(self):
         for roles, env in (({"default": "a", "installed": "fejleszto"}, "fej"),
@@ -80,7 +99,7 @@ class Roles(unittest.TestCase):
         self.assertEqual(run(self.root, "roles", "--default", "x\n").returncode, 1)
         import mentat_rules
         self._set_roles({"installed": ["x\n"]})
-        m = json.loads((self.root / "mentat.json").read_text())
+        m = json.loads((self.root / "mentat.json").read_text(encoding="utf-8"))
         self.assertEqual(mentat_rules.evaluate(m, None)["errors"][0]["at"],
                          "roles.installed[0]")
 

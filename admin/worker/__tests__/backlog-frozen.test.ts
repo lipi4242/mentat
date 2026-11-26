@@ -60,7 +60,7 @@ describe('the AC set a PM accepts is the set the developer reported on', () => {
     const { imp, get, call } = await importer();
     const id = (await imp({ labels: ['bug'] })).body.id;
     expect((await get(id)).labels.map((l: any) => l.name)).toEqual(['bug']);
-    await call('POST', `/tasks/${id}/labels`, { label_ids: [], expected_rev: (await get(id)).rev });
+    await call('POST', `/tasks/${id}/labels`, { label_ids: [], expected_rev: (await get(id)).rev }, { 'X-Mentat-Token': 'c' }); // the PM
     expect((await imp({ labels: ['bug', 'new'] })).body.added.labels).toBe(0);
     expect((await get(id)).labels).toEqual([]);
   });

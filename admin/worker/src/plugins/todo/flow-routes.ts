@@ -4,6 +4,7 @@ import { actorId, enabledPrincipal } from './kinds';
 import { currentItem } from './item-store';
 import { allowed, SIMPLE, transition } from './flow';
 import { submitMove, verdictMove } from './flow-review';
+import { requireNotOwnDev } from './access';
 
 const FROM = { submit: ['taken'], accept: ['review'], reject: ['review'] } as const;
 export function registerFlow(app: Hono<TodoEnv>) {
@@ -18,6 +19,7 @@ export function registerFlow(app: Hono<TodoEnv>) {
       let dev: string | undefined;
       if (verb === 'issue') {
         dev = await enabledPrincipal(c.env.DB, body.dev, 'dev');
+        requireNotOwnDev(c, item.owner_id, dev);
         if (!await c.env.DB.prepare('SELECT 1 FROM backlog_ac WHERE item_id = ? AND removed_at IS NULL').bind(item.id).first()) throw new Problem('issue needs at least one live AC');
       }
       return transition(c, item, SIMPLE[verb](item, { dev, note }));
@@ -29,6 +31,7 @@ export function registerFlow(app: Hono<TodoEnv>) {
       keys(body, verb === 'submit' ? ['round', 'results', 'summary', 'body', 'head_sha', 'links', 'expected_rev'] : ['checks', 'note', 'expected_rev']);
       const item = await currentItem(c, body); if (item instanceof Response) return item;
       allowed(c, item, verb, [...FROM[verb]], verb === 'submit' ? 'dev' : 'pm');
+      if (verb !== 'submit') requireNotOwnDev(c, actorId(c), item.dev_id);
       const move = verb === 'submit' ? await submitMove(c.env.DB, item, actorId(c), body)
         : await verdictMove(c.env.DB, item, actorId(c), body, verb === 'accept');
       return transition(c, item, move);

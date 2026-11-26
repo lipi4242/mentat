@@ -31,18 +31,18 @@ class Model(unittest.TestCase):
         self.root.mkdir()
         subprocess.run(["git", "init", "-q", str(self.root)], check=True)
         fake = self.tmp / "claude"
-        fake.write_text(FAKE)
+        fake.write_text(FAKE, encoding="utf-8")
         fake.chmod(0o755)
         self.env = dict(os.environ, MENTAT_CLAUDE=str(fake), MENTAT_KEY_FILE=str(self.tmp / "cfg" / "openrouter.env"))
         self.env.pop("FLEET_AGENT", None)
 
     def run_tool(self, *args, stdin=None, **extra):
         return subprocess.run([sys.executable, str(TOOL), "--repo", str(self.root), *args], capture_output=True,
-                              text=True, input=stdin, env=dict(self.env, **extra))
+                              text=True, input=stdin, env=dict(self.env, **extra), encoding="utf-8", errors="replace")
 
     def settings(self):
         p = self.root / ".claude" / "settings.local.json"
-        return json.loads(p.read_text()) if p.exists() else None
+        return json.loads(p.read_text(encoding="utf-8")) if p.exists() else None
 
     def test_key_from_stdin_is_saved_0600_and_never_printed(self):
         r = self.run_tool("key", stdin=KEY + "\n")
@@ -50,7 +50,7 @@ class Model(unittest.TestCase):
         self.assertNotIn(KEY, r.stdout + r.stderr)
         f = self.tmp / "cfg" / "openrouter.env"
         self.assertEqual(stat.S_IMODE(f.stat().st_mode), 0o600)
-        self.assertEqual(f.read_text(), "OPENROUTER_API_KEY=%s\n" % KEY)
+        self.assertEqual(f.read_text(encoding="utf-8"), "OPENROUTER_API_KEY=%s\n" % KEY)
 
     def test_key_that_is_not_openrouter_is_refused(self):
         self.assertEqual(self.run_tool("key", stdin="sk-ant-xyz\n").returncode, 2)
@@ -64,7 +64,7 @@ class Model(unittest.TestCase):
     def test_use_switches_every_alias_probes_and_keeps_the_file_ignored(self):
         self.run_tool("key", stdin=KEY)
         (self.root / ".claude").mkdir()
-        (self.root / ".claude" / "settings.local.json").write_text('{"permissions": {"allow": ["Bash(ls)"]}}')
+        (self.root / ".claude" / "settings.local.json").write_text('{"permissions": {"allow": ["Bash(ls)"]}}', encoding="utf-8")
         r = self.run_tool("use", MODEL)
         self.assertEqual(r.returncode, 0, r.stdout)
         s = self.settings()
@@ -82,7 +82,7 @@ class Model(unittest.TestCase):
         for rel in (".claude/settings.local.json", ".mentat/model.env"):
             ok = subprocess.run(["git", "-C", str(self.root), "check-ignore", "-q", rel])
             self.assertEqual(ok.returncode, 0, rel)
-        self.assertEqual((self.root / ".mentat" / "model.env").read_text(), "MENTAT_MODEL=%s\n" % MODEL)
+        self.assertEqual((self.root / ".mentat" / "model.env").read_text(encoding="utf-8"), "MENTAT_MODEL=%s\n" % MODEL)
         self.assertIn(MODEL, self.run_tool("status").stdout)
 
     def test_probe_answering_from_claude_rolls_back(self):
@@ -97,9 +97,9 @@ class Model(unittest.TestCase):
         self.run_tool("key", stdin=KEY)
         (self.root / ".claude").mkdir()
         before = '{"permissions": {}}'
-        (self.root / ".claude" / "settings.local.json").write_text(before)
+        (self.root / ".claude" / "settings.local.json").write_text(before, encoding="utf-8")
         self.assertEqual(self.run_tool("use", MODEL, FAKE_FAIL="1").returncode, 1)
-        self.assertEqual((self.root / ".claude" / "settings.local.json").read_text(), before)
+        self.assertEqual((self.root / ".claude" / "settings.local.json").read_text(encoding="utf-8"), before)
 
     def test_unmeasured_model_needs_force(self):
         self.run_tool("key", stdin=KEY)
@@ -109,7 +109,7 @@ class Model(unittest.TestCase):
     def test_committed_settings_file_is_refused(self):
         self.run_tool("key", stdin=KEY)
         (self.root / ".claude").mkdir()
-        (self.root / ".claude" / "settings.local.json").write_text("{}")
+        (self.root / ".claude" / "settings.local.json").write_text("{}", encoding="utf-8")
         subprocess.run(["git", "-C", str(self.root), "add", "-f", ".claude/settings.local.json"], check=True)
         r = self.run_tool("use", MODEL)
         self.assertEqual(r.returncode, 2)
@@ -119,7 +119,7 @@ class Model(unittest.TestCase):
     def test_back_to_claude_removes_only_our_keys(self):
         self.run_tool("key", stdin=KEY)
         (self.root / ".claude").mkdir()
-        (self.root / ".claude" / "settings.local.json").write_text('{"env": {"MY_VAR": "1"}}')
+        (self.root / ".claude" / "settings.local.json").write_text('{"env": {"MY_VAR": "1"}}', encoding="utf-8")
         self.run_tool("use", MODEL)
         r = self.run_tool("use", "claude")
         self.assertEqual(r.returncode, 0)
@@ -133,12 +133,12 @@ class Model(unittest.TestCase):
         bindir.mkdir()
         for name in ("fleet", "systemd-run"):
             f = bindir / name
-            f.write_text('#!/bin/sh\necho "%s $*" >> %s\n' % (name, log))
+            f.write_text('#!/bin/sh\necho "%s $*" >> %s\n' % (name, log), encoding="utf-8")
             f.chmod(0o755)
         self.run_tool("key", stdin=KEY)
         r = self.run_tool("use", MODEL, FLEET_AGENT="media-agent", PATH="%s:%s" % (bindir, os.environ["PATH"]))
         self.assertIn("RESTART in 20 s", r.stdout)
-        self.assertRegex(log.read_text(), r"systemd-run --user --on-active=20 --unit mentat-model-restart-"
+        self.assertRegex(log.read_text(encoding="utf-8"), r"systemd-run --user --on-active=20 --unit mentat-model-restart-"
                                           r"media-agent-\d+ \S*fleet restart media-agent")
 
     def test_without_fleet_the_agent_asks_its_deployer(self):

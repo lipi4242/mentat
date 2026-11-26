@@ -5,6 +5,8 @@ import json
 import os
 import sys
 import urllib.request
+for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows: a pipe is the ANSI code page, not UTF-8
+    getattr(_s, "reconfigure", lambda **k: None)(encoding="utf-8", errors="replace")
 
 QUERY = ("query($team: String!, $after: String) { issues(filter: {team: {key: {eq: $team}}}, "
          "first: 50, after: $after) { nodes { id identifier number title description priority "
@@ -92,7 +94,7 @@ def main(argv=None):
         print("A LINEAR_API_KEY környezeti változó hiányzik.", file=sys.stderr)
         return 2
     d = export(a.team, _http_fetch(key))
-    with open(a.out, "w", encoding="utf-8") as f:
+    with open(a.out, "w", encoding="utf-8", newline="\n") as f:
         json.dump(d, f, ensure_ascii=False, indent=1, sort_keys=True)
     return 0 if d["complete"] else 1
 

@@ -19,6 +19,8 @@ import json
 import pathlib
 import re
 import sys
+for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows: a pipe is the ANSI code page, not UTF-8
+    getattr(_s, "reconfigure", lambda **k: None)(encoding="utf-8", errors="replace")
 
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.append(str(HERE))  # at the END: with `python3 -I` a planted module here cannot shadow the stdlib
@@ -70,9 +72,9 @@ def cmd_draft(a):
     stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     out = repo / ".mentat/bug-reports" / stamp
     out.mkdir(parents=True, exist_ok=True)
-    (out.parent / ".gitignore").write_text("*\n", encoding="utf-8")
-    (out / "draft.json").write_text(json.dumps(d, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
-    (out / "draft.md").write_text(("# %s\n\n" % title if title else "") + body, encoding="utf-8")
+    (out.parent / ".gitignore").write_bytes("*\n".encode("utf-8"))
+    (out / "draft.json").write_bytes((json.dumps(d, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
+    (out / "draft.md").write_bytes((("# %s\n\n" % title if title else "") + body).encode("utf-8"))
     print("DRAFT %s\n" % out)
     print(("TITLE: %s\n\n" % title if title else "COMMENT on #%s\n\n" % a.comment_on) + body)
     if security:
@@ -130,13 +132,13 @@ def cmd_post(a):
         print("NOT POSTED: %s. The draft is in %s/draft.md: the owner can paste it at %s" % (why, out, NEW_ISSUE))
         return 4
     body_file = out / "body.md"
-    body_file.write_text(d["body"], encoding="utf-8")
+    body_file.write_bytes(d["body"].encode("utf-8"))
     rc, msg = gh.post(d["repo"], d["kind"], d["title"], body_file, d.get("number"), dry_run=a.dry_run)
     print(("DRY RUN, would run: %s" if a.dry_run else ("POSTED: %s" if rc == 0 else "FAILED: %s")) % msg)
     if rc == 0 and not a.dry_run:
         now = datetime.datetime.now(datetime.timezone.utc).isoformat(timespec="seconds")
-        (out / "approval.json").write_text(json.dumps({"at": now, "owner_said": said, "url": msg}) + "\n")
-        with log.open("a", encoding="utf-8") as fh:
+        (out / "approval.json").write_bytes((json.dumps({"at": now, "owner_said": said, "url": msg}) + "\n").encode("utf-8"))
+        with log.open("a", encoding="utf-8", newline="\n") as fh:
             fh.write("%s %s\n" % (now, msg))
     return rc
 

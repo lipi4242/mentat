@@ -52,3 +52,42 @@ def take(agent: str, now: float | None = None) -> bool:
     except OSError:
         pass
     return ok
+
+
+# ── kért újraindítás (`fleet request-restart`) ─────────────────────────────
+# Az ágens nem hív saját systemctl-t: jelölőt tesz le, és a reconcile-timer
+# indítja újra `--resume`-mal, amikor a kérő kör véget ért (prompt_drift).
+
+#: ennyi ideig érvényes egy kért újraindítás, ha az ágens addig nem lesz tétlen
+RESTART_VALID_S = 6 * 3600.0
+
+
+def _restart_path(agent: str) -> Path:
+    return maintenance._root() / ".requested" / f"{agent}.restart"
+
+
+def mark_restart(agent: str, *, now: float | None = None) -> Path:
+    now = time.time() if now is None else now
+    p = _restart_path(agent)
+    p.parent.mkdir(parents=True, exist_ok=True)
+    p.write_text(str(now + RESTART_VALID_S))
+    return p
+
+
+def restart_pending(agent: str, now: float | None = None) -> bool:
+    """Érvényes-e a kérés. A beírt lejárat legfeljebb a fájl írása + RESTART_VALID_S:
+    egy kézzel távoli jövőre írt jelölő sem él tovább ennél."""
+    now = time.time() if now is None else now
+    p = _restart_path(agent)
+    try:
+        until = min(float(p.read_text().strip()), p.stat().st_mtime + RESTART_VALID_S)
+    except (OSError, ValueError):
+        return False
+    return now < until
+
+
+def clear_restart(agent: str) -> None:
+    try:
+        _restart_path(agent).unlink(missing_ok=True)
+    except OSError:
+        pass

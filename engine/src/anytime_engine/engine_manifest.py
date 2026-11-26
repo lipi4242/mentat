@@ -5,7 +5,8 @@
                          # recorded by `anytime_engine.setup`:
                          "timezone": "Europe/Budapest", "morning": "07:00",
                          "delivery": {"channel": "file" | "telegram", "lang": "en" | "hu"},
-                         "exec": "python3 -m anytime_cases.deliver"}
+                         "exec": "python3 -m anytime_cases.deliver",
+                         "todo_trusted": ["<agent>", "<owner principal>"]}   # first setup only, never overwritten
     installed.engine  = "<engine version>"
 
 Everything else in those files belongs to another element and is never

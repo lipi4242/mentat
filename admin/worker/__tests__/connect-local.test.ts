@@ -5,7 +5,7 @@ import { describe, it, expect } from 'vitest';
 import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { installService, linkNode, localPort, renderUnit } from '../scripts/lib/local-admin.mjs';
+import { installService, linkNode, localPort, renderUnit, uninstallService } from '../scripts/lib/local-admin.mjs';
 
 const tmp = (p: string) => mkdtempSync(join(tmpdir(), p));
 function nodeDir() {
@@ -40,7 +40,7 @@ describe('linkNode', () => {
   it('links node, npm and npx into ~/.local/bin and puts that dir on the login PATH', () => {
     const home = tmp('home-');
     const bin = nodeDir();
-    const out = linkNode({ home, nodeBin: bin });
+    const out = linkNode({ home, nodeBin: bin, shell: '/bin/sh' });
     for (const b of ['node', 'npm', 'npx']) {
       expect(lstatSync(join(home, '.local/bin', b)).isSymbolicLink()).toBe(true);
       expect(readlinkSync(join(home, '.local/bin', b))).toBe(join(bin, b));
@@ -50,6 +50,27 @@ describe('linkNode', () => {
     // Idempotent: a second run does not add a second PATH line.
     linkNode({ home, nodeBin: bin });
     expect(readFileSync(join(home, '.profile'), 'utf8').match(/PATH="\$HOME\/\.local\/bin/g)!.length).toBe(1);
+  });
+
+  it('macOS zsh: the PATH line goes to ~/.zprofile too (zsh never reads ~/.profile), once', () => {
+    const home = tmp('home-');
+    const bin = nodeDir();
+    const out = linkNode({ home, nodeBin: bin, shell: '/bin/zsh' });
+    linkNode({ home, nodeBin: bin, shell: '/bin/zsh' });
+    for (const f of ['.profile', '.zprofile']) {
+      expect(readFileSync(join(home, f), 'utf8').match(/PATH="\$HOME\/\.local\/bin/g)!.length).toBe(1);
+    }
+    expect(out.profiles).toEqual(['.profile', '.zprofile']);
+  });
+
+  it('bash with its own ~/.bash_profile (which hides ~/.profile) gets the line there; a line already there is kept', () => {
+    const home = tmp('home-');
+    writeFileSync(join(home, '.bash_profile'), 'export X=1\n');
+    writeFileSync(join(home, '.profile'), 'PATH="$HOME/.local/bin:$PATH"\n');
+    linkNode({ home, nodeBin: nodeDir(), shell: '/usr/local/bin/bash' });
+    expect(readFileSync(join(home, '.bash_profile'), 'utf8')).toMatch(/^export X=1\n[\s\S]*\$HOME\/\.local\/bin/);
+    expect(readFileSync(join(home, '.profile'), 'utf8')).toBe('PATH="$HOME/.local/bin:$PATH"\n');
+    expect(existsSync(join(home, '.zprofile'))).toBe(false);
   });
 
   it('leaves a system node alone and never replaces a real file', () => {
@@ -77,7 +98,7 @@ describe('renderUnit', () => {
 });
 
 describe('installService', () => {
-  const opts = (home: string, run: any) => ({ home, user: 'anna', workerDir: '/w', nodeBin: '/n', port: 8787, run });
+  const opts = (home: string, run: any) => ({ home, user: 'anna', workerDir: '/w', nodeBin: '/n', port: 8787, run, platform: 'linux' });
 
   it('writes the unit, enables it now and turns on linger', () => {
     const home = tmp('home-');
@@ -111,5 +132,15 @@ describe('installService', () => {
   it('fails loudly when the unit does not start', () => {
     const { run } = fakeRun({ 'systemctl --user restart': 1 });
     expect(() => installService(opts(tmp('home-'), run))).toThrow(/mentat-admin.service did not start/);
+  });
+
+  it('uninstall disables it and removes the unit', () => {
+    const home = tmp('home-');
+    installService(opts(home, fakeRun().run));
+    const { run, calls } = fakeRun();
+    const out = uninstallService({ home, uid: 1000, run, platform: 'linux' });
+    expect(calls.map((c) => c.join(' '))).toEqual(['systemctl --user disable --now mentat-admin.service', 'systemctl --user daemon-reload']);
+    expect(existsSync(join(home, '.config/systemd/user/mentat-admin.service'))).toBe(false);
+    expect(out.removed).toHaveLength(1);
   });
 });

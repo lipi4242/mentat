@@ -19,3 +19,32 @@ else:
     RUN_TMP = tempfile.mkdtemp(prefix="mentat-test-tmp-", dir=REAL_TMP)
     atexit.register(shutil.rmtree, RUN_TMP, True)
 os.environ["TMPDIR"] = os.environ["_MENTAT_TEST_RUN_TMP"] = tempfile.tempdir = RUN_TMP
+# No test reads or writes the real user config: one HOME for the whole run (a test may set its own).
+os.makedirs(os.path.join(RUN_TMP, "home"), exist_ok=True)
+if not _inherited:  # USERPROFILE too: Windows Python's expanduser reads that, not HOME
+    os.environ["HOME"] = os.environ["USERPROFILE"] = os.path.join(RUN_TMP, "home")
+for _k in ("CLAUDE_CONFIG_DIR", "FLEET_REGISTRY"):
+    os.environ.pop(_k, None)
+if os.name == "nt":  # Claude Code's Git Bash has HOME == USERPROFILE; the tests move only HOME
+    import ntpath
+    import subprocess
+    _expand = ntpath.expanduser
+
+    def _home_first(p):
+        h, s = os.environ.get("HOME"), os.fspath(p)
+        if h and isinstance(s, str) and (s == "~" or s[:2] in ("~/", "~\\")):
+            return h + s[1:]
+        return _expand(p)
+
+    ntpath.expanduser = os.path.expanduser = _home_first
+    _popen = subprocess.Popen.__init__
+
+    def _same_home(self, *a, **kw):
+        env = kw.get("env")
+        if env is not None and env.get("HOME"):
+            kw["env"] = dict(env, USERPROFILE=env["HOME"])
+        elif env is None and os.environ.get("HOME"):
+            kw["env"] = dict(os.environ, USERPROFILE=os.environ["HOME"])
+        _popen(self, *a, **kw)
+
+    subprocess.Popen.__init__ = _same_home

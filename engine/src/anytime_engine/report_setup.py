@@ -4,7 +4,7 @@ from __future__ import annotations
 import re
 from datetime import timedelta
 
-from . import clock
+from . import clock, schedule
 
 
 def summary(args, data: dict, selftest: str) -> list[str]:
@@ -24,7 +24,7 @@ def summary(args, data: dict, selftest: str) -> list[str]:
 def timer_line(args, captured: str) -> str:
     if args.cron:
         return "cron line:\n" + captured.strip()
-    found = re.search(r"anytime-[^\s/]*-hourly\.timer", captured)
+    found = re.search(r"(?:ai\.mentat\.)?anytime-[^\s/]*-hourly\.(?:timer|plist)", captured)
     timer = found.group(0) if found else "the hourly timer"
     enabled = next((l for l in captured.splitlines() if l.startswith("enabled ")), None)
     if args.install:
@@ -36,7 +36,7 @@ def done(lines: list[str], args, rc: int) -> int:
     day = (clock.now() + timedelta(days=1)).date().isoformat()
     if not args.install:
         lines.append("next: re-run with --install (add --verbose for the full plan)")
-    else:
+    elif schedule.platform() != "darwin":
         lines.append("headless box without a login session: loginctl enable-linger $USER")
     lines.append(f"then: python3 -m anytime_engine preview --at {day}   (tomorrow's message, "
                  "sends nothing) | python3 -m anytime_engine last")

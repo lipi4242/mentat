@@ -11,6 +11,8 @@ Only this repo's `.claude/settings.local.json` (git-ignored, 0600) and `.mentat/
 the shared Claude login (~/.claude) is never touched, so other agents here stay on Claude.
 """
 import argparse, json, os, pathlib, subprocess, sys  # noqa: E401
+for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows: a pipe is the ANSI code page, not UTF-8
+    getattr(_s, "reconfigure", lambda **k: None)(encoding="utf-8", errors="replace")
 
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
@@ -36,7 +38,7 @@ def probe(root, model):
     claude = os.environ.get("MENTAT_CLAUDE", "claude")
     try:
         r = subprocess.run([claude, "-p", "Reply with just: ok", "--output-format", "json"], cwd=root,
-                           capture_output=True, text=True, timeout=180, stdin=subprocess.DEVNULL)
+                           capture_output=True, text=True, timeout=180, stdin=subprocess.DEVNULL, encoding="utf-8", errors="replace")
         d = json.loads(r.stdout.strip().splitlines()[-1])
     except (OSError, ValueError, IndexError, subprocess.TimeoutExpired) as e:
         return "the probe did not run (%s)" % type(e).__name__
@@ -74,19 +76,19 @@ def use(root, model, force, no_probe):
     if problem:
         print("REFUSED %s" % problem)
         return 2
-    before = settings_path(root).read_text() if settings_path(root).exists() else None
+    before = settings_path(root).read_text(encoding="utf-8") if settings_path(root).exists() else None
     s = load_settings(root)
     s.setdefault("env", {}).update({"ANTHROPIC_BASE_URL": ENDPOINT, "ANTHROPIC_AUTH_TOKEN": key,
                                     "ANTHROPIC_API_KEY": "", **{a: model for a in ALIASES}})
     save_settings(root, s)
     (root / ".mentat").mkdir(exist_ok=True)
-    (root / ".mentat" / "model.env").write_text("MENTAT_MODEL=%s\n" % model)
+    (root / ".mentat" / "model.env").write_bytes(("MENTAT_MODEL=%s\n" % model).encode("utf-8"))
     err = None if no_probe else probe(root, model)
     if err:
         if before is None:
             settings_path(root).unlink()
         else:
-            settings_path(root).write_text(before)
+            settings_path(root).write_bytes(before.encode("utf-8"))
         (root / ".mentat" / "model.env").unlink()
         print("ROLLED BACK %s - this agent stays on its previous model" % err)
         return 1

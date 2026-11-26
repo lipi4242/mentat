@@ -10,7 +10,11 @@ Az utak (11-07 óta nincs külön riasztó bot):
      a `fleet doctor` box-sora ezt pirosan mutatja, amíg ott van (doctor_box.py).
 
 Egy riasztás egyszer megy ki egy adott kulcsra (`~/.config/fleet/state/
-alerts.json`), különben 5 percenként ugyanaz ismétlődne.
+alerts.json`), különben 5 percenként ugyanaz ismétlődne. A `seen` értéke a küldés
+időbélyege: amíg az állapot fennáll, `REPEAT_S` után ismétel; gyógyuláskor a hívó törli a kulcsot
+(`clear`), és az epizód-azonosítós kulcs (karantén ideje, a legrégebbi restart ideje) egy új
+epizódot új riasztássá tesz. A régi `true` érték a kihelyezés idejének számít (első olvasáskor
+időbélyegre cserélődik).
 """
 from __future__ import annotations
 import json
@@ -26,11 +30,30 @@ ALERTS_PATH = CONFIG_DIR / "state" / "alerts.json"
 UNDELIVERED = CONFIG_DIR / "state" / "alerts-undelivered.jsonl"
 
 
-def _load() -> dict:
+#: ennyi idő után ismétel egy még fennálló állapotra (a gyógyulás törli a kulcsot)
+REPEAT_S = 6 * 3600
+
+
+def _load(now: float | None = None) -> dict:
+    """kulcs → küldés időbélyege. A régi `true` érték most kap időbélyeget, és vissza is íródik."""
     try:
-        return json.loads(ALERTS_PATH.read_text())
+        raw = json.loads(ALERTS_PATH.read_text())
     except (OSError, json.JSONDecodeError):
         return {}
+    if not isinstance(raw, dict):
+        return {}
+    t = time.time() if now is None else now
+    out = {k: (float(v) if isinstance(v, (int, float)) and not isinstance(v, bool) else t) for k, v in raw.items()}
+    if out != raw:
+        _write(out)
+    return out
+
+
+def _write(seen: dict) -> None:
+    ALERTS_PATH.parent.mkdir(parents=True, exist_ok=True)
+    tmp = ALERTS_PATH.with_suffix(".tmp")
+    tmp.write_text(json.dumps(seen, indent=2))
+    os.replace(tmp, ALERTS_PATH)
 
 
 def _env_from_file(path: Path) -> dict:
@@ -74,27 +97,28 @@ def _drop(key: str, text: str) -> None:
 
 
 def alert(key: str, text: str, *, agent_env_file: Path | list[Path] | None = None,
-          independent_only: bool = False) -> str:
-    """Kiküldi egyszer; visszaadja: 'sent-agent' | 'dup' | 'stderr' (fájlba is).
-    `independent_only`: a képesség-hiba tartaléka — Telegramra nem megy, csak fájlba."""
-    seen = _load()
-    if seen.get(key):
+          independent_only: bool = False, now: float | None = None, repeat_s: float = REPEAT_S) -> str:
+    """Kiküldi; visszaadja: 'sent-agent' | 'dup' | 'stderr' (fájlba is). Ugyanarra a kulcsra
+    `repeat_s`-en belül nem ismétel. `independent_only`: a képesség-hiba tartaléka — Telegramra
+    nem megy, csak fájlba."""
+    t = time.time() if now is None else now
+    seen = _load(t)
+    if key in seen and t - seen[key] < repeat_s:
         return "dup"
     res = "stderr"
     if agent_env_file and not independent_only and send_telegram(text, env_file=agent_env_file):
         res = "sent-agent"
-    ALERTS_PATH.parent.mkdir(parents=True, exist_ok=True)
-    seen[key] = True
-    ALERTS_PATH.write_text(json.dumps(seen, indent=2))
+    seen[key] = t
+    _write(seen)
     if res == "stderr":
         _drop(key, text)
         print(f"[fleet alert] {text}", file=sys.stderr)
     return res
 
 
-def clear(key_prefix: str) -> None:
+def clear(key_prefix: str, *, exact: bool = False) -> None:
+    """Gyógyuláskor: a kulcs(ok) törlése, hogy a következő epizód újra riasszon."""
     seen = _load()
-    changed = {k: v for k, v in seen.items() if not k.startswith(key_prefix)}
+    changed = {k: v for k, v in seen.items() if not (k == key_prefix if exact else k.startswith(key_prefix))}
     if changed != seen:
-        ALERTS_PATH.parent.mkdir(parents=True, exist_ok=True)
-        ALERTS_PATH.write_text(json.dumps(changed, indent=2))
+        _write(changed)

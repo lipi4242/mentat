@@ -128,11 +128,18 @@ def cmd_unlock(a) -> int:
 
 
 def cmd_unquarantine(a) -> int:
-    from fleet.reconcile import load_state, save_state
+    from fleet import alerts
+    from fleet.reconcile import CORRUPT, load_state, save_state
     st = load_state(a.agent)
+    if st is CORRUPT:
+        print(f"fleet: {a.agent}: az állapotfájl sérült, nem írom felül — nézd meg kézzel (reconcile.state_path)",
+              file=sys.stderr)
+        return 1
     st["quarantined"] = False
     st["failed_postchecks"] = 0
+    st.pop("quarantined_at", None)
     save_state(a.agent, st)
+    alerts.clear(f"quarantine:{a.agent}:")
     print(f"karantén feloldva: {a.agent}")
     return 0
 
@@ -177,6 +184,9 @@ def cmd_join(a) -> int:
 
 
 def cmd_upgrade(a) -> int:
+    if a.pr:
+        from fleet.deliver_cli import run
+        return run(a)
     from fleet.join import upgrade
     r = upgrade(Path(a.repo).resolve())
     _print(r)
@@ -291,6 +301,15 @@ def build_parser() -> argparse.ArgumentParser:
     x = cs.add_parser("collect"); x.add_argument("--json", action="store_true"); x.set_defaults(fn=cmd_capabilities)
     x = cs.add_parser("find"); x.add_argument("--as", dest="as_agent", required=True); x.add_argument("--json", action="store_true")
     x.add_argument("query"); x.set_defaults(fn=cmd_capabilities)
+    m = sub.add_parser("map", help="flottatérkép (fleet-map.json): validate, show")
+    ms = m.add_subparsers(dest="sub", required=True)
+    x = ms.add_parser("validate"); x.add_argument("--json", action="store_true"); x.set_defaults(fn=cmd_map)
+    x = ms.add_parser("show", help="a térkép táblában: ágens, szerep, gazda, kinek jelent, box, repók, felelősség")
+    x.add_argument("--json", action="store_true"); x.set_defaults(fn=cmd_map_show)
+    x = ms.add_parser("audit", help="karbantartási kör: séma, egyezés, blokkok, gyökér, kóbor fájlok"); x.add_argument("--json", action="store_true"); x.add_argument("--root", metavar="REPO"); x.add_argument("--mac-home", action="store_true"); x.add_argument("--state", metavar="FÁJL"); x.add_argument("--no-cache", action="store_true"); x.add_argument("--todo", action="store_true"); x.add_argument("--project"); x.add_argument("--pm"); x.set_defaults(fn=cmd_map_audit)
+    x = ms.add_parser("move-check", help="bizonyítja, hogy egy fájl átrendezése csak mozgatás volt"); x.add_argument("old"); x.add_argument("new"); x.add_argument("--dups", metavar="LISTA.md"); x.add_argument("--json", action="store_true"); x.set_defaults(fn=cmd_map_move_check)
+    x = ms.add_parser("render", help="a fleet-place blokk az ágens AGENTS.md-jébe (--root: a gyökér-CLAUDE.md)"); x.add_argument("agent", nargs="?"); x.add_argument("--root", action="store_true"); x.add_argument("--repo", default="."); x.add_argument("--mode", choices=("inherited", "standalone"), default="standalone"); x.set_defaults(fn=cmd_map_render)
+    x = ms.add_parser("check", help="a blokk hash-e egyezik-e a térképpel (--root: a gyökér-CLAUDE.md)"); x.add_argument("agent", nargs="?"); x.add_argument("--root", action="store_true"); x.add_argument("--repo", default="."); x.set_defaults(fn=cmd_map_check)
     x = sub.add_parser("render", help="unit szövege a registryből"); x.add_argument("agent"); x.set_defaults(fn=cmd_render)
     x = sub.add_parser("install", help="unit + felügyelet telepítése, indítás, postcheck (0 kész · 3 függő · 1 hiba, visszaállítva). Mellékhatás: az ágens unitját cseréli és ÚJRAINDÍTJA"); x.add_argument("agent"); x.add_argument("--json", action="store_true"); x.add_argument("--dry-run", action="store_true", help="csak a unit-diff, semmit nem ír"); x.set_defaults(fn=cmd_install)
     x = sub.add_parser("preflight", help="telepíthető-e a repó"); x.add_argument("agent"); x.set_defaults(fn=cmd_preflight)
@@ -314,7 +333,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     x = sub.add_parser("join", help="egy repó belép a flottába"); x.add_argument("repo"); x.add_argument("--agent", required=True); x.add_argument("--brain", default=None); x.add_argument("--reducer", default=None); x.add_argument("--fix-claude-md", action="store_true", help="ha a CLAUDE.md nem tölti be az AGENTS.md-t, beírja"); x.set_defaults(fn=cmd_join)
     x = sub.add_parser("status", help="egy ágens elemei és szinergiái (mentat.json, .mentat/local.json, timerek)"); x.add_argument("agent"); x.add_argument("--repo"); x.add_argument("--json", action="store_true"); x.set_defaults(fn=cmd_status)
-    x = sub.add_parser("upgrade", help="a repó fleet-fájljainak frissítése"); x.add_argument("repo"); x.set_defaults(fn=cmd_upgrade)
+    x = sub.add_parser("upgrade", help="a repó fleet-fájljainak frissítése (--pr: a fleet-place blokk PR-ként)"); x.add_argument("repo"); x.add_argument("--pr", action="store_true"); x.add_argument("--place", action="store_true", help="--pr: a fleet-place blokk (alap)"); x.add_argument("--rules", action="store_true", help="--pr: a .claude/rules/fleet.md külön PR-ban"); x.add_argument("--agent"); x.add_argument("--base"); x.add_argument("--mode", choices=("inherited", "standalone"), default="standalone"); x.set_defaults(fn=cmd_upgrade)
     x = sub.add_parser("release", help="a telepített release-tuple"); x.add_argument("--show", action="store_true"); x.set_defaults(fn=cmd_release)
     from fleet import ask_cli, login_cli, plan_merge, probe, retire   # ágens-összeolvasztás (2026-10-29)
     probe.add_parser(sub); login_cli.add_parser(sub); retire.add_parser(sub)
@@ -335,7 +354,48 @@ def build_parser() -> argparse.ArgumentParser:
     flotta_now.add_parser(sub)
     from fleet import incident_cli, managers_cli, repair_exec   # flotta-menedzser szerep (flotta-menedzser, 2026-11-08)
     managers_cli.add_parser(sub); incident_cli.add_parser(sub); repair_exec.add_parser(sub)
+    from fleet import request_restart_cli   # kért újraindítás a reconcile-on át, saját systemctl nélkül
+    request_restart_cli.add_parser(sub)
     return p
+
+
+def cmd_map(a) -> int:
+    from fleet.fleet_map_cli import cmd_map as run
+    return run(a)
+
+
+def cmd_map_show(a) -> int:
+    from fleet.fleet_map_show import cmd_map_show as run
+    return run(a)
+
+
+def cmd_map_audit(a) -> int:
+    from fleet.audit_cli import cmd_audit
+    return cmd_audit(a)
+
+
+def cmd_map_move_check(a) -> int:
+    from fleet.move_check_cli import cmd_move_check
+    return cmd_move_check(a)
+
+
+def cmd_map_render(a) -> int:
+    if a.root:
+        from fleet.fleet_root_cli import render
+        return render(a)
+    if not a.agent:
+        print("fleet: ágens kell (vagy --root)")
+        return 1
+    from fleet.fleet_place_cli import cmd_render
+    return cmd_render(a)
+
+
+def cmd_map_check(a) -> int:
+    if a.root:
+        from fleet.fleet_root_cli import check
+        return check(a)
+    from fleet.fleet_place_cli import cmd_check
+    return cmd_check(a)
 
 
 def cmd_capabilities(a) -> int:

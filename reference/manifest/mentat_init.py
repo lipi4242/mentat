@@ -2,7 +2,7 @@
 """The whole install in one call, after the USER answered the few real questions at once.
 
     python3 .mentat/bin/mentat_init.py --lang hu --user "Kertész Anna" --address tegez \\
-        --agent Thufir [--engine --tz Europe/Budapest] [--git-name … --git-email …] [--no-prove]
+        --agent Thufir [--engine --tz Europe/Budapest [--todo-owner p_ID] [--todo-pm p_ID]] [--git-name … --git-email …] [--no-prove]
 
 Preflight (git, python, Claude Code >= 2.1.295, disk, network) -> skeleton + guard hook ->
 identity placeholders -> mentat.json -> git identity (this repo only) -> engine from the one
@@ -16,6 +16,8 @@ import os
 import pathlib
 import subprocess
 import sys
+for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows: a pipe is the ANSI code page, not UTF-8
+    getattr(_s, "reconfigure", lambda **k: None)(encoding="utf-8", errors="replace")
 
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.append(str(HERE))  # at the END: with `python3 -I` a planted json.py here cannot shadow the stdlib
@@ -29,6 +31,7 @@ import mentat_init_inventory as inv  # noqa: E402
 import mentat_init_os as osx  # noqa: E402
 import mentat_init_parts as parts  # noqa: E402
 import mentat_scaffold as sc  # noqa: E402
+import mentat_self_image  # noqa: E402
 
 ADDRESS = {"hu": {"tegez": "tegezve", "magaz": "magázva"}, "en": {"tegez": "informal", "magaz": "formal"}}
 PLACE = {"hu": ("<FELHASZNÁLÓ neve TBD>", "<megszólítás TBD>", "<ügynök neve TBD>"),
@@ -39,16 +42,22 @@ MSG = {"hu": {"ready": "Kész az agyad: %s (%s), %s, ezen a gépen.",
               "saved": "Mentve: %s (git: %s <%s>, csak ez a mappa).",
               "safe": "Biztonság: a munkamappán kívül csak a te engedélyeddel olvasok; a Claude Code rákérdez.",
               "engine": "Motor: %s.", "eng_yes": "telepítve (v%s, %s, időzítő nélkül)",
-              "eng_no": "nincs (később: „telepítsd a motort”)"},
+              "eng_no": "nincs (később: „telepítsd a motort”)",
+              "trusted": "Bizalmi lista: csak az ágens van rajta, így ha más (a tulajdonos is) teendőt hoz létre neki, "
+                         "arról csak értesítés megy. Bővítés: futtasd újra a telepítést a --todo-owner <a tulajdonos "
+                         "todo-azonosítója> kapcsolóval, vagy szerkeszd a mentat.json components.engine.todo_trusted listáját."},
        "en": {"ready": "Your brain is ready: %s (%s), %s, on this machine.",
               "saved": "Saved: %s (git: %s <%s>, this folder only).",
               "safe": "Safety: outside the working folder I read only with your approval; Claude Code asks you.",
               "engine": "Engine: %s.", "eng_yes": "installed (v%s, %s, no timer)",
-              "eng_no": "not installed (later: \"install the engine\")"}}
+              "eng_no": "not installed (later: \"install the engine\")",
+              "trusted": "Trusted list: only the agent is on it, so duties created by anyone else (the owner too) "
+                         "are only reported. To add the owner: run the install again with --todo-owner <the owner's "
+                         "todo principal id>, or edit components.engine.todo_trusted in mentat.json."}}
 
 
 def _git(root, *a):
-    return subprocess.run(["git", "-C", str(root), *a], capture_output=True, text=True)
+    return subprocess.run(["git", "-C", str(root), *a], capture_output=True, text=True, encoding="utf-8", errors="replace")
 
 
 def fill(root, lang, user, address, agent):
@@ -56,7 +65,7 @@ def fill(root, lang, user, address, agent):
     text = path.read_text(encoding="utf-8")
     for ph, value in zip(PLACE[lang], (user, ADDRESS[lang][address], agent)):
         text = text.replace(ph, value)
-    path.write_text(text, encoding="utf-8")
+    path.write_bytes(text.encode("utf-8"))
 
 
 def set_identity(root, who):
@@ -75,7 +84,7 @@ def checkout(clone, tag, src):
         steps = [["-C", str(clone), "fetch", "-q", "--depth", "1", "origin", "tag", tag],
                  ["-C", str(clone), "checkout", "-q", tag]]
     for cmd in steps:
-        r = subprocess.run(["git", *cmd], capture_output=True, text=True)
+        r = subprocess.run(["git", *cmd], capture_output=True, text=True, encoding="utf-8", errors="replace")
         if r.returncode != 0:
             return "a Mentat %s nem érhető el itt: %s (%s)" % (tag, clone, (r.stderr.strip().splitlines() or ["?"])[-1])
     return None
@@ -88,8 +97,10 @@ def engine(root, a):
         return problem
     for cmd in (osx.script(clone / "engine" / "sync-to.sh") + [".", "--pack", "cases"],
                 [sys.executable, "-m", "anytime_engine.setup", "--tz", a.tz, "--lang", a.lang,
-                 "--deliver", "file", "--install", "--no-timer"]):
-        r = subprocess.run(cmd, cwd=root, capture_output=True, text=True)
+                 "--deliver", "file", "--install", "--no-timer", *(["--todo-owner", a.todo_owner] if a.todo_owner else []),
+                 *(["--todo-pm", a.todo_pm] if a.todo_pm else [])]):
+        r = subprocess.run(cmd, cwd=root, capture_output=True, text=True, encoding="utf-8", errors="replace")
+        a.trusted_hint = "todo_trusted:" in r.stdout  # the setup's own sentence: who may give this agent duties
         if r.returncode != 0:
             return "a motor telepítése megállt (%s): %s" % (cmd[1] if cmd[0] == sys.executable else "sync-to.sh",
                                                             (r.stdout + r.stderr).strip()[-200:])
@@ -104,6 +115,7 @@ def run(a):
     who, problem = checks.git_identity(root, a.git_name or a.user, a.git_email)
     if problem:
         return lines, problem
+    tz = osx.ensure_tzdata(a.lang)  # Windows only; never stops the install
     found = inv.found_lines(inv.scan(root), a.lang)   # before anything is written
     os.chdir(root)
     sc.scaffold(root, a.lang, a.base)
@@ -112,9 +124,10 @@ def run(a):
     if not (root / "mentat.json").exists():
         r = subprocess.run([sys.executable, str(HERE / "mentat_cli.py"), "init-brain", "--name", a.agent,
                             "--language", a.lang, "--brain-root", sc.layout(a.lang)["root"],
-                            "--version", a.version_resolved, "--repo", str(root)], capture_output=True, text=True)
+                            "--version", a.version_resolved, "--repo", str(root)], capture_output=True, text=True, encoding="utf-8", errors="replace")
         if r.returncode != 0:
             return lines, "a mentat.json nem jött létre: " + (r.stdout + r.stderr).strip()[-160:]
+    mentat_self_image.write(root, a.lang)  # the agent's name is in mentat.json now
     set_identity(root, who)
     if a.engine:
         problem = engine(root, a)
@@ -122,14 +135,15 @@ def run(a):
             return lines, problem
     before = inv.head(root)
     if subprocess.run([sys.executable, str(HERE / "mentat_scaffold.py"), "--lang", a.lang, "--repo", str(root),
-                       "--commit"], capture_output=True, text=True).returncode != 0:
+                       "--commit"], capture_output=True, text=True, encoding="utf-8", errors="replace").returncode != 0:
         return lines, "az első commit nem sikerült (git status)"
     more, problem = checks.selftest(root, a.lang, a.engine, a.prove, a.agent, a.user)
     m = MSG[a.lang]
     head = _git(root, "log", "--oneline", "-1").stdout.strip()
     lines += [m["ready"] % (a.agent, a.user, ADDRESS[a.lang][a.address])] + found + [m["saved"] % (head, *who)] + \
         inv.after_lines(root, before, a.lang) + [m["safe"],
-              m["engine"] % (m["eng_yes"] % (a.version_resolved, a.tz) if a.engine else m["eng_no"])] + more
+              m["engine"] % (m["eng_yes"] % (a.version_resolved, a.tz) if a.engine else m["eng_no"])] + \
+        ([m["trusted"]] if getattr(a, "trusted_hint", False) else []) + ([tz] if tz else []) + more
     return lines, problem
 
 
@@ -148,6 +162,8 @@ def main(argv=None):
     p.add_argument("--git-email")
     p.add_argument("--engine", action="store_true")
     p.add_argument("--tz", help="with --engine: the USER's IANA timezone")
+    p.add_argument("--todo-owner", help="with --engine: the owner's todo principal id (put on the trusted list)")
+    p.add_argument("--todo-pm", help="with --engine: the agent's own PM's todo principal id (put on the trusted list)")
     p.add_argument("--engine-src", help="a local clone or mirror of the Mentat repo instead of GitHub")
     p.add_argument("--no-prove", dest="prove", action="store_false", help="skip the fresh-session check")
     a = p.parse_args(argv)

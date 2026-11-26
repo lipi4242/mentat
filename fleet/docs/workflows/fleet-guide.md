@@ -84,8 +84,11 @@ transcripts. `fleet secrets` keeps values out of every Claude context:
 | `fleet secrets scan --agent A [--agent B]` | names, places, formats and key names of the secret files (repo, `~/.config/<a>/`, `~/.claude-<a>/`, `<repo>/.mentat/`, unit `EnvironmentFile=`), never values; writes `~/.mentat/titkok/leltar.json` (0600). It does NOT install the gate and never turns on merge mode; if the gate is live and the new inventory would deny an agent's essentials, the old inventory stays. `--dry-run`: table only |
 | `fleet secrets approve --item OP:NAME:FROM:TO:WHY --owner-text "…"` | itemised owner approval, at most 60 minutes, each item usable once |
 | `fleet secrets move\|copy --name K --from X --to Y --approval ID` | moves one key in-process, 0600, atomic, no symlinks; receipt in `~/.mentat/titkok/nyugtak.jsonl` |
+| `fleet secrets put --name K --to Y --approval ID` | one key's value from stdin ONLY (never argv, env or output), item `put:NAME:stdin:TO:WHY`; across machines: `<issuing command> \| ssh box 'fleet secrets put --name K --to gurney --approval ID'`. Refuses a terminal, ≤64 KB, one line; same write path and receipt as move/copy |
 | `fleet secrets audit [--repo DIR]` | did an inventoried value leak into a transcript, a repo or its git history (file:line only) |
 | `fleet secrets hook install [--dry-run\|--force]\|status` | the secrets gate (PreToolUse, deny only) in every `~/.claude*/settings.json` of the box. First an essentials probe: every agent's core paths (Telegram send in both shapes, `mentat-todo me/changes`, the `~/.config/<a>/jobs/` scripts, `git status/commit/push`, reading its own engine and review state) through the CANDIDATE gate, and whether a bridged agent's unit carries `TELEGRAM_BOT_TOKEN` (by name); a red agent means nothing is written. Then a canary: one root, re-probe, then the rest |
+
+**A secret value never goes into a chat or a message** (Telegram, SendMessage, PR, ticket). Hand it over only through `put` (stdin) or `move`/`copy`, with an itemised approval; tell the recipient only the key's name and place.
 
 What goes into the inventory: a secret-like name, or content evidence (a private key, a secret-named
 key/field with a value) — file mode alone never. A private unknown file without evidence is
@@ -97,7 +100,17 @@ work around it; a recursive grep can exclude a folder with `grep -r --exclude-di
 - **Env:** the unit's pane shell (`ExecStart … /bin/sh -c`) sources the env files — under tmux,
   `EnvironmentFile=` alone does not reach claude. Order: for a bridged agent the bridge's
   `telegram.env` (`bridge.env_file`) FIRST, then the registry `env_files` / `env_file` (the agent's own
-  file overrides shared keys), then `claude-auth.env` and `.mentat/model.env`. `FLEET_AGENT` always.
+  file overrides shared keys), then the registry `extra_env_files`, then `claude-auth.env` and
+  `.mentat/model.env`. `FLEET_AGENT` always.
+- **`extra_env_files` (optional):** a list of further env files outside `~/.config/<a>/` — e.g. a
+  project's own env file so wrangler gets `CLOUDFLARE_API_TOKEN`. Each item is `/absolute/path`,
+  `%h/…` (the user's home, a systemd specifier), or anything else relative to `workdir`
+  (`config/cf.env` → `<workdir>/config/cf.env`). Only the pane shell sources them, in the given order,
+  guarded (`if [ -r P ]; then . P; fi`) — a missing file does not stop startup. No `EnvironmentFile=`
+  line is emitted and the Telegram bridge unit never gets them. Allowed characters: letters, digits,
+  `/ _ . -`, and `%` only in the `%h/` prefix; spaces, quotes, `;`, `$`, backticks and `..` are
+  rejected by both `fleet validate` and the renderer. Absent or empty → the unit is byte-identical to
+  before. Example: `"extra_env_files": ["%h/myproject/.env"]`.
 - **Sending:** `node ~/.config/<a>/sub-etha/send.mjs --chat <id> [--reply-to <id>] -- "text"` or
   `--text-stdin`; the token comes from that env, the agent never sources telegram.env. Without a
   token send.mjs writes a `missing_token` notice to the delivery log and the doctor turns red.

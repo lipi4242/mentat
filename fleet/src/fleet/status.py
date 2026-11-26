@@ -58,6 +58,8 @@ def status(agent: str, *, repo: Path | None = None, run=run_cmd, unit_dir: Path 
             out["synergies"]["motor+flotta"] = f"ütemezés: motor ({names}) — `fleet join` átveszi"
     else:
         out["synergies"]["motor+flotta"] = "motor nincs jelen"
+    from fleet import rules_state
+    out["notes"] += rules_state.warnings_for({"agent": agent, "workdir": str(repo)})
     from fleet.budget import line_for
     over = line_for(agent)
     if over:

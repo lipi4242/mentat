@@ -2,6 +2,48 @@
 
 Generated from `capability-log.json` - do not edit by hand.
 
+## 0.7.0 (not released yet)
+
+### Memory and knowledge
+
+- Your own entity types. A type is one file in the brain (fields, folder, template); type add/adopt/edit, new <type>, find --type, due and check know them; type suggest, collect, rename, merge and split let types grow with the brain. (New: `brain.types`)
+- The agent knows who it is: a self-image at the top of AGENTS.md. A generated self-image block (name, roles, the self-image file) leads AGENTS.md and your text stays below it; a release replaces only role self-images you never changed. (Improved: `takeover`)
+
+### Proactivity and scheduling
+
+- Scheduled runs on your Mac, and a catch-up when a session starts. setup --install adds an hourly LaunchAgent on macOS; without a schedule each new session runs one tick --once; tick --render prints the actions' prompts. (Extended: `engine.schedule`)
+- A planned action that nobody runs is no longer silent. A pack can name its own executor; an action nobody takes is counted as unhandled in last-tick.json and anytime_engine last, and the tick exits 3. (Improved: `engine.last`, `engine.core`)
+- Untrusted text reaches the agent as data, or not at all. Shared-store text is cleaned, capped and framed as data; with a trust list, todos and cases created or rewritten by others arrive only as notices; new installs seed the list. (Improved: `engine.todo`, `engine.cases`)
+
+### Work and projects
+
+- The brain's skills are installed in your project. The six skills install once as native Claude Code skills in .claude/skills, checked against the release hashes; a skill you edited is kept. (Improved: `develop`)
+- Todo store: an agent writes and reads only what it takes part in. Object-level write rules, no PM-and-developer on one item, involvement-based reads with 404 for the rest, and the changes feed is your own. (Improved: `backlog`)
+
+### Safety and control
+
+- Six standard roles, a consultant template, and roles of your own. Assistant, developer, consultant, product manager, release agent and fleet manager, in one role map; roles --install refuses a role without a file or template; a fresh install brings the role tools. (Extended: `roles`)
+- The agent knows who it is: a self-image at the top of AGENTS.md. A generated self-image block (name, roles, the self-image file) leads AGENTS.md and your text stays below it; a release replaces only role self-images you never changed. (Improved: `roles`)
+- Mentat installs and runs on Windows. UTF-8 and LF everywhere, Git Bash found next to git.exe, Windows paths in the guard's boundary, and tzdata added by the install and the upgrade. (Improved: `guard`)
+- Your own account address is never written into a command. The brain's rules read the owner's address from configuration or the environment, so a headless agent is not stopped by a privacy check. (Improved: `guard`)
+
+### Operation and flexibility
+
+- Upgrade from any earlier version with one prompt. UPGRADE.md: plan first, backup branch, your files and changed role self-image kept, brains from before 0.5 included; UPGRADE-ALL.md upgrades a fleet one agent at a time, canary first; INSTALL.md is now FIRST-INSTALL.md. (Extended: `mentat.init`; Improved: `fleet`)
+- /mentat help, a status line and /whoami. A hand-written, versioned help with /mentat status and /mentat todo; a status line with name, roles, model and context; Telegram /help answers with the same text. (Extended: `mentat.status`)
+- The brain's skills are installed in your project. The six skills install once as native Claude Code skills in .claude/skills, checked against the release hashes; a skill you edited is kept. (Improved: `mentat.init`)
+- Mentat installs and runs on Windows. UTF-8 and LF everywhere, Git Bash found next to git.exe, Windows paths in the guard's boundary, and tzdata added by the install and the upgrade. (Improved: `mentat.init`)
+- Todo store: an agent writes and reads only what it takes part in. Object-level write rules, no PM-and-developer on one item, involvement-based reads with 404 for the rest, and the changes feed is your own. (Improved: `admin`)
+- The admin's e-mail sign-in code cannot be guessed from many addresses. Ten wrong codes lock an address for 15 minutes across IPs and codes; unknown addresses get the wrong-code answer; agent tokens no longer see e-mail addresses. (Improved: `admin`)
+- The local admin on a Mac runs as a service; connecting is one command. connect --local installs a LaunchAgent on macOS; connect --plugins swaps the token when the scopes change and binds the todo handle in mentat.json. (Improved: `admin`)
+- Fleet map: one file says who is who in a fleet. fleet-map.json with validate, show, render, check, audit and move-check; a fleet-place block in each AGENTS.md; the map-karbantartas skill for the fleet manager. (Extended: `fleet`)
+- Fleet files reach an agent's repository as a pull request. fleet upgrade --pr delivers the fleet-place block, --rules the rules file; doctor and status name stale rules; box-upgrade lists them and can open the pull requests. (Improved: `fleet`)
+- Fewer missed alerts and skipped repair rounds on a server. A second quarantine and a lasting budget exhaustion alert again; the full repair round waits for the lock and skipped rounds are reported. (Improved: `fleet`)
+- A waiting permission dialog is reported and answered from Telegram. doctor and the fleet report turn red and name the reason; the bridge alerts once with the options and accepts /igen or /nem from an allowed sender while the dialog is still there. (Improved: `fleet`)
+- An agent whose prompt changed is restarted with its conversation. When released prompt files change, the repair round restarts the idle agent with --resume, rate-limited and logged; fleet request-restart asks for it, and an agent never restarts itself. (Extended: `fleet`)
+- An agent's unit can load extra environment files. The optional extra_env_files registry field lists files the agent's session sources after its own, guarded and validated; the bridge does not get them. (Improved: `fleet`)
+- A secret value is handed over without entering a chat. fleet secrets put reads the value only from stdin, with an itemised single-use approval, writes it 0600 and atomically, and keeps it out of output and receipts. (Extended: `fleet`)
+
 ## 0.6.1 (not released yet)
 
 ### Proactivity and scheduling

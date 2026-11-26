@@ -3,10 +3,12 @@ import { current, marked, mutate, now } from './store';
 import { keys, object, textField, type TodoEnv } from './types';
 import { mentions, mentionStatements } from './mentions';
 import { newId } from './id';
+import { requireVisible } from './visible';
 export function registerComments(app: Hono<TodoEnv>) {
   app.post('/tasks/:id/comments', async c => {
     const body = object(await c.req.json()); keys(body, ['body','expected_rev']);
     const row = await current(c, body); if (row instanceof Response) return row;
+    await requireVisible(c, row.id); // a comment lands in the readers' context: only from someone who sees the task
     const text = textField(body.body, 'body', 100000), id = newId(), db = c.env.DB;
     const ids = await mentions(db, text);
     return mutate(c, row, 'commented', {}, { diff: { comment_id: id, body: text }, recipients: ids,

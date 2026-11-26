@@ -4,9 +4,15 @@ import { hasScope } from '../../lib/guards';
 import { event } from './store';
 import { newId } from './id';
 import { keys, object, Problem, textField, type TodoEnv } from './types';
+// What a machine token may read about principals. The sign-in e-mail and the token id stay with
+// the admin session: the e-mail is the first step of guessing the e-mail code, and both are
+// personal or credential data an agent does not need.
+const PUBLIC_COLUMNS = 'id, kind, handle, display_name, avatar, about, created_at, disabled_at';
+const columns = (c: { get(k: 'email'): string | undefined }) => (c.get('email') ? '*' : PUBLIC_COLUMNS);
+
 export function registerPrincipals(app: Hono<TodoEnv>) {
-  app.get('/me', async c => c.json(await c.env.DB.prepare('SELECT * FROM todo_principal WHERE id=?').bind(c.get('principal')!.id).first()));
-  app.get('/principals', async c => c.json((await c.env.DB.prepare('SELECT * FROM todo_principal ORDER BY display_name').all()).results));
+  app.get('/me', async c => c.json(await c.env.DB.prepare(`SELECT ${columns(c)} FROM todo_principal WHERE id=?`).bind(c.get('principal')!.id).first()));
+  app.get('/principals', async c => c.json((await c.env.DB.prepare(`SELECT ${columns(c)} FROM todo_principal ORDER BY display_name`).all()).results));
   app.post('/principals', async c => {
     const email = c.get('email'); if (!email) throw new Problem('admin session required', 403);
     const body = object(await c.req.json());

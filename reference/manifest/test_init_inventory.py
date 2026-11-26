@@ -19,18 +19,18 @@ class Inventory(InitBase):
     def tidy_repo(self):
         """A folder someone already worked in: a repo with a commit and work left uncommitted."""
         (self.root / "app").mkdir()
-        (self.root / "app" / "package.json").write_text('{"name": "tagdij"}\n')
-        (self.root / "app" / "index.html").write_text("<!-- TODO: finish the form -->\n")
-        (self.root / "notes.md").write_text("# Notes\n")
-        (self.root / ".cursorrules").write_text("Always answer in German.\n")
+        (self.root / "app" / "package.json").write_text('{"name": "tagdij"}\n', encoding="utf-8")
+        (self.root / "app" / "index.html").write_text("<!-- TODO: finish the form -->\n", encoding="utf-8")
+        (self.root / "notes.md").write_text("# Notes\n", encoding="utf-8")
+        (self.root / ".cursorrules").write_text("Always answer in German.\n", encoding="utf-8")
         g = ["git", "-C", str(self.root)]
         subprocess.run(g + ["init", "-q"], check=True, env=self.env)
         subprocess.run(g + ["add", "-A"], check=True, env=self.env)
         subprocess.run(g + ["-c", "user.name=B", "-c", "user.email=b@example.com", "commit", "-qm", "start"],
                        check=True, env=self.env)
-        (self.root / "notes.md").write_text("# Notes\n\n- call the accountant\n")
-        (self.root / "todo.txt").write_text("finish the fee list\n")
-        (self.root / "fees.csv").write_text("name,paid\n")
+        (self.root / "notes.md").write_text("# Notes\n\n- call the accountant\n", encoding="utf-8")
+        (self.root / "todo.txt").write_text("finish the fee list\n", encoding="utf-8")
+        (self.root / "fees.csv").write_text("name,paid\n", encoding="utf-8")
 
     def test_the_takeover_summary_names_what_was_found_and_left_alone(self):
         self.tidy_repo()
@@ -52,7 +52,7 @@ class Inventory(InitBase):
     def test_the_summary_speaks_the_language_given(self):
         self.tidy_repo()
         args = [a if a != "hu" else "en" for a in ANSWERS]
-        r = subprocess.run([*self.cmd(), *args, *ME], capture_output=True, text=True, env=self.env)
+        r = subprocess.run([*self.cmd(), *args, *ME], capture_output=True, text=True, env=self.env, encoding="utf-8", errors="replace")
         self.assertIn("Found in this folder", r.stdout, r.stdout + r.stderr)
         self.assertIn("Committed:", r.stdout)
 
@@ -85,7 +85,7 @@ class Identity(InitBase):
         self.assertNotEqual(self.git("config", "user.email"), "anna@localhost")
 
     def test_an_identity_already_set_is_used_without_asking(self):
-        with open(os.path.join(self.home, "gitconfig"), "w") as f:
+        with open(os.path.join(self.home, "gitconfig"), "w", encoding="utf-8") as f:
             f.write("[user]\n\tname = Anna\n\temail = anna@example.com\n")
         r = self.run_init()
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)

@@ -54,7 +54,7 @@ class NewCapability(KintBase):
     def setUp(self):
         super().setUp()
         (self.root / "projects" / "lista").mkdir(parents=True)
-        (self.root / "projects" / "lista" / "meglevo.py").write_text("print(1)\n")
+        (self.root / "projects" / "lista" / "meglevo.py").write_text("print(1)\n", encoding="utf-8")
 
     def receipt(self, decision="enable", age_h=0.0, name="r1.json", ledger=True):
         d = self.root / R
@@ -63,9 +63,9 @@ class NewCapability(KintBase):
         doc = {"schema": 1, "query": "q", "candidates": [{"id": "engine.cases"}],
                "decision": decision and {"decision": decision, "candidate": "engine.cases", "decided_at": at}}
         body = json.dumps(doc)
-        (d / name).write_text(body)
+        (d / name).write_text(body, encoding="utf-8")
         if decision and ledger:  # what the finder writes next to its decision
-            with open(d / "_ledger.jsonl", "a") as f:
+            with open(d / "_ledger.jsonl", "a", encoding="utf-8") as f:
                 f.write(json.dumps({"receipt": name, "sha256": hashlib.sha256(body.encode()).hexdigest(),
                                     "decided_at": at}) + "\n")
 
@@ -105,13 +105,13 @@ class NewCapability(KintBase):
         self.receipt("new", name="r1.json")
         self.assertEqual(self.write("projects/lista/kuld.py"), "allow")
         p = self.root / R / "r1.json"
-        p.write_text(p.read_text().replace("engine.cases", "web.publish"))  # edited after the decision
+        p.write_text(p.read_text(encoding="utf-8").replace("engine.cases", "web.publish"), encoding="utf-8")  # edited after the decision
         self.assertEqual(self.write("projects/lista/kuld.py"), "deny")
 
     def test_the_real_finder_and_decide_open_it_end_to_end(self):
         brain = pathlib.Path(__file__).resolve().parent.parent / "manifest" / "mentat_brain.py"
         run = lambda *a: subprocess.run([sys.executable, str(brain), "--repo", str(self.root), "where", *a],
-                                        capture_output=True, text=True)
+                                        capture_output=True, text=True, encoding="utf-8", errors="replace")
         self.assertEqual(self.write("projects/lista/kuld.py"), "deny")
         out = json.loads(run("--find", "minden reggel írd ki, ki nem fizetett", "--json").stdout)
         self.assertEqual(self.write("projects/lista/kuld.py"), "deny")  # found, not decided yet

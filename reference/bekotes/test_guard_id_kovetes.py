@@ -20,7 +20,7 @@ class PluginStepsBack(KintBase):
     def setUp(self):
         super().setUp()
         (self.home / ".mentat").mkdir()
-        (self.home / ".mentat" / "identitas.txt").write_text(ADDR + "\n")
+        (self.home / ".mentat" / "identitas.txt").write_text(ADDR + "\n", encoding="utf-8")
         self.base = self.home / ".claude"
         self.plugin = self.base / "plugins" / "cache" / "flotta" / "fleet" / "1.3.0"
 
@@ -30,13 +30,13 @@ class PluginStepsBack(KintBase):
         hook = json.loads(json.dumps(HOOK))
         if not block:
             del hook["hooks"][0]["onFailure"]
-        (path / "hooks" / "hooks.json").write_text(json.dumps({"hooks": {"PreToolUse": [hook]}}))
+        (path / "hooks" / "hooks.json").write_text(json.dumps({"hooks": {"PreToolUse": [hook]}}), encoding="utf-8")
         k = path / "hooks" / "identitas" / "kapu.py"
-        k.write_text("#") if code else (k.unlink() if k.exists() else None)
+        k.write_text("#", encoding="utf-8") if code else (k.unlink() if k.exists() else None)
         (self.base / "plugins").mkdir(parents=True, exist_ok=True)
         (self.base / "plugins" / "installed_plugins.json").write_text(json.dumps(
-            {"version": 2, "plugins": {"fleet@flotta": [{"scope": "user", "installPath": str(path)}]}}))
-        (self.base / "settings.json").write_text(json.dumps({"enabledPlugins": {"fleet@flotta": enabled}}))
+            {"version": 2, "plugins": {"fleet@flotta": [{"scope": "user", "installPath": str(path)}]}}), encoding="utf-8")
+        (self.base / "settings.json").write_text(json.dumps({"enabledPlugins": {"fleet@flotta": enabled}}), encoding="utf-8")
 
     def fetch(self):
         return self.d("WebFetch", {"url": OPENALEX, "prompt": "x"})
@@ -59,7 +59,7 @@ class PluginStepsBack(KintBase):
         doc = {"version": 2, "plugins": {"fleet@flotta": [
             {"scope": "user", "installPath": str(self.plugin)},
             {"scope": "project", "projectPath": "/x/masik-projekt", "installPath": str(other)}]}}
-        (self.base / "plugins" / "installed_plugins.json").write_text(json.dumps(doc))  # … for another project
+        (self.base / "plugins" / "installed_plugins.json").write_text(json.dumps(doc), encoding="utf-8")  # … for another project
         self.assertEqual(self.fetch(), "ask")
 
 
@@ -67,20 +67,20 @@ class PluginStepsBack(KintBase):
         self.install()
         valid = {"scope": "user", "installPath": str(self.plugin)}
         path = self.base / "plugins" / "installed_plugins.json"
-        path.write_text(json.dumps({"version": 2, "plugins": {"fleet@flotta": [None, "x", [], 7, valid]}}))
+        path.write_text(json.dumps({"version": 2, "plugins": {"fleet@flotta": [None, "x", [], 7, valid]}}), encoding="utf-8")
         self.assertEqual(self.fetch(), "allow")  # the valid entry after the odd ones still counts
         import szerep_kapu_id
         for plugins in (None, "x", [], [valid]):
-            path.write_text(json.dumps({"version": 2, "plugins": plugins}))
+            path.write_text(json.dumps({"version": 2, "plugins": plugins}), encoding="utf-8")
             self.assertFalse(szerep_kapu_id.user_gate_active(self.root), plugins)
             self.assertEqual(self.fetch(), "ask", plugins)  # asked, not every tool denied
         for settings in ({"enabledPlugins": ["fleet@flotta"]}, {"enabledPlugins": None, "hooks": []},
                          {"hooks": "x"}, {"hooks": {"PreToolUse": "x"}}, [1, 2]):
-            (self.base / "settings.json").write_text(json.dumps(settings))
+            (self.base / "settings.json").write_text(json.dumps(settings), encoding="utf-8")
             self.assertEqual(self.fetch(), "ask", settings)
-        (self.base / "settings.json").write_text(json.dumps({"enabledPlugins": {"fleet@flotta": True}}))
-        path.write_text(json.dumps({"version": 2, "plugins": {"fleet@flotta": [valid]}}))
-        (self.plugin / "hooks" / "hooks.json").write_text(json.dumps({"hooks": ["x"]}))
+        (self.base / "settings.json").write_text(json.dumps({"enabledPlugins": {"fleet@flotta": True}}), encoding="utf-8")
+        path.write_text(json.dumps({"version": 2, "plugins": {"fleet@flotta": [valid]}}), encoding="utf-8")
+        (self.plugin / "hooks" / "hooks.json").write_text(json.dumps({"hooks": ["x"]}), encoding="utf-8")
         self.assertEqual(self.fetch(), "ask")
 
 
@@ -90,7 +90,7 @@ class SourceInTheQuestion(KintBase):
     def test_each_line_shows_where_it_was_suggested_from(self):
         subprocess.run(["git", "-C", str(self.root), "init", "-q"], capture_output=True)
         (self.root / "projects" / "app").mkdir(parents=True)
-        (self.root / "projects" / "app" / "wrangler.toml").write_text('routes = [{ pattern = "app.example.net/*" }]\n')
+        (self.root / "projects" / "app" / "wrangler.toml").write_text('routes = [{ pattern = "app.example.net/*" }]\n', encoding="utf-8")
         cmd = "python3 .mentat/bin/bekotes/szerep_id_javaslat.py --write app.example.net evil.example.org"
         r = self.run_guard(self.payload("Bash", {"command": cmd}))
         reason = json.loads(r.stdout)["hookSpecificOutput"]["permissionDecisionReason"]

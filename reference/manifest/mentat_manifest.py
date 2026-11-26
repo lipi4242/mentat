@@ -91,7 +91,7 @@ def _locked(root):
 def _write_atomic(path, doc):
     path.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp = tempfile.mkstemp(dir=str(path.parent), prefix=".tmp-")
-    with os.fdopen(fd, "w", encoding="utf-8") as out:
+    with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as out:
         json.dump(doc, out, indent=2, ensure_ascii=False)
         out.write("\n")
     os.replace(tmp, path)

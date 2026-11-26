@@ -38,7 +38,7 @@ class Shipped(unittest.TestCase):
     def test_log_reaches_the_release_json_version(self):
         """The newest log entry is the version being prepared: release.json's, or the next one."""
         key = lambda v: tuple(int(x) for x in v.split("."))
-        ver = json.loads((REL / "release.json").read_text())["version"]
+        ver = json.loads((REL / "release.json").read_text(encoding="utf-8"))["version"]
         self.assertGreaterEqual(max(key(r["version"]) for r in cl.load()["releases"]), key(ver))
 
 
@@ -49,7 +49,7 @@ class Problems(unittest.TestCase):
 
     def changelog(self, body):
         p = self.dir / "CHANGELOG.md"
-        p.write_text("# Changelog\n\n## 9.9.9\n\n%s\n## 9.9.8\n\n- **Old** — no marker needed\n" % body)
+        p.write_text("# Changelog\n\n## 9.9.9\n\n%s\n## 9.9.8\n\n- **Old** — no marker needed\n" % body, encoding="utf-8")
         return {"brain": p}
 
     def check(self, log, body="- **T** — text <!-- cap: x-change -->\n"):

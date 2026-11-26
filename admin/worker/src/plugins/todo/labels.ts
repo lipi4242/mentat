@@ -2,6 +2,7 @@ import type { Hono } from 'hono';
 import { current, event, marked, mutate } from './store';
 import { newId } from './id';
 import { keys, object, Problem, textField, type TodoEnv } from './types';
+import { requireWriter } from './access';
 export function registerLabels(app: Hono<TodoEnv>) {
   app.get('/labels', async c => c.json((await c.env.DB.prepare('SELECT * FROM todo_label ORDER BY name').all()).results));
   app.post('/labels', async c => {
@@ -23,6 +24,7 @@ export function registerLabels(app: Hono<TodoEnv>) {
   app.post('/tasks/:id/labels', async c => {
     const body = object(await c.req.json()); keys(body, ['label_ids','expected_rev']);
     const row = await current(c, body); if (row instanceof Response) return row;
+    await requireWriter(c, row);
     if (!Array.isArray(body.label_ids) || body.label_ids.length > 100 || body.label_ids.some(id => typeof id !== 'string')) throw new Problem('label_ids must be a list of up to 100 ids');
     const ids = [...new Set(body.label_ids as string[])], db = c.env.DB;
     if (ids.length && (await db.prepare(`SELECT id FROM todo_label WHERE id IN (${ids.map(() => '?').join(',')})`).bind(...ids).all()).results.length !== ids.length) throw new Problem('unknown label_ids');

@@ -18,12 +18,12 @@ class Kuldes(KintBase):
     def setUp(self):
         super().setUp()
         (self.root / ".claude").mkdir(exist_ok=True)
-        (self.root / ".claude" / "fleet.json").write_text("{}")
+        (self.root / ".claude" / "fleet.json").write_text("{}", encoding="utf-8")
         self.tr = pathlib.Path(tempfile.mkdtemp()) / "t.jsonl"
         rows = [{"type": "user", "message": {"content": "Tedd ki a listát."}},
                 {"type": "assistant", "message": {"content": [{"type": "tool_use", "name": "Bash",
                                                                "input": {"command": "npx wrangler deploy"}}]}}]
-        self.tr.write_text("\n".join(json.dumps(r) for r in rows) + "\n")
+        self.tr.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
 
     def send(self, cmd, mode="bypassPermissions"):
         p = self.payload("Bash", {"command": cmd}, mode)
@@ -55,11 +55,11 @@ class RealLayout(Kuldes):
 
     def setUp(self):
         super().setUp()
-        (self.root / ".claude" / "fleet.json").write_text(json.dumps({"agent": "media-agent"}))
+        (self.root / ".claude" / "fleet.json").write_text(json.dumps({"agent": "media-agent"}), encoding="utf-8")
         cfg = self.home / ".config" / "media-agent"
         (cfg / "sub-etha").mkdir(parents=True)
-        (cfg / "sub-etha" / "send.mjs").write_text("// send\n")
-        (cfg / "telegram.env").write_text("TELEGRAM_BOT_TOKEN=x\n")
+        (cfg / "sub-etha" / "send.mjs").write_text("// send\n", encoding="utf-8")
+        (cfg / "telegram.env").write_text("TELEGRAM_BOT_TOKEN=x\n", encoding="utf-8")
 
     def test_the_documented_send_is_open_and_still_checked(self):
         src = "set -a; . ~/.config/media-agent/telegram.env; set +a; "

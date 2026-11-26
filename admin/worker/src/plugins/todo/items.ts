@@ -8,6 +8,7 @@ import { actorId, checkParent, handleId } from './kinds';
 import { findProject } from './projects';
 import { acTexts, itemFields, SPEC_FIELDS } from './item-fields';
 import { currentItem, getItem, ITEM_SELECT, itemDetail, requirePm, resolveRef, STAGES } from './item-store';
+import { requireVisible, visibleWhere } from './visible';
 
 export function registerItems(app: Hono<TodoEnv>) {
   app.post('/items', async c => {
@@ -68,11 +69,16 @@ export function registerItems(app: Hono<TodoEnv>) {
       where.push("julianday(CASE WHEN b.stage = 'issued' THEN coalesce(b.issued_at, t.updated_at) ELSE t.updated_at END) <= julianday('now') - ?");
       args.push(Number(q.older_than));
     }
+    const v = visibleWhere(c); where.push(v.sql); args.push(...v.args);
     const { results } = await db.prepare(`${ITEM_SELECT} WHERE ${where.join(' AND ')} ORDER BY t.position, t.id`).bind(...args).all();
     return c.json(results, 200, { 'X-Total-Count': String(results.length) });
   });
 
-  app.get('/items/:ref', async c => c.json(await itemDetail(c.env.DB, await resolveRef(c.env.DB, c.req.param('ref')))));
+  app.get('/items/:ref', async c => {
+    const id = await resolveRef(c.env.DB, c.req.param('ref'));
+    await requireVisible(c, id);
+    return c.json(await itemDetail(c.env.DB, id));
+  });
 
   app.patch('/items/:id', async c => {
     const body = object(await c.req.json()); keys(body, ['set', 'expected_rev']);

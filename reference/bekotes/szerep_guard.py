@@ -14,6 +14,8 @@ operations (ask interactively, deny headless); --post records the USER's consent
 import json
 import pathlib
 import sys
+for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows: a pipe is the ANSI code page, not UTF-8
+    getattr(_s, "reconfigure", lambda **k: None)(encoding="utf-8", errors="replace")
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 from szerep_pin import (brain_root, find_root, manifest, pinned_role, resolve,  # noqa: E402
@@ -47,7 +49,7 @@ def role_rules(data, root):
         builtin = builtin_rules(brain_root(root)) + read_rules(root, brain_root(root), res["role"])
         swept = grep_denied(root, brain_root(root), res["role"], data.get("tool_name", ""),
                             data.get("tool_input") or {}, data.get("cwd"))
-        rules = parse_deny(role_file(root, res).read_text()) + builtin
+        rules = parse_deny(role_file(root, res).read_text(encoding="utf-8")) + builtin
         swept = swept or role_swept(root, brain_root(root), [r for r in rules if r.startswith("Read(")],
                                     data.get("tool_name", ""), data.get("tool_input") or {},
                                     data.get("cwd"), match)
@@ -91,9 +93,9 @@ def session_start(data):
     if sid:
         write_pin(root, sid, res["role"])
         ignore = root / ".gitignore"
-        text = ignore.read_text() if ignore.exists() else ""
+        text = ignore.read_text(encoding="utf-8") if ignore.exists() else ""
         if ".mentat/" not in text.split():
-            ignore.write_text(text + ("" if text.endswith("\n") or not text else "\n") + ".mentat/\n")
+            ignore.write_bytes((text + ("" if text.endswith("\n") or not text else "\n") + ".mentat/\n").encode("utf-8"))
     default = (manifest(root).get("roles") or {}).get("default")
     if res["role"] == default:
         return None

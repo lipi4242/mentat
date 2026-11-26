@@ -19,6 +19,8 @@ import sys
 import threading
 import time
 import urllib.parse
+for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows: a pipe is the ANSI code page, not UTF-8
+    getattr(_s, "reconfigure", lambda **k: None)(encoding="utf-8", errors="replace")
 
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))  # at the END (python3 -I)
 from mentat_serve_proc import private, write_env  # noqa: E402

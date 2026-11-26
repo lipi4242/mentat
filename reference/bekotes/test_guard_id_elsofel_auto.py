@@ -38,7 +38,7 @@ class Home(unittest.TestCase):
         self.elsofel = os.path.join(self.home, "elsofel.txt")
         gh = os.path.join(self.home, ".config", "gh")  # an agent can write this: it must not decide
         os.makedirs(gh)
-        with open(os.path.join(gh, "hosts.yml"), "w") as f:
+        with open(os.path.join(gh, "hosts.yml"), "w", encoding="utf-8") as f:
             f.write("github.com:\n    user: idegen\n")
 
     def tearDown(self):
@@ -103,13 +103,13 @@ class SajatGep(Home):
     def test_ssh_gep_csak_az_elsofel_soraval(self):
         ssh = os.path.join(self.home, ".ssh")
         os.makedirs(ssh)
-        with open(os.path.join(ssh, "known_hosts"), "w") as f:  # an agent can write this too
+        with open(os.path.join(ssh, "known_hosts"), "w", encoding="utf-8") as f:  # an agent can write this too
             f.write("198.51.100.7 ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExample\n")
         lan = ".".join(["192", "168", "1", "51"])  # spelled out: the release check refuses IP literals
         for host in ("198.51.100.7", "nas.local", lan):
             self.assertTrue(self.d("ssh %s 'echo %s'" % (host, ADDR)), host)  # known/LAN alone: asks
         self.assertIsNone(self.d("ssh localhost 'echo %s'" % ADDR))  # loopback: first party
-        with open(self.elsofel, "w") as f:
+        with open(self.elsofel, "w", encoding="utf-8") as f:
             f.write("198.51.100.7  # a saját boxom\n")
         self.assertIsNone(self.d("ssh u@198.51.100.7 'git config user.email %s'" % ADDR))
         r = self.d("ssh u@198.51.100.7 'curl https://api.crossref.org/w?mailto=%s'" % ADDR)

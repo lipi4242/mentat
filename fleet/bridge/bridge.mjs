@@ -31,6 +31,8 @@ import { holdTokenLockOrExit } from "./lib/token-lock-guard.mjs";
 import { createWebhookWire } from "./lib/webhook-wire.mjs";
 import { createReceiptWire } from "./lib/receipt-wire.mjs";
 import { createTodoWire } from "./lib/todo-wire.mjs";
+import { createHelp, paneRepo } from "./lib/help.mjs";
+import { createDialogs } from "./lib/dialog-wire.mjs";
 
 const log = (...a) => console.log(new Date().toISOString(), "[bridge]", ...a);
 
@@ -74,6 +76,10 @@ export function createBridge(CFG, deps = {}) {
   // Todo-ebresztes: a todo-esemenyek ugyanazon a kezbesitesi uton mennek, mint a Telegram.
   const todo = createTodoWire(CFG, { deliver: delivery.deliver, logInbound, log, alert, onCorrupt, fetchFn: deps.todoFetch });
   const botIdentity = { username: "", id: 0 };
+  // Engedelykero ablak: riasztas okkal, valasz /igen /nem-mel (lib/dialog-wire.mjs). deps.spawn: tesztnek.
+  const { watch: dialogs, answer: answerDialog } = createDialogs(CFG, { spawn: deps.spawn, alert, log, tg });
+  const help = createHelp({ resolveRepo: () => paneRepo(CFG.session, { BRIDGE_HELP_REPO: CFG.helpRepo }),
+    tg, bot: () => botIdentity, log });
   const handlers = createHandlers({
     groupId: CFG.groupId, allowIds: CFG.allowIds, requireMention: CFG.requireMention,
     maxFileBytes: CFG.maxFileBytes, bot: () => botIdentity, deliver: delivery.deliver,
@@ -83,6 +89,7 @@ export function createBridge(CFG, deps = {}) {
     },
     logInbound,
     log, onApprovalCandidate: webhook.onApprovalCandidate,
+    onHelp: (a) => answerDialog(a) || help(a),
   });
   const processUpdate = (upd) => {
     appendEvent(CFG.inboxDir, CFG.healthFile, upd); // tartos naplo ELOBB; dob, ha nem sikerult
@@ -90,7 +97,7 @@ export function createBridge(CFG, deps = {}) {
     handlers.handleMessage(upd.edited_message, { edited: true, updateId: upd.update_id });
     handlers.handleReaction(upd.message_reaction);
   };
-  return { tg, alert, onCorrupt, delivery, albums, mediaQueue, botIdentity, handlers, processUpdate, webhook, receipts, todo };
+  return { tg, alert, onCorrupt, dialogs, delivery, albums, mediaQueue, botIdentity, handlers, processUpdate, webhook, receipts, todo };
 }
 
 async function main() {
@@ -126,6 +133,7 @@ async function main() {
   setInterval(prune, 6 * 60 * 60 * 1000).unref?.();
   setInterval(() => b.delivery.retryPending().catch((e) => log("retry error:", e.message)),
     CFG.pendingRetryMs).unref?.();
+  setInterval(() => b.dialogs.check(), CFG.pendingRetryMs).unref?.(); // engedelykero ablak a pane-ben
   // A sor elen hibara futott elemet periodikusan is meglokjuk.
   setInterval(() => b.mediaQueue.drain().catch((e) => log("media queue error:", e.message)),
     CFG.pendingRetryMs).unref?.();

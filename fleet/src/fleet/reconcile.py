@@ -27,6 +27,7 @@ visszaindítás nem fogy a költségvetésből (`requested_stop`), hanem a
 `requested_restarts` listába kerül; a postcheck és a karantén ugyanúgy él.
 """
 from __future__ import annotations
+import contextlib
 import fcntl
 import json
 import os
@@ -36,6 +37,7 @@ import time
 from pathlib import Path
 
 from fleet import CONFIG_DIR, alerts, dup, maintenance, requested_stop, signals
+from fleet import prompt_drift, prompt_drift_report
 from fleet.registry import is_dormant, load_agents, agents_for_host, local_host
 from fleet import liveness
 from fleet.liveness import TRANSCRIPT_FRESH_S
@@ -44,6 +46,10 @@ from fleet.postcheck import postcheck, OK, PENDING, FAILED, window_s
 CONTROLLER_PATH = CONFIG_DIR / "controller"
 STATE_DIR = CONFIG_DIR / "state"
 LOCK_PATH = STATE_DIR / "reconcile.lock"
+LOCK_WAIT_S = 60       # a teljes kör ennyit vár a zárra; a gyors út nem vár
+LOCK_POLL_S = 0.5
+CLAIM_TTL_S = 300      # ennyi ideig tekinti a többi kör egy ágens postcheck-várakozását „folyamatban"-nak
+_HELD = None           # a futó körhöz tartozó zárfájl: az execute ezt engedi el a postcheck-várakozás idejére
 
 RESTART_BUDGET = 3          # restart / óra / ágens
 BUDGET_WINDOW_S = 3600
@@ -124,6 +130,10 @@ def decide(entry: dict, m: dict, st, *, unit_active: bool | None,
         return [("noop", "dormant, áll")]
     if st.get("quarantined"):
         return [("skip:quarantine", "karantén — ember oldja fel")]
+    pp0 = st.get("pending_postcheck") or {}
+    if pp0.get("claimed_at") and now - pp0["claimed_at"] < CLAIM_TTL_S:
+        # egy másik kör épp a restart utáni postchecket várja zár nélkül: nem indítjuk újra, nem ellenőrizzük
+        return [("skip:postcheck-in-progress", "a restart utáni postcheck-várakozás folyamatban")]
     if unit_active is None:
         return [("skip:unmeasurable", "a systemd nem válaszol")]
     s = m["signals"]
@@ -135,7 +145,9 @@ def decide(entry: dict, m: dict, st, *, unit_active: bool | None,
         if requested:
             return [("start" if not unit_active else "restart", "kért leállás (fleet stop) után — nem fogy a költségvetésből")]
         if budget_left(st, now) == 0:
-            return [(f"alert:budget:{a}", f"{a}: {RESTART_BUDGET} restart/óra elfogyott, nem indítom újra")]
+            recent = [t for t in st.get("restarts", []) if now - t < BUDGET_WINDOW_S]
+            ep = int(min(recent)) if recent else 0   # a keret-epizód azonosítója: a legrégebbi restart ideje
+            return [(f"alert:budget:{a}:{ep}", f"{a}: {RESTART_BUDGET} restart/óra elfogyott, nem indítom újra")]
         return [("start" if not unit_active else "restart", "nincs claude-processz")]
     # fut — függő postcheck?
     pp = st.get("pending_postcheck")
@@ -178,6 +190,7 @@ def decide(entry: dict, m: dict, st, *, unit_active: bool | None,
     rearm = liveness.rearm_reason(entry, m)
     if rearm:
         acts.append(("rearm", rearm))
+    acts += prompt_drift.acts(entry, m, st, now, acts)   # változott prompt / kért restart → resume
     if not acts:
         return [("noop", "egészséges")]
     # az ismeretlen mellékjelek nem "egészséges": ki is mondjuk
@@ -234,11 +247,16 @@ def _may_act(entry: dict, log) -> bool:
 def _record_postcheck(entry: dict, st: dict, r: dict, *, log) -> None:
     a = entry["agent"]
     env_file = _env_paths(entry)
+    if isinstance(st.get("pending_postcheck"), dict):
+        st["pending_postcheck"].pop("claimed_at", None)   # a várakozás véget ért: a többi kör újra ellenőrizhet
     if r["status"] == OK:
         st["failed_postchecks"] = 0
         st["pending_postcheck"] = None
+        st.pop("quarantined_at", None)
         alerts.clear(f"rc:{a}")
         alerts.clear(f"kepesseg:{a}:")
+        alerts.clear(f"quarantine:{a}:")
+        alerts.clear(f"budget:{a}:")
         log(f"{a}: postcheck OK")
         try:  # 11-07: a postcheck a képességet is mérte — a központ a következő körben zöldet lát
             from fleet import flotta_report, kepesseg_riaszt
@@ -263,9 +281,90 @@ def _record_postcheck(entry: dict, st: dict, r: dict, *, log) -> None:
         log(f"{a}: postcheck HIBA: {'; '.join(r['problems'])}")
         if st["failed_postchecks"] >= QUARANTINE_AFTER:
             st["quarantined"] = True
-            alerts.alert(f"quarantine:{a}", f"⛔ {a}: {QUARANTINE_AFTER} bukott postcheck, karanténban. "
+            st["quarantined_at"] = time.time()   # az epizód azonosítója: egy újabb karantén újabb riasztás
+            alerts.alert(f"quarantine:{a}:{int(st['quarantined_at'])}", f"⛔ {a}: {QUARANTINE_AFTER} bukott postcheck, karanténban. "
                          f"Utolsó: {'; '.join(r['problems'])}", agent_env_file=env_file)
     save_state(a, st)
+
+
+def _acquire(lockf, wait_s: float) -> bool:
+    deadline = time.monotonic() + wait_s
+    while True:
+        try:
+            fcntl.flock(lockf, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return True
+        except OSError:
+            if time.monotonic() >= deadline:
+                return False
+            time.sleep(LOCK_POLL_S)
+
+
+@contextlib.contextmanager
+def _released_lock():
+    """A futó kör zárja szabad a blokk idejére; kilépéskor visszaszerzi (`ok`). Zár nélkül (közvetlen hívás) üres."""
+    lk = {"ok": True}
+    held = _HELD
+    if held is None:
+        yield lk
+        return
+    fcntl.flock(held, fcntl.LOCK_UN)
+    try:
+        yield lk
+    finally:
+        lk["ok"] = _acquire(held, LOCK_WAIT_S)
+
+
+def _skipped_path() -> Path:
+    return LOCK_PATH.with_name("reconcile-skipped")   # a zár miatt kimaradt körök (egy bájt = egy kör)
+
+
+def _note_skipped() -> None:
+    skipped = _skipped_path()
+    try:
+        skipped.parent.mkdir(parents=True, exist_ok=True)
+        with skipped.open("ab") as f:
+            f.write(b"x")
+    except OSError:
+        pass
+
+
+def _report_skipped(log) -> None:
+    skipped = _skipped_path()
+    try:
+        n = skipped.stat().st_size
+        if n:
+            log(f"reconcile: {n} kör kimaradt zár miatt az előző futás óta")
+            skipped.write_bytes(b"")
+    except OSError:
+        pass
+
+
+def _restart(entry: dict, action: str, st: dict, stamp_key: str, *, now: float, log,
+             sysctl, do_postcheck) -> str:
+    """Unit-restart (a unit `--resume`-mal indul) + postcheck. A kísérlet ELŐBB kerül
+    lemezre, mint a hívás. Visszaad: a postcheck státusza, vagy a hiba rövid neve."""
+    a, unit = entry["agent"], entry["unit"]
+    st.setdefault(stamp_key, []).append(now)
+    st["pending_postcheck"] = {"restart_at": now, "claimed_at": now}
+    save_state(a, st)
+    sysctl("enable", unit)
+    rc = sysctl("restart" if action != "start" else "start", unit)
+    if rc != 0:
+        st["failed_postchecks"] = st.get("failed_postchecks", 0) + 1
+        st["pending_postcheck"] = None
+        save_state(a, st)
+        log(f"{a}: systemctl {action} hibával tért vissza ({rc})")
+        return f"systemctl-hiba ({rc})"
+    with _released_lock() as lk:   # a várakozás (akár 90 mp) nem tarthatja a zárat
+        r = do_postcheck(entry, restart_at=now)
+    fresh = load_state(a) if lk["ok"] else None
+    if fresh is None or fresh is CORRUPT:
+        log(f"{a}: {action} végrehajtva; a zár nem szerezhető vissza / az állapot nem olvasható — a recheck rögzíti")
+        return "postcheck-függő"
+    st.clear(); st.update(fresh)   # közben más kör is írhatott az állapotba
+    _record_postcheck(entry, st, r, log=log)
+    log(f"{a}: {action} végrehajtva")
+    return f"postcheck {r['status']}"
 
 
 def execute(entry: dict, action: str, m: dict, st: dict, *, now: float, log,
@@ -289,23 +388,21 @@ def execute(entry: dict, action: str, m: dict, st: dict, *, now: float, log,
             run(["kill", str(pid)], capture_output=True)
         log(f"{a}: leállítva (dormant)")
     elif action in ("start", "restart", "planned_restart"):
-        # a kísérlet ELŐBB kerül lemezre, mint a hívás; a kért leállás utáni
-        # (egyszer felhasznált jelölő) nem fogy a crash-loop költségvetésből
+        # a kért leállás utáni (egyszer felhasznált jelölő) nem fogy a crash-loop költségvetésből
         free = action != "planned_restart" and requested_stop.take(a, now)
-        st.setdefault("requested_restarts" if free else "restarts", []).append(now)
-        st["pending_postcheck"] = {"restart_at": now}
-        save_state(a, st)
-        sysctl("enable", unit)
-        rc = sysctl("restart" if action != "start" else "start", unit)
-        if rc != 0:
-            st["failed_postchecks"] = st.get("failed_postchecks", 0) + 1
-            st["pending_postcheck"] = None
+        requested_stop.clear_restart(a)   # ez a restart a kérést is teljesíti
+        _restart(entry, action, st, "requested_restarts" if free else "restarts",
+                 now=now, log=log, sysctl=sysctl, do_postcheck=do_postcheck)
+    elif action == "resume_restart":
+        # prompt-drift vagy kért restart: külön keret, első üzenet, naplósor
+        prompt_drift_report.before_restart(entry, m, st, now)
+        res = _restart(entry, action, st, "resume_restarts", now=now, log=log, sysctl=sysctl,
+                       do_postcheck=do_postcheck)
+        m["_drift_result"] = res
+        if res.startswith("systemctl-hiba"):
+            st["drift_notice"] = None   # nem indult újra: az „újraindultál" üzenet hamis lenne
             save_state(a, st)
-            log(f"{a}: systemctl {action} hibával tért vissza ({rc})")
-            return
-        r = do_postcheck(entry, restart_at=now)
-        _record_postcheck(entry, st, r, log=log)
-        log(f"{a}: {action} végrehajtva")
+        prompt_drift_report.restart_logged(entry, m, res, now)
     elif action == "recheck":
         pp = st.get("pending_postcheck") or {}
         r = do_postcheck(entry, restart_at=pp.get("restart_at"), wait_s=0)
@@ -347,55 +444,90 @@ def reconcile(*, observe: bool = False, only: str | None = None, now: float | No
     log(f"reconcile [{mode}] host={host}")
 
     STATE_DIR.mkdir(parents=True, exist_ok=True)
+    global _HELD
     with LOCK_PATH.open("w") as lockf:
-        try:
-            fcntl.flock(lockf, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        except OSError:
-            log("reconcile: már fut egy példány — kilépek")
+        if not _acquire(lockf, 0 if fast else LOCK_WAIT_S):
+            _note_skipped()
+            log(f"reconcile: a zár {0 if fast else LOCK_WAIT_S} mp után sem szabadult — kilépek (a kör kimaradt)")
             return {"mode": mode, "host": host, "lines": [] if fast else lines}
-        if acting and not fast:
-            # a liveness OOM-söprése: minden ágens-processzre, a registrytől függetlenül
-            log(liveness.format_oom(oom_sweep()))
-        all_agents = agents if agents is not None else load_agents()
-        for fe, pid in ([] if fast else dup.foreign_here(all_agents, host, procs() if procs else [])):
-            msg = dup.dup_message(fe, pid, host)
-            log(msg + ("" if acting else " (nem riasztok: megfigyelés)"))
-            if acting:
-                alerts.alert(f"dup:{fe['agent']}:{host}", msg,
-                             agent_env_file=_env_paths(fe))
-        for e in agents_for_host(host or "", all_agents):
-            if only and e["agent"] != only:
-                continue
-            if e.get("supervision") == "none":
-                log(f"{e['agent']}: supervision=none — kihagyva")
-                continue
-            if acting and not e.get("host"):
-                log(f"{e['agent']}: nincs explicit host — nem nyúlok hozzá")
-                continue
-            st = load_state(e["agent"])
-            m = measure(e)
-            m.setdefault("rearm_age_s", liveness._age_of(liveness.state_path(e.get("workdir", ""), "last-rearm")))
-            acts = decide(e, m, st, unit_active=unit_active(e["unit"]),
-                          locked=maintenance.is_locked(e["agent"]), now=now,
-                          requested=requested_stop.pending(e["agent"], now))
-            if fast:
-                from fleet import reconcile_fast
-                acts = reconcile_fast.filter_acts(e["agent"], acts, now)
-                acted = acted or bool(acts)
-            for action, reason in acts:
-                if action == "noop" or action.startswith("skip:"):
-                    log(f"{e['agent']}: {action} — {reason}")
-                    continue
-                log(f"{e['agent']}: {action} — {reason}" + ("" if acting else " (nem hajtom végre)"))
-                if acting:
-                    m["_reason"] = reason
-                    execute_fn(e, action, m, st, now=now, log=log)
-            # függő postcheck lejárata (csak ACT módban írunk állapotot). A
-            # recheck a lejárat után már `failed`-et ad, ez csak a biztosíték.
-            if acting and st is not CORRUPT and st.get("pending_postcheck"):
-                if now - st["pending_postcheck"]["restart_at"] > window_s(e):
-                    st["pending_postcheck"] = None
+        prev_held, _HELD = _HELD, lockf
+        try:
+            return _locked_round(observe, only, now, agents, measure, unit_active, execute_fn, oom_sweep, procs,
+                                 fast, mode, host, acting, lines)
+        finally:
+            _HELD = prev_held
+
+
+def _locked_round(observe, only, now, agents, measure, unit_active, execute_fn, oom_sweep, procs,
+                  fast, mode, host, acting, lines) -> dict:
+    log = lines.append
+    acted = False
+    _report_skipped(log)
+    if acting and not fast:
+        # a liveness OOM-söprése: minden ágens-processzre, a registrytől függetlenül
+        log(liveness.format_oom(oom_sweep()))
+    all_agents = agents if agents is not None else load_agents()
+    drift_events: list[dict] = []
+    for fe, pid in ([] if fast else dup.foreign_here(all_agents, host, procs() if procs else [])):
+        msg = dup.dup_message(fe, pid, host)
+        log(msg + ("" if acting else " (nem riasztok: megfigyelés)"))
+        if acting:
+            alerts.alert(f"dup:{fe['agent']}:{host}", msg,
+                         agent_env_file=_env_paths(fe))
+    for e in agents_for_host(host or "", all_agents):
+        if only and e["agent"] != only:
+            continue
+        if e.get("supervision") == "none":
+            log(f"{e['agent']}: supervision=none — kihagyva")
+            continue
+        if acting and not e.get("host"):
+            log(f"{e['agent']}: nincs explicit host — nem nyúlok hozzá")
+            continue
+        st = load_state(e["agent"])
+        m = measure(e)
+        if acting and (m["signals"].get("channel") or {}).get("state") != "conflict":
+            alerts.clear(f"bridge-budget:{e['agent']}", exact=True)   # a 409 megszűnt: a következő riasztson
+        m.setdefault("rearm_age_s", liveness._age_of(liveness.state_path(e.get("workdir", ""), "last-rearm")))
+        if st is not CORRUPT and not fast:
+            # a betöltött prompt hash-e: alapvonal az új generációnak, különben összevetés
+            try:
+                if prompt_drift.observe(e, m, st, now) and acting:
                     save_state(e["agent"], st)
+            except Exception as ex:  # noqa: BLE001 — a drift-mérés hibája nem állíthatja meg a kört
+                m["prompt_drift"] = []
+                log(f"{e['agent']}: prompt-drift nem mérhető ({type(ex).__name__})")
+            m["restart_requested"] = requested_stop.restart_pending(e["agent"], now)
+        acts = decide(e, m, st, unit_active=unit_active(e["unit"]),
+                      locked=maintenance.is_locked(e["agent"]), now=now,
+                      requested=requested_stop.pending(e["agent"], now))
+        if fast:
+            from fleet import reconcile_fast
+            acts = reconcile_fast.filter_acts(e["agent"], acts, now)
+            acted = acted or bool(acts)
+        for action, reason in acts:
+            if action == "noop" or action.startswith("skip:"):
+                log(f"{e['agent']}: {action} — {reason}")
+                continue
+            log(f"{e['agent']}: {action} — {reason}" + ("" if acting else " (nem hajtom végre)"))
+            if acting:
+                m["_reason"] = reason
+                execute_fn(e, action, m, st, now=now, log=log)
+        for action, reason in acts if acting else []:
+            ev = prompt_drift_report.event(e, action, reason, m, st, now)
+            if ev:
+                drift_events.append(ev)
+        if acting and not fast and st is not CORRUPT:
+            prompt_drift_report.deliver_notice(e, st, now, save=save_state, log=log)
+        # függő postcheck lejárata (csak ACT módban írunk állapotot). A
+        # recheck a lejárat után már `failed`-et ad, ez csak a biztosíték.
+        if acting and st is not CORRUPT and st.get("pending_postcheck"):
+            if now - st["pending_postcheck"]["restart_at"] > window_s(e):
+                st["pending_postcheck"] = None
+                save_state(e["agent"], st)
+    if acting and drift_events:   # körönként EGY összesítő riasztás a drift-restartokról
+        by_name = {x["agent"]: x for x in all_agents}
+        res = prompt_drift_report.summarize(drift_events, host, now, lambda a: _env_paths(by_name[a]))
+        log(f"prompt-drift: összesítő riasztás [{res}] ({len(drift_events)} esemény)")
     # a gyors út (30 mp-es timer) csak akkor szól, ha tett valamit
     return {"mode": mode, "host": host, "lines": lines if acted or not fast else []}
 

@@ -4,7 +4,7 @@ import type { Hono } from 'hono';
 import type { AppEnv } from '../../types';
 import { requireWriter } from '../../lib/guards';
 import { isIsoDate } from './recurrence';
-import { detail, openDates, toJson, type CaseRow } from './store';
+import { AUTHORS, detail, openDates, toJson, type CaseRow } from './store';
 import { STATUSES } from './validate';
 
 export const READ = ['cases:read', 'cases:write'];
@@ -12,7 +12,7 @@ export const READ = ['cases:read', 'cases:write'];
 // Undated cases last, then by date and title. `SELECT *` so the instance's
 // own fields come along whatever they are; `context` is dropped after the read
 // (the heaviest column, and only the detail view shows it).
-const LIST_SQL = `SELECT * FROM cases_case`;
+const LIST_SQL = `SELECT *, ${AUTHORS} FROM cases_case`;
 const ORDER = `ORDER BY due_at IS NULL, due_at, title`;
 const listItem = ({ context: _context, ...row }: CaseRow) => toJson(row as CaseRow);
 
@@ -35,7 +35,7 @@ export function registerReads(app: Hono<AppEnv>) {
     const until = c.req.query('until');
     if (!isIsoDate(until)) return c.json({ error: 'until must be a YYYY-MM-DD date' }, 422);
     const { results } = await c.env.DB.prepare(
-      `SELECT * FROM cases_case WHERE status IN ('open', 'waiting') AND due_at IS NOT NULL AND due_at <= ?1 ${ORDER}`,
+      `${LIST_SQL} WHERE status IN ('open', 'waiting') AND due_at IS NOT NULL AND due_at <= ?1 ${ORDER}`,
     )
       .bind(until)
       .all<CaseRow>();
@@ -48,6 +48,8 @@ export function registerReads(app: Hono<AppEnv>) {
         next_action: row.next_action,
         recurrence: row.recurrence,
         brain_ref: row.brain_ref,
+        created_by: row.created_by,
+        text_updated_by: row.text_updated_by,
         due_at,
         closable: i === 0,
       })),

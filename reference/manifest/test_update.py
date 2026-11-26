@@ -13,7 +13,7 @@ import mentat_manifest as mm  # noqa: E402
 
 
 def _read(root, name):
-    return json.loads((root / name).read_text())
+    return json.loads((root / name).read_text(encoding="utf-8"))
 
 
 def _bump(args):
@@ -37,7 +37,7 @@ class Update(unittest.TestCase):
 
     def test_merge_keeps_unknown_fields_of_own_and_other_sections(self):
         (self.root / "mentat.json").write_text(json.dumps(
-            {"schema": 1, "x": 1, "components": {"brain": {"root": "agy", "later": True}, "engine": {"path": "e"}}}))
+            {"schema": 1, "x": 1, "components": {"brain": {"root": "agy", "later": True}, "engine": {"path": "e"}}}), encoding="utf-8")
         mm.update("brain", "components", {"root": "brain"}, self.root)
         got = _read(self.root, "mentat.json")
         self.assertEqual(got["components"]["brain"], {"root": "brain", "later": True})
@@ -65,7 +65,7 @@ class Update(unittest.TestCase):
             mm.update("brain", "cases", {"backend": "markdown"}, self.root)
 
     def test_refuses_unknown_schema(self):
-        (self.root / "mentat.json").write_text(json.dumps({"schema": 2}))
+        (self.root / "mentat.json").write_text(json.dumps({"schema": 2}), encoding="utf-8")
         with self.assertRaises(mm.ManifestError):
             mm.update("brain", "components", {"root": "agy"}, self.root)
         self.assertEqual(_read(self.root, "mentat.json"), {"schema": 2})

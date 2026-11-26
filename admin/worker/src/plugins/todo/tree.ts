@@ -3,6 +3,7 @@ import { current, mutate } from './store';
 import { keys, object, Problem, type TodoEnv } from './types';
 import { position } from './validate';
 import { checkParent, projectOf } from './kinds';
+import { requireOwner } from './access';
 // Evaluated inside the event INSERT as well as before it; UNION terminates even
 // if an imported database already contains a cycle.
 export const treeGuard = `NOT EXISTS (WITH RECURSIVE descendants(id) AS (
@@ -28,6 +29,7 @@ export function registerTree(app: Hono<TodoEnv>) {
   app.post('/tasks/:id/move', async c => {
     const body = object(await c.req.json()); keys(body, ['parent_id','position','expected_rev']);
     const row = await current(c, body); if (row instanceof Response) return row;
+    requireOwner(c, row);
     await parentExists(c.env.DB, body.parent_id);
     const parent = body.parent_id as string | null;
     await checkParent(c.env.DB, row.kind, parent, row.kind === 'item' ? await projectOf(c.env.DB, row.id) : null);

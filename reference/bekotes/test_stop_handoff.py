@@ -16,7 +16,7 @@ def transcript(said, asked="Csináld meg a listát."):
     p = pathlib.Path(tempfile.mkdtemp()) / "t.jsonl"
     rows = [{"type": "user", "message": {"content": asked}},
             {"type": "assistant", "message": {"content": [{"type": "text", "text": said}]}}]
-    p.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n")
+    p.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n", encoding="utf-8")
     return str(p)
 
 
@@ -24,7 +24,7 @@ def stop(said, asked="Csináld meg a listát.", active=False, cwd=None, path=Non
     data = {"transcript_path": path or transcript(said, asked), "stop_hook_active": active, "cwd": cwd or ""}
     env = {k: v for k, v in os.environ.items() if k != "CLAUDE_PROJECT_DIR"}
     r = subprocess.run([sys.executable, "-I", str(STOP)], input=json.dumps(data), capture_output=True, text=True,
-                       env=env)
+                       env=env, encoding="utf-8", errors="replace")
     return json.loads(r.stdout) if r.stdout.strip() else None
 
 
@@ -47,7 +47,7 @@ class Handoff(unittest.TestCase):
         root = pathlib.Path(tempfile.mkdtemp())
         (root / ".claude").mkdir()
         self.assertEqual((stop("Now run this command: x", cwd=str(root)) or {}).get("decision"), "block")
-        (root / ".claude" / "fleet.json").write_text("{}")
+        (root / ".claude" / "fleet.json").write_text("{}", encoding="utf-8")
         self.assertIsNone(stop("Now run this command: x", cwd=str(root)))
 
     def test_only_the_end_of_a_long_transcript_is_read(self):
@@ -55,12 +55,12 @@ class Handoff(unittest.TestCase):
         rows = [{"type": "user", "message": {"content": "Milyen paranccsal?"}}]
         rows += [{"type": "assistant", "message": {"content": [{"type": "text", "text": "x" * 6000}]}}] * 50
         rows += [{"type": "assistant", "message": {"content": [{"type": "text", "text": "Now run this command: y"}]}}]
-        p.write_text("\n".join(json.dumps(r) for r in rows) + "\n")
+        p.write_text("\n".join(json.dumps(r) for r in rows) + "\n", encoding="utf-8")
         out = stop("", path=str(p))  # the asked-for-a-command line is ~300 KB back: not read
         self.assertEqual((out or {}).get("decision"), "block")
 
     def test_a_broken_input_never_breaks_the_session(self):
-        r = subprocess.run([sys.executable, "-I", str(STOP)], input="nem json", capture_output=True, text=True)
+        r = subprocess.run([sys.executable, "-I", str(STOP)], input="nem json", capture_output=True, text=True, encoding="utf-8", errors="replace")
         self.assertEqual((r.returncode, r.stdout), (0, ""))
 
 
@@ -71,7 +71,7 @@ class Handoff(unittest.TestCase):
         rows = [use(c) for c in earlier] + [{"type": "user", "message": {"content": "Tedd ki a listát."}}]
         rows += [use(c) for c in tools]
         rows += [{"type": "assistant", "message": {"content": [{"type": "text", "text": said}]}}]
-        p.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n")
+        p.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n", encoding="utf-8")
         return stop("", path=str(p))
 
     def test_a_done_claim_after_work_needs_a_done_check_first(self):
@@ -91,7 +91,7 @@ class Handoff(unittest.TestCase):
 
     def test_an_english_brain_gets_the_bounce_in_english(self):
         root = pathlib.Path(tempfile.mkdtemp())
-        (root / "mentat.json").write_text(json.dumps({"agent": {"language": "en"}}))
+        (root / "mentat.json").write_text(json.dumps({"agent": {"language": "en"}}), encoding="utf-8")
         out = stop("Now run this command: x", cwd=str(root))
         self.assertIn("do it now", out["reason"])
         self.assertNotIn("FELHASZNÁLÓ", out["reason"])

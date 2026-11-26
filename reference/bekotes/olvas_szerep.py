@@ -16,7 +16,7 @@ def rules(repo):
         res = szerep_pin.resolve(repo)
         if not res.get("role"):
             return None, []
-        deny = szerep_rules.parse_deny(szerep_pin.role_file(repo, res).read_text())
+        deny = szerep_rules.parse_deny(szerep_pin.role_file(repo, res).read_text(encoding="utf-8"))
     except (szerep_rules.GuardError, OSError, ValueError, KeyError, TypeError) as e:
         raise hely.HelyError("a szerep nem oldható fel (%s), ezért az olvas nem olvas" % e)
     return res["role"], [r for r in deny if r.startswith("Read(")]

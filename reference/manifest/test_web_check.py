@@ -49,7 +49,7 @@ class WebCheck(unittest.TestCase):
 
     def run_tool(self, *args, env=None):
         return subprocess.run([sys.executable, str(TOOL), "check", self.url, *args], capture_output=True,
-                              text=True, env=dict(os.environ, **(env or {})))
+                              text=True, env=dict(os.environ, **(env or {})), encoding="utf-8", errors="replace")
 
     def test_unsigned_request_is_not_up(self):
         r = self.run_tool()
@@ -59,7 +59,7 @@ class WebCheck(unittest.TestCase):
 
     def test_signed_in_with_the_cookie_file(self):
         f = pathlib.Path(tempfile.mkdtemp()) / "cookie"
-        f.write_text(COOKIE + "\n")
+        f.write_text(COOKIE + "\n", encoding="utf-8")
         r = self.run_tool("--cookie-file", str(f), "--contains", "items: 20")
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         self.assertTrue(r.stdout.startswith("OK 200"), r.stdout)

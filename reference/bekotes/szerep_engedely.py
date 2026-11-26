@@ -12,6 +12,8 @@ import json
 import os
 import pathlib
 import sys
+for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows: a pipe is the ANSI code page, not UTF-8
+    getattr(_s, "reconfigure", lambda **k: None)(encoding="utf-8", errors="replace")
 
 LIST = ".mentat/engedelyek.json"
 
@@ -48,7 +50,7 @@ def record(root, items, tool, sid=None):
             entries.append(e)
     path = pathlib.Path(root) / LIST
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({"engedelyek": entries}, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    path.write_bytes((json.dumps({"engedelyek": entries}, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
 
 
 def main(argv=None):

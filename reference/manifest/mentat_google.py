@@ -19,6 +19,8 @@ Exit: 0 done, 1 red (nothing sent), 2 no approved contract, 3 ask the USER first
 import argparse
 import pathlib
 import sys
+for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows: a pipe is the ANSI code page, not UTF-8
+    getattr(_s, "reconfigure", lambda **k: None)(encoding="utf-8", errors="replace")
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import google_api as api  # noqa: E402

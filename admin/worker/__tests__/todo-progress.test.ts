@@ -25,7 +25,7 @@ describe('todo independent completion and descendant progress', () => {
 
   it('weights leaves equally across levels and ignores internal status and list filters', async () => {
     const { create, call } = await todoApp();
-    const root = await create({ due_date: '2026-10-27', owner_id: 'b' });
+    const root = await create({ due_date: '2026-10-27', assignee_id: 'b' });
     const branch = await create({ parent_id: root.id });
     const deep = await create({ parent_id: branch.id });
     const done = await create({ parent_id: deep.id });

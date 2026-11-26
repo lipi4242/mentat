@@ -5,6 +5,7 @@ import { withProgress } from './progress';
 import { Problem, type Task, type TodoEnv } from './types';
 import { handleId, KINDS } from './kinds';
 import { caseDetail } from './case-fields';
+import { requireVisible, visibleWhere } from './visible';
 export function registerRead(app: Hono<TodoEnv>) {
   app.get('/tasks', async c => {
     const q = c.req.query(), where: string[] = [], args: string[] = [];
@@ -29,8 +30,12 @@ export function registerRead(app: Hono<TodoEnv>) {
       if (!isIsoDate(q.due_before)) throw new Problem('due_before must be YYYY-MM-DD');
       where.push('due_date <= ?'); args.push(q.due_before);
     }
-    const { results } = await c.env.DB.prepare(`SELECT * FROM todo_task ${where.length ? `WHERE ${where.join(' AND ')}` : ''} ORDER BY position,id`).bind(...args).all<Task>();
+    const v = visibleWhere(c); where.push(v.sql); args.push(...v.args);
+    const { results } = await c.env.DB.prepare(`SELECT t.* FROM todo_task t WHERE ${where.join(' AND ')} ORDER BY t.position,t.id`).bind(...args).all<Task>();
     return c.json(await withProgress(c.env.DB, results), 200, { 'X-Total-Count': String(results.length) });
   });
-  app.get('/tasks/:id', async c => c.json(await caseDetail(c.env.DB, await detail(c.env.DB, c.req.param('id')))));
+  app.get('/tasks/:id', async c => {
+    await requireVisible(c, c.req.param('id'));
+    return c.json(await caseDetail(c.env.DB, await detail(c.env.DB, c.req.param('id'))));
+  });
 }

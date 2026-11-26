@@ -34,10 +34,10 @@ def ensure(root):
     ign = root / ".gitignore"
     lines = ign.read_text(encoding="utf-8").splitlines() if ign.exists() else []
     if not {".secrets/", ".secrets", "/.secrets/"} & set(lines):
-        ign.write_text("\n".join(lines + [".secrets/"]) + "\n", encoding="utf-8")
+        ign.write_bytes(("\n".join(lines + [".secrets/"]) + "\n").encode("utf-8"))
     try:
         tracked = subprocess.run(["git", "-C", str(root), "ls-files", "--", ".secrets"],
-                                 capture_output=True, text=True).stdout.strip()
+                                 capture_output=True, text=True, encoding="utf-8", errors="replace").stdout.strip()
     except FileNotFoundError:
         tracked = ""
     if tracked:
@@ -52,7 +52,7 @@ def write(path, text):
     path = pathlib.Path(path)
     tmp = path.with_name(path.name + ".tmp")
     fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w", encoding="utf-8") as f:
+    with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as f:
         f.write(text)
     os.chmod(tmp, 0o600)
     os.replace(tmp, path)
@@ -85,11 +85,10 @@ def connector_note(root, services, scopes):
     d = pathlib.Path(root) / brain / "connectors"
     d.mkdir(parents=True, exist_ok=True)
     path = d / "google.md"
-    path.write_text(NOTE.format(rel=REL, services=", ".join(services), scopes=", ".join(scopes),
-                                day=datetime.date.today().isoformat()), encoding="utf-8")
+    path.write_bytes(NOTE.format(rel=REL, services=", ".join(services), scopes=", ".join(scopes),
+                                day=datetime.date.today().isoformat()).encode("utf-8"))
     meta = d / "_meta.md"
     old = meta.read_text(encoding="utf-8") if meta.exists() else "# connectors\n"
     if "(google.md)" not in old:
-        meta.write_text(old + ("" if old.endswith("\n") else "\n") + "- [Google](google.md) - connector\n",
-                        encoding="utf-8")
+        meta.write_bytes((old + ("" if old.endswith("\n") else "\n") + "- [Google](google.md) - connector\n").encode("utf-8"))
     return path

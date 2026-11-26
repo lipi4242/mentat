@@ -24,7 +24,7 @@ class EngineStep(unittest.TestCase):
         self.addCleanup(shutil.rmtree, home, True)
         released = home / "src" / "mentat" / "engine"
         released.mkdir(parents=True)
-        (released / "sync-to.sh").write_text("#!/bin/sh\n")  # released layout: no release/ dir
+        (released / "sync-to.sh").write_text("#!/bin/sh\n", encoding="utf-8")  # released layout: no release/ dir
         for lang in ("hu", "en"):
             section, words = sync_command(lang)
             script = next(w for w in words if w.endswith("sync-to.sh"))

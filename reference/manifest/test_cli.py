@@ -12,7 +12,7 @@ CLI = pathlib.Path(__file__).resolve().parent / "mentat_cli.py"
 
 def run(root, *args):
     return subprocess.run([sys.executable, str(CLI), *args, "--repo", str(root)],
-                          capture_output=True, text=True)
+                          capture_output=True, text=True, encoding="utf-8", errors="replace")
 
 
 class Cli(unittest.TestCase):
@@ -24,24 +24,24 @@ class Cli(unittest.TestCase):
                    "--brain-root", "agy", "--version", "0.2.0")
 
     def test_init_brain_writes_both_files_and_gitignore(self):
-        (self.root / ".gitignore").write_text(".env\n")
+        (self.root / ".gitignore").write_text(".env\n", encoding="utf-8")
         self.assertEqual(self.init().returncode, 0)
-        self.assertEqual(json.loads((self.root / "mentat.json").read_text()), {
+        self.assertEqual(json.loads((self.root / "mentat.json").read_text(encoding="utf-8")), {
             "schema": 1, "agent": {"name": "Bob", "language": "hu"},
             "components": {"brain": {"root": "agy"}}, "cases": {"backend": "markdown"}})
-        self.assertEqual(json.loads((self.root / ".mentat/local.json").read_text()),
+        self.assertEqual(json.loads((self.root / ".mentat/local.json").read_text(encoding="utf-8")),
                          {"schema": 1, "installed": {"brain": "0.2.0"}})
-        self.assertEqual((self.root / ".gitignore").read_text(), ".env\n.mentat/\n")
+        self.assertEqual((self.root / ".gitignore").read_text(encoding="utf-8"), ".env\n.mentat/\n")
 
     def test_init_brain_is_idempotent_and_keeps_chosen_backend(self):
         self.init()
-        manifest = json.loads((self.root / "mentat.json").read_text())
+        manifest = json.loads((self.root / "mentat.json").read_text(encoding="utf-8"))
         manifest["cases"]["backend"] = "markdown-later"  # someone else's choice, unknown value
-        (self.root / "mentat.json").write_text(json.dumps(manifest))
+        (self.root / "mentat.json").write_text(json.dumps(manifest), encoding="utf-8")
         self.init()
-        got = json.loads((self.root / "mentat.json").read_text())
+        got = json.loads((self.root / "mentat.json").read_text(encoding="utf-8"))
         self.assertEqual(got["cases"]["backend"], "markdown-later")
-        self.assertEqual((self.root / ".gitignore").read_text().count(".mentat/"), 1)
+        self.assertEqual((self.root / ".gitignore").read_text(encoding="utf-8").count(".mentat/"), 1)
 
     def test_status_names_elements_and_missing_synergies(self):
         self.init()
@@ -59,7 +59,7 @@ class Cli(unittest.TestCase):
         self.assertNotIn("mentat-admin checkout", out.stdout)
 
     def test_status_json_and_exit_code_on_unknown_schema(self):
-        (self.root / "mentat.json").write_text('{"schema": 7}')
+        (self.root / "mentat.json").write_text('{"schema": 7}', encoding="utf-8")
         out = run(self.root, "status", "--json")
         self.assertEqual(out.returncode, 2)
         self.assertTrue(json.loads(out.stdout)["diagnostic_only"])

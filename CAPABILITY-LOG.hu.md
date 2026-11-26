@@ -2,6 +2,48 @@
 
 A `capability-log.json`-ból generált fájl, kézzel ne írd.
 
+## 0.7.0 (még nincs kiadva)
+
+### Memória és tudás
+
+- Saját entitástípusok. Egy típus egy fájl az agyban (mezők, mappa, sablon); type add/adopt/edit, new <típus>, find --type, a due és a check ismeri; a type suggest, collect, rename, merge és split az aggyal együtt fejleszti a típusokat. (Új: `brain.types`)
+- Az ágens tudja, ki ő: önkép az AGENTS.md elején. Egy generált self-image blokk (név, szerepek, az önkép-fájl) áll az AGENTS.md elején, a saját szöveged alatta marad; a kiadás csak a sosem módosított szerep-önképet cseréli. (Javult: `takeover`)
+
+### Proaktivitás és ütemezés
+
+- Ütemezett futás a Macen, és pótlás a session indulásakor. A setup --install macOS-en óránkénti LaunchAgentet tesz fel; ütemező nélkül minden új session egy tick --once-t futtat; a tick --render az akciók promptját írja ki. (Bővült: `engine.schedule`)
+- A senki által nem futtatott akció nem tűnik el némán. Egy csomag megnevezheti a saját végrehajtóját; a senki által fel nem vett akció unhandled a last-tick.json-ban és az anytime_engine last kimenetében, a tick pedig 3-mal zár. (Javult: `engine.last`, `engine.core`)
+- A nem megbízható szöveg adatként jut el az ágenshez, vagy sehogy. A közös tár szövege tisztítva, vágva, adatként keretezve megy a promptba; bizalmi listával a mások által létrehozott vagy átírt todo és ügy csak értesítés; a friss telepítés kitölti a listát. (Javult: `engine.todo`, `engine.cases`)
+
+### Munkavégzés és projektek
+
+- Az agy skilljei a projektedbe települnek. A hat skill egyszer, natív Claude Code skillként települ a .claude/skills alá, a kiadás hash-eivel ellenőrizve; a kézzel átírt skill megmarad. (Javult: `develop`)
+- Todo-tár: az ágens csak azt írja és olvassa, amiben érintett. Objektum-szintű írási szabályok, egy tételen nem lehet ugyanaz a PM és a dev, érintett-alapú olvasás, a többire 404, és a changes csak a saját folyam. (Javult: `backlog`)
+
+### Biztonság és kontroll
+
+- Hat standard szerep, consultant-sablon és saját szerep. Asszisztens, fejlesztő, consultant, product manager, kiadó ágens és flottamenedzser egy szerep-térképen; a roles --install elutasítja a fájl és sablon nélküli szerepet; a friss telepítés hozza a szerep-eszközöket. (Bővült: `roles`)
+- Az ágens tudja, ki ő: önkép az AGENTS.md elején. Egy generált self-image blokk (név, szerepek, az önkép-fájl) áll az AGENTS.md elején, a saját szöveged alatta marad; a kiadás csak a sosem módosított szerep-önképet cseréli. (Javult: `roles`)
+- A Mentat Windowson is települ és fut. Mindenhol UTF-8 és LF, a Git Bash a git.exe mellől is megvan, a Windows-utak a szerep-őr határában, és a telepítés meg a frissítés felteszi a tzdata-t. (Javult: `guard`)
+- A saját fiók-cím nem kerül parancsba. Az agy szabálya szerint a tulajdonos címe konfigból vagy env-ből jön, így a headless ágenst nem állítja meg adatvédelmi ellenőrzés. (Javult: `guard`)
+
+### Működés és rugalmasság
+
+- Frissítés bármely korábbi verzióról egyetlen prompttal. UPGRADE.md: előbb terv, mentő ág, a fájljaid és a módosított szerep-önkép megmarad, a 0.5 előtti agyakra is; az UPGRADE-ALL.md ágensenként, kanárival kezdve frissíti a flottát; az INSTALL.md mostantól FIRST-INSTALL.md. (Bővült: `mentat.init`; Javult: `fleet`)
+- /mentat súgó, státuszsor és /whoami. Kézzel írt, verziózott súgó /mentat status és /mentat todo paranccsal; státuszsor névvel, szerepekkel, modellel és kontextussal; a Telegram /help ugyanezt a szöveget adja. (Bővült: `mentat.status`)
+- Az agy skilljei a projektedbe települnek. A hat skill egyszer, natív Claude Code skillként települ a .claude/skills alá, a kiadás hash-eivel ellenőrizve; a kézzel átírt skill megmarad. (Javult: `mentat.init`)
+- A Mentat Windowson is települ és fut. Mindenhol UTF-8 és LF, a Git Bash a git.exe mellől is megvan, a Windows-utak a szerep-őr határában, és a telepítés meg a frissítés felteszi a tzdata-t. (Javult: `mentat.init`)
+- Todo-tár: az ágens csak azt írja és olvassa, amiben érintett. Objektum-szintű írási szabályok, egy tételen nem lehet ugyanaz a PM és a dev, érintett-alapú olvasás, a többire 404, és a changes csak a saját folyam. (Javult: `admin`)
+- Az admin e-mailes belépőkódja sok címről sem találgatható. Tíz rossz kód 15 percre lezárja a címet, IP-ktől és kódoktól függetlenül; az ismeretlen cím a rossz kód válaszát kapja; az ágens-token nem látja az e-mail-címeket. (Javult: `admin`)
+- A helyi admin Macen szolgáltatásként fut; a bekötés egy parancs. A connect --local macOS-en LaunchAgentet telepít; a connect --plugins hatókör-változáskor tokent cserél, és a todo-handle-t a mentat.json-ba köti. (Javult: `admin`)
+- Flottatérkép: egy fájl mondja meg, ki kicsoda a flottában. fleet-map.json validate, show, render, check, audit és move-check paranccsal; fleet-place blokk minden AGENTS.md-ben; map-karbantartas skill a flottamenedzsernek. (Bővült: `fleet`)
+- A flotta-fájlok pull requestként jutnak az ágens repójába. A fleet upgrade --pr a fleet-place blokkot, a --rules a szabályfájlt kézbesíti; a doctor és a status megnevezi az elavult szabályt; a box-upgrade listázza, és megnyithatja a PR-eket. (Javult: `fleet`)
+- Kevesebb elnyelt riasztás és kimaradt javítási kör a szerveren. A második karantén és a tartós keret-kimerülés újra riaszt; a teljes javítási kör megvárja a zárat, a kimaradt köröket jelenti. (Javult: `fleet`)
+- A várakozó engedélykérő ablak riaszt, és Telegramról megválaszolható. A doctor és a flotta-jelentés piros, és megnevezi az okot; a híd egyszer riaszt az opciókkal, és engedélyezett küldőtől elfogadja az /igen-t vagy a /nem-et, amíg az ablak áll. (Javult: `fleet`)
+- A megváltozott promptú ágens a beszélgetésével indul újra. Ha a kiadott promptfájlok változnak, a javítási kör a tétlen ágenst --resume-mal újraindítja, korláttal és naplóval; a fleet request-restart kéri ugyanezt, az ágens magát sosem indítja újra. (Bővült: `fleet`)
+- Az ágens unitja további env-fájlokat is betölthet. Az opcionális extra_env_files registry-mező olyan fájlokat sorol, amelyeket az ágens sessionje a sajátjai után, őrzötten és ellenőrizve tölt be; a híd nem kapja meg őket. (Javult: `fleet`)
+- A titok értéke chat nélkül adható át. A fleet secrets put az értéket csak stdin-ről olvassa, tételes, egyszer használható jóváhagyással, 0600-zal és atomikusan írja, és kihagyja a kimenetből és a nyugtából. (Bővült: `fleet`)
+
 ## 0.6.1 (még nincs kiadva)
 
 ### Proaktivitás és ütemezés

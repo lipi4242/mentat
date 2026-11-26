@@ -14,6 +14,8 @@ import argparse
 import pathlib
 import re
 import sys
+for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows: a pipe is the ANSI code page, not UTF-8
+    getattr(_s, "reconfigure", lambda **k: None)(encoding="utf-8", errors="replace")
 
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.append(str(HERE))  # at the END: with `python3 -I` a planted module here cannot shadow the stdlib

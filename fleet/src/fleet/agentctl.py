@@ -75,6 +75,7 @@ def restart(entry: dict, *, run=run_cmd, wait_s: int = 90, check=postcheck) -> d
     a, unit = entry["agent"], entry["unit"]
     maintenance.unlock(a)
     requested_stop.clear(a)     # itt indul, nem a reconcile: a jelölő ne mentsen fel egy későbbi összeomlást
+    requested_stop.clear_restart(a)   # a kért újraindítás is teljesül
     t0 = time.time()
     r = run(["systemctl", "--user", "restart", unit])
     if r.returncode != 0:

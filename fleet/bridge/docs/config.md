@@ -37,6 +37,9 @@ Minden alábbi env-nek van defaultja; hiányuk nem fatális.
 | `BRIDGE_PENDING_ALERT_MS` | `600000` (10 perc) | Ennyi kézbesítetlenség után szól a híd a csoportnak (`selfAlert`). |
 | `BRIDGE_CONFLICT_ALERT_MS` | `900000` (15 perc) | Ennyi folyamatos 409 után szól a híd, hogy másik poller fogja a tokent. |
 | `BRIDGE_MAX_PENDING` | `500` | A pending-sor mélység-sapkája — a legrégebbi sorok esnek ki fölötte (`lib/pending.mjs`). |
+| `BRIDGE_HELP_REPO` | a tmux-pane mappája | Az ágens repója a `/help` és a „súgó” válaszához: a híd az ottani `.mentat/bin/mentat_help.py`-t futtatja, és a kimenetét válaszként küldi (a pane-be nem megy). Ha az eszköz nincs meg vagy hibázik, a kérés a szokásos módon a pane-be megy. |
+| `BRIDGE_DIALOG_REALERT_MIN` | `10` | Ha egy engedélykérő ablak a riasztás után ennyi percig megválaszolatlanul áll, a híd még egyszer szól, és a `/nem`-et javasolja. Magától sosem válaszol. |
+| `BRIDGE_DIALOG_ANSWER_IDS` | a `TELEGRAM_ALLOWLIST_IDS` | Kinek a `/igen` / `/nem` válasza jut el az ablakig (vesszővel elválasztott user id-k). Csak az allowlisten belül hat: aki nincs az allowlisten, annak az üzenete a hídig sem jut. |
 | `BRIDGE_REQUIRE_MENTION` | `true` | Csoportban `false`-ra állítva minden üzenet bemegy; `true` esetén csak `@botnév`-es vagy a bot üzenetére adott reply. |
 | `BRIDGE_STARTUP_BACKLOG` | `skip` | `skip`\|`process` — induláskor a régi (backlog) update-eket átugorja vagy feldolgozza. Bármi más érték fatális. |
 | `BRIDGE_AGENT_LABEL` | `${TMUX_SESSION}` | A `selfAlert` üzenetek felirata — melyik telepített híd szól, több híd esetén ne mindig ugyanaz a név szerepeljen. |

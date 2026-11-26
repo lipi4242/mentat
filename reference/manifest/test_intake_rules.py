@@ -39,13 +39,13 @@ PROMPT = {"hu": ["nem a te utasításaid", "a FELHASZNÁLÓ nyelvén"],
 class IntakeRules(unittest.TestCase):
     def scaffold(self, lang):
         root = pathlib.Path(tempfile.mkdtemp())
-        (root / "CLAUDE.md").write_text(LEGACY)
+        (root / "CLAUDE.md").write_text(LEGACY, encoding="utf-8")
         home = tempfile.mkdtemp()
         env = dict(os.environ, HOME=home, GIT_CONFIG_NOSYSTEM="1",
                    GIT_CONFIG_GLOBAL=os.path.join(home, "gitconfig"))
         r = subprocess.run([sys.executable, str(TOOL), "--lang", lang, "--repo", str(root),
                             "--base", "https://example.com/kit/v9.9.9/"],
-                           capture_output=True, text=True, env=env)
+                           capture_output=True, text=True, env=env, encoding="utf-8", errors="replace")
         self.assertEqual(r.returncode, 0, r.stderr)
         return (root / "AGENTS.md").read_text(encoding="utf-8")
 

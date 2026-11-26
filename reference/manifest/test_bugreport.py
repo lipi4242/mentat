@@ -43,11 +43,11 @@ class BugReport(unittest.TestCase):
         self.tmp = pathlib.Path(tempfile.mkdtemp())
         self.repo = self.tmp / "agent"
         (self.repo / "brain/people").mkdir(parents=True)
-        (self.repo / "brain/people/kovacs-anna.md").write_text("x")
+        (self.repo / "brain/people/kovacs-anna.md").write_text("x", encoding="utf-8")
         subprocess.run(["git", "init", "-q", str(self.repo)], check=True)
         bin_dir = self.tmp / "bin"
         bin_dir.mkdir()
-        (bin_dir / "gh").write_text(FAKE_GH)
+        (bin_dir / "gh").write_text(FAKE_GH, encoding="utf-8")
         (bin_dir / "gh").chmod(0o755)
         self.log = self.tmp / "gh.log"
         self.env = dict(os.environ, PATH="%s:%s" % (bin_dir, os.environ["PATH"]), HOME=str(self.tmp / "home"),
@@ -57,7 +57,7 @@ class BugReport(unittest.TestCase):
 
     def run_tool(self, *args, **env):
         return subprocess.run([sys.executable, "-I", str(TOOL), *args, "--repo", str(self.repo)],
-                              capture_output=True, text=True, timeout=60, env=dict(self.env, **env))
+                              capture_output=True, text=True, timeout=60, env=dict(self.env, **env), encoding="utf-8", errors="replace")
 
     def draft(self, *extra, error=None, **env):
         err = error or ("Traceback: auth failed for %s token=%s bot %s\nchat %s config %s\nby %s"
@@ -69,15 +69,15 @@ class BugReport(unittest.TestCase):
         return r, (pathlib.Path(out[0]) if out else None)
 
     def gh_calls(self):
-        return [json.loads(l) for l in self.log.read_text().splitlines()] if self.log.exists() else []
+        return [json.loads(l) for l in self.log.read_text(encoding="utf-8").splitlines()] if self.log.exists() else []
 
     def code(self, d):
-        return json.loads((d / "draft.json").read_text())["digest"]
+        return json.loads((d / "draft.json").read_text(encoding="utf-8"))["digest"]
 
     def test_nothing_private_leaves_draft_or_search(self):
         r, d = self.draft()
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        sent = (d / "draft.md").read_text() + (d / "draft.json").read_text() + json.dumps(self.gh_calls())
+        sent = (d / "draft.md").read_text(encoding="utf-8") + (d / "draft.json").read_text(encoding="utf-8") + json.dumps(self.gh_calls())
         for secret in (GH_TOKEN, MAIL, "annak", CHAT, BOT.split(":")[1], "Kovacs", "Anna", "anna"):
             self.assertNotIn(secret, sent, secret)
         self.assertIn("<!-- mentat-bug-report v1 -->", sent)
@@ -105,15 +105,15 @@ class BugReport(unittest.TestCase):
         p = self.run_tool("post", str(d), "--approve", self.code(d), "--owner-said", "igen, mehet")
         self.assertEqual(p.returncode, 0, p.stdout)
         posted = [c["posted_body"] for c in self.gh_calls() if isinstance(c, dict)]
-        self.assertEqual(posted, [json.loads((d / "draft.json").read_text())["body"]])
+        self.assertEqual(posted, [json.loads((d / "draft.json").read_text(encoding="utf-8"))["body"]])
         self.assertTrue((d / "approval.json").is_file())
 
     def test_an_edited_draft_needs_a_new_yes(self):
         r, d = self.draft()
         code = self.code(d)
-        j = json.loads((d / "draft.json").read_text())
+        j = json.loads((d / "draft.json").read_text(encoding="utf-8"))
         j["body"] += "\nsmuggled %s\n" % MAIL
-        (d / "draft.json").write_text(json.dumps(j))
+        (d / "draft.json").write_text(json.dumps(j), encoding="utf-8")
         p = self.run_tool("post", str(d), "--approve", code, "--owner-said", "yes")
         self.assertEqual(p.returncode, 3, p.stdout)
 
@@ -149,7 +149,7 @@ class BugReport(unittest.TestCase):
         self.assertEqual(p.returncode, 0, p.stdout)
         self.assertFalse(any(isinstance(c, dict) for c in self.gh_calls()))
         (d.parent / "posted.log").write_text("".join("%sT00:00:00+00:00 x\n" % __import__("datetime").datetime.now(
-            __import__("datetime").timezone.utc).date().isoformat() for _ in range(3)))
+            __import__("datetime").timezone.utc).date().isoformat() for _ in range(3)), encoding="utf-8")
         p = self.run_tool("post", str(d), "--approve", self.code(d), "--owner-said", "yes")
         self.assertEqual(p.returncode, 6, p.stdout)
 

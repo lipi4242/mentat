@@ -18,7 +18,9 @@ A motor ütemezést ad a Mentat-kollégádnak. Elküldi a reggeli összefoglaló
 - Emlékeztető három nappal minden határidő előtt és aznap, fájlban vagy Telegramon, éjszaka csendben.
 - A jóváhagyáshoz kötött üzenet csak akkor megy ki, ha egyezik vele, és egy elvégzett lépés összeomlás után sem ismétlődik.
 
-Fejlesztőknek: a döntés sima Python, modellhívás nélkül, így ugyanabban a pillanatban mindig ugyanaz a terv születik, a munkát pedig az ágensed végzi. Asszisztensenként egy példány fut, tartós systemd- vagy cron-időzítővel, és a `setup --doctor` összeveti a telepített időzítőt azzal, amit a setup írna.
+Mac vagy Linux asztali gépen ez a háttérben fut, ha telepíted az ütemezőt (`python3 -m anytime_engine.setup --tz <időzóna> --install`): óránként, amíg a gép ébren van, és ébredés után egyszer. Ütemező nélkül minden új Claude-session egyszer bepótolja. Szerveren éjjel-nappal fut. Windowson nincs háttér-ütemezés: ott kérdezd meg, hogy „mi esedékes?”.
+
+Fejlesztőknek: a döntés sima Python, modellhívás nélkül, így ugyanabban a pillanatban mindig ugyanaz a terv születik, a munkát pedig az ágensed végzi. Asszisztensenként egy példány fut, tartós időzítővel (systemd, cron, macOS-en LaunchAgent), és a `setup --doctor` összeveti a telepített időzítőt azzal, amit a setup írna.
 
 ## Hozzáadás egy meglévő kollégához
 
@@ -26,11 +28,11 @@ A legegyszerűbb: kérd meg a Mentat-kollégádat, hogy adja hozzá a motort, ő
 
 ```
 Telepítsd a Mentat motort ebbe a repóba. Futtasd pontosan ezt:
-  git clone --depth 1 --branch v0.6.1 https://github.com/lipi4242/mentat ~/src/mentat
+  git clone --depth 1 --branch v0.7.0 https://github.com/lipi4242/mentat ~/src/mentat
   ~/src/mentat/engine/sync-to.sh . --pack cases
   python3 -m anytime_engine.selftest -q
 Ha a ~/src/mentat már létezik, a klón helyett futtasd: git -C ~/src/mentat fetch --tags,
-majd git -C ~/src/mentat checkout v0.6.1.
+majd git -C ~/src/mentat checkout v0.7.0.
 Utána kérdezd meg az időzónámat, és hogy hová menjenek az emlékeztetők (fájl vagy Telegram), és futtasd:
 python3 -m anytime_engine.setup --tz <tz> --deliver <file|telegram> --lang hu, az igenem után --install-lal.
 ```

@@ -20,9 +20,9 @@ class OlvasSzerep(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.root, True)
         write(self.root, ".home/bank/befizetesek.csv", "datum;osszeg_ft\n2026-07-21;60000\n")
         p = self.root / BIZ / "bekotes.json"
-        d = json.loads(p.read_text())
+        d = json.loads(p.read_text(encoding="utf-8"))
         d["sources"].append({"name": "bank", "kind": "live", "path": "~/bank/befizetesek.csv"})
-        p.write_text(json.dumps(d, ensure_ascii=False))
+        p.write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
         done(self.root)  # roles: default asszisztens, installed fejleszto (Read(**/bank/**))
 
     def olvas(self, role, *a):
@@ -30,7 +30,7 @@ class OlvasSzerep(unittest.TestCase):
         if role:
             e["MENTAT_ROLE"] = role
         return subprocess.run([sys.executable, str(self.root / ".mentat/bin/bekotes/bekotes.py"), "olvas", *a],
-                              capture_output=True, text=True, cwd=self.root, env=e)
+                              capture_output=True, text=True, cwd=self.root, env=e, encoding="utf-8", errors="replace")
 
     def test_developer_cannot_read_bank_through_olvas(self):
         for args in (("grep", "60000", "--source", "bank"), ("show", "bank:befizetesek.csv")):

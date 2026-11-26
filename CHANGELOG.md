@@ -3,6 +3,343 @@
 Every release also ships a machine-readable `release.json` at the root of
 its tag (see `reference/mentat-json.md`, section 4).
 
+## 0.7.0
+
+A release about knowing who is who, and the first one you can reach from any earlier version
+with one prompt. The brain learns the owner's own kinds of things as entity types; agents get six
+standard roles and a self-image at the top of their `AGENTS.md`, a `/mentat` help, a status line
+and local skills; Mentat installs and runs on Windows; a desktop agent runs on a schedule on a
+Mac too; text written by people the agent does not trust no longer reaches it as instructions;
+and in the todo store an agent writes and reads only what it takes part in. On a server, a
+waiting permission dialog is reported and can be answered from Telegram, and an agent whose
+prompt changed is restarted with its conversation. Read "What behaves differently" before you
+upgrade a server or redeploy the admin.
+
+- **Upgrade from any earlier version with one prompt.** <!-- cap: upgrade-prompt -->
+  - `UPGRADE.md` holds a prompt you paste in the assistant's own folder. The assistant works out
+    what kind of install it is, downloads this release's tools, checks them against the release's
+    sha256 list and shows you a plan; nothing changes before your yes. Then it saves a backup
+    branch (`mentat-backup/…`), upgrades in one commit, and checks that a new session still
+    remembers what it knew. Going back is one command, which it names and runs only on your yes.
+  - Kept unchanged: your notes, files and code, your own text in `AGENTS.md` outside the
+    `mentat:managed` markers, your hooks and settings, and a role self-image you changed; when the
+    default changed too, you see the difference and decide. A brain from before 0.5 also gets
+    `mentat.json` and `.mentat/`, and its notes stay where they are. It pushes nothing and
+    switches on no timer.
+  - `UPGRADE-ALL.md` is for the agent that looks after a fleet: it lists every agent, you approve
+    them one by one, a canary goes first, and it stops at the first problem. Servers are upgraded
+    with `fleet box-upgrade`; an agent on a computer gets the `UPGRADE.md` prompt to paste there.
+  - `INSTALL.md` is now `FIRST-INSTALL.md`, and the old link redirects. The safety rules every
+    entry page shares live in one place, `reference/entry-rules.md`.
+- **Your own entity types: the brain learns the kinds of things in your life.** <!-- cap: own-types -->
+  - A type (wines, clients, recipes, anything that recurs with its own fields) is one file in
+    the brain, `types/<slug>.md`, versioned with the notes: name, folder, fields (text, date,
+    number, enum, link, list; required or not), an optional due-date and title field, and a
+    template for new notes. `type add` creates one, `type adopt` infers one from notes you made
+    by hand without rewriting them, `type edit`, `type show` and `types` manage them.
+  - The usual tools know them: `new <type> "Title" --set field=value`, `find … --type`, `where`
+    counts them, `due` includes a type's due-date field, `mv --title` updates its title field,
+    and `check [--type T] [--strict]` reports missing required fields and bad values.
+  - Types grow with the brain. `type suggest` lists candidates from what is already there
+    (untyped folders, recurring tags and fields), without a model; the agent asks you once, and
+    on a yes creates the type and pulls in what was captured with `type collect`. `type rename`,
+    `type merge`, `type split` and `type edit --rename-field` move notes and rewrite their
+    `type:` lines, links and indexes. Every one accepts `--dry-run`, never drops note text, and
+    leaves a decision note.
+- **Six standard roles, a consultant template, and roles of your own.** <!-- cap: six-roles -->
+  - The role map (`reference/roles.md`, `reference/szerepek.hu.md`) describes six roles in a
+    fixed order: assistant, developer, consultant, product manager, release agent, fleet manager.
+    The personal assistant is their sum. The fleet manager is a role of its own and is off
+    without a fleet. Expert personas (a lawyer, a designer) are subagents, not roles, and the
+    release ships none.
+  - The new consultant template is offered and installed by the onboarding's `szerepek` step.
+    The PM keeps its file name, `backlog-manager`, so installed brains need no migration.
+  - A role of your own is a file in `<brain>/szerepek/<name>.md` plus `mentat_cli.py roles`; the
+    role map shows the four steps with two examples. `roles --install` now refuses a role that
+    has neither a role file nor a shipped template, names the missing file, and leaves
+    `mentat.json` untouched.
+  - A fresh install downloads the role tools and templates, so a custom role works right after
+    the install.
+  - A recommended repository setup (`reference/repo-setup.md`, `reference/repo-felallas.hu.md`):
+    a code base with its own Mentat brain, or a release-only repository beside a development one,
+    and one shared `agents` repository with a brain folder per agent, its read, write and privacy
+    limits, and when an agent deserves its own repository. The assistant and PM roles offer it and
+    open a backlog item on request.
+- **The agent knows who it is: a self-image block at the top of `AGENTS.md`.** <!-- cap: self-image -->
+  - A generated `self-image` block is the first block of `AGENTS.md`: the agent's name and main
+    role in one sentence, at most three further roles, and a link to `agy/szerep-onkep.md`
+    (at most 600 bytes). Your own text stays byte for byte below it. The install, the upgrade
+    path and the onboarding write it; `mentat_self_image.py --check` and
+    `mentat_scaffold.py --check` report a missing, misplaced or stale block (in an older brain
+    only as a warning).
+  - Each installed role's self-image lives in `agy/szerep-onkep.md`. Ask the agent to change it,
+    and the change is recorded as a decision. `bekotes.py onkep` shows per role what a new
+    release would do: replace the text you never changed, keep the text you changed, and show a
+    diff when both you and the release changed it. `--alkalmaz` applies only the safe cases; a
+    block you edited is never rewritten.
+- **`/mentat` help, a status line and `/whoami`.** <!-- cap: mentat-help -->
+  - `/mentat` gives a hand-written, versioned help text (the same on every machine, not composed
+    by the model): three first tasks with the expected result and what to do if it fails, and the
+    commands. `/mentat status` shows in four lines who is working with you, whether the todo is on,
+    who schedules the runs, and the next step; `/mentat todo` walks through switching on the todo
+    and the backlog, first on your own computer.
+  - A status line at the bottom of Claude Code shows the agent's name and roles (in a fleet also
+    whose fleet), the model, the context in use, the usage limits when Claude Code provides them,
+    the folder and branch, and a tip. If you already have a status line of your own, it stays
+    unless you say yes (`mentat_statusline_install.py --force`); the decision is kept in
+    `.mentat/statusline.json`. `/whoami` prints the same where there is no status line, such as
+    the desktop app.
+  - On Telegram, `/help` and "súgó" (also `/help status`, `/help todo`) get the same text as a
+    direct reply from the bridge, without the model. A sender who is not on the allowlist gets
+    nothing, as before. The agent's brain needs this release's `mentat_help.py`; without it the
+    message goes to the agent as before.
+- **The brain's skills are installed in your project.** <!-- cap: skills-local -->
+  - The six skills (develop, subagent, status, backlog, model, bug-report) are installed once, in
+    your language, as native Claude Code skills in `.claude/skills/<name>/SKILL.md`, checked
+    against the release's hashes. Using them needs no download any more.
+  - A skill you edited by hand is never overwritten: the install names where the new version is
+    and the `diff -u` command, on every run. `mentat_scaffold.py --check` warns about a missing
+    skill and prints the command that installs it.
+- **Mentat installs and runs on Windows.** <!-- cap: windows -->
+  - The install, the upgrade, the guard and the brain's tools were run end to end on Windows
+    with Git Bash and Python 3.12 and 3.13. Every file and command is read and written as UTF-8,
+    and text files are written with LF line endings, so a brain shared between a Mac and a
+    Windows machine stays byte for byte the same.
+  - Git Bash is found next to the `git.exe` Claude Code uses, and under `Program Files\Git`.
+  - The guard understands Windows paths (`C:\…`, `C:/…`, `/c/…`, also inside a command), so the
+    working-folder boundary holds, and it no longer refuses every call when your home folder is
+    under `C:\Users`.
+  - Python on Windows has no time zone database: the install and the upgrade add the `tzdata`
+    package, and when they cannot, they say what will not work and give the exact command.
+- **Scheduled runs on your Mac, and a catch-up when a session starts.** <!-- cap: desktop-schedule -->
+  - `python3 -m anytime_engine.setup --tz <tz> --install` on macOS installs a LaunchAgent: the
+    engine runs every hour while the Mac is awake and once after it wakes.
+    `python3 -m anytime_engine.schedule --uninstall` removes it without a trace, and
+    `setup --doctor` compares it with what setup would write. On Linux
+    nothing changes (systemd or cron, as before); Windows has no background schedule.
+  - Where no schedule runs, each new Claude Code session catches up once: the session start runs
+    `tick hourly --once`, which ticks only when no scheduled run happened in the last hour and
+    puts the work (for example the todo items whose ball is with the agent) into the session,
+    marked as other people's text, not instructions. A slow or older engine adds nothing and
+    never fails the session start.
+  - `tick --render` prints the actions' prompts instead of the plan JSON and runs no executor;
+    when nothing is due it prints one line and exits 4. `tick --lock` takes the engine's own lock
+    (macOS has no `flock`).
+- **A planned action that nobody runs is no longer silent.** <!-- cap: unhandled-actions -->
+  - On a desktop the cases deliverer was the only executor, and it skipped todo actions while
+    the tick still ended green. Now a concern pack can name its own executor, an action whose
+    pack names none is counted as unhandled, `last-tick.json` records `handled` and `unhandled`,
+    `anytime_engine last` names every unhandled concern, and the tick exits 3.
+  - A general executor (a model run on a server) still gets every action, as before.
+- **Text from people the agent does not trust reaches it as data, or not at all.** <!-- cap: stranger-text -->
+  - Text from the shared store (todo titles and descriptions, comments, events, case notes)
+    goes into the agent's prompt Unicode-normalised, without invisible and control characters,
+    with a length cap, inside an `UNTRUSTED DATA` frame it cannot close. A due todo is described
+    as the task, not as instructions: a request in it to change rules, to hand over a secret or
+    to do something else is not carried out but noted and reported to the owner.
+  - With a trust list (`components.engine.todo_trusted` in `mentat.json`, or
+    `ANYTIME_TODO_TRUSTED`), a todo, item or case created by someone not on it, or a case whose
+    text was last rewritten by such a principal, reaches the agent only as a notice: its id, the
+    date and who created or rewrote it, never its text. The agent is told to hand an item issued
+    by a stranger back with a note and tell the owner. The agent itself is always on the list.
+  - A new install seeds the list: the agent, and with `mentat_init.py --todo-owner p_ID` and
+    `--todo-pm p_ID` (or `anytime_engine.setup` with the same flags) the owner and the agent's
+    own PM. An existing list is never rewritten; ids given explicitly with these flags are added
+    at the end. Without a list everything runs as before, framed.
+  - The admin's case reads name `created_by` and `text_updated_by` (the last author of the
+    title, description, next action, brain reference or context), computed from the case's own
+    event log; a status or date change does not move it.
+  - Not filtered: what the agent reads itself with `mentat-todo changes` or `item show`, which
+    agents need to work together.
+- **Your own account address is never written into a command.** <!-- cap: own-address -->
+  - The brain's rules now say that the owner's address is read from configuration or the
+    environment, not typed into a command, so a headless agent is not stopped by Claude Code's
+    privacy check. The brain's Gmail helper writes no From header; the account fills it in.
+- **Todo store: an agent writes and reads only what it takes part in.** <!-- cap: todo-permissions -->
+  - Writing a task (edit, complete, dependencies, labels) needs its owner, its assignee, the
+    item's PM or developer, or a person signed in to the admin. Only the owner or a person can
+    reassign or move it. An agent creates tasks only in its own name, but can assign them to
+    others, and puts children only under a parent it may write.
+  - On an item an agent cannot be both PM and developer, and never gives the verdict on its own
+    work. An agent's edit of a confirmed case's text clears the confirmation; the fields that do
+    so are one named list.
+  - An agent reads what it takes part in: owner, assignee, creator, developer, mentioned in the
+    text or a comment, or a recipient of one of its events. A project's PM reads the whole
+    project, and a person reads everything. Anything else is "not found", comments go only on
+    items the commenter can see, and `changes` returns only the agent's own feed. The backlog
+    skill says who sees what.
+- **The admin's e-mail sign-in code cannot be guessed from many addresses.** <!-- cap: admin-login-lock -->
+  - Ten wrong codes for one address, from any number of IP addresses and codes, lock that
+    address for 15 minutes; a new code does not reset the count. The stored key is a hash of the
+    address.
+  - An address outside `ADMIN_EMAILS` gets the same answer as a wrong code, and no user is
+    created for it. The unused e-mail code endpoints answer 404 for every address.
+  - `/principals` and `/me` no longer give an agent token anyone's e-mail address.
+- **The local admin on a Mac runs as a service, and connecting a repo is one command.** <!-- cap: admin-local-service -->
+  - `npm run connect -- --local` on macOS installs a LaunchAgent (`com.mentat.admin`) that starts
+    at login and restarts the admin when it stops, so it outlives the terminal.
+    `npm run status` shows its state and how often it was started, and says plainly when the
+    `node` it points at has gone. `connect -- --local --uninstall` removes the service and its
+    log and leaves data and tokens alone. On Linux it is a systemd user unit as before; Windows
+    is not supported as a service.
+  - `connect --plugins` adds to the plugins the repo already uses. When the token does not cover
+    them, a new token is minted, checked, and only then the old one revoked; if the new one fails,
+    the old one is put back. With todo, the agent's principal follows the token and its handle is
+    written to `mentat.json` (`components.admin.todo_handle`, no token there), so `mentat-todo me`
+    works with no manual step. On a desktop the handle can also come from `TODO_HANDLE` in
+    `~/.config/todo/env`.
+  - The `~/.local/bin` line now also goes into `~/.zprofile` for zsh and into an existing
+    `~/.bash_profile` or `~/.bash_login`, so a new login shell finds the linked `node`.
+- **Fleet map: one file says who is who in a fleet.** <!-- cap: fleet-map -->
+  - `fleet-map.json` in the registry describes the owner, the managers, each agent's roles, whom
+    it reports to and which repositories it owns or contributes to. `fleet map validate` checks
+    it, `fleet map show` prints it as a table.
+  - `fleet map render <agent>` writes a short `fleet-place` block into the agent's `AGENTS.md`,
+    after the self-image; `fleet map render --root` writes a neutral, generated `CLAUDE.md` for
+    the fleet's root folder. `fleet map check` says whether a block still matches the map;
+    `fleet doctor` lists a missing or stale block as a to-do.
+  - `fleet map audit` is a read-only maintenance round (schema, blocks, the root, stray
+    `CLAUDE.md` files), and with `--todo` files one todo per finding. `fleet map move-check`
+    proves that a rearranged file only moved lines. The new `map-karbantartas` skill runs the
+    round for the fleet manager and only ever opens a pull request or a todo; it never merges.
+- **Fleet files reach an agent's repository as a pull request.** <!-- cap: fleet-files-pr -->
+  - `fleet upgrade <repo> --pr` renders the `fleet-place` block on a branch in a temporary
+    worktree (your checkout is not touched) and opens a pull request, with the release labels the
+    target repository uses. `--rules` updates `.claude/rules/fleet.md` in a separate pull request;
+    a locally edited rules file is skipped with the reason. Nothing changed means no pull request.
+  - `fleet doctor` and `fleet status` name a repository whose rules file is behind the installed
+    one. `fleet box-upgrade` has a new last step that lists those repositories, measured against
+    the target tag; `--rules-pr` opens the pull requests, and the step never fails the upgrade.
+- **Fewer missed alerts and skipped repair rounds on a server.** <!-- cap: fleet-reconcile -->
+  - A second quarantine and a restart budget that stays exhausted raise an alert again; a state
+    that persists is reported again after 6 hours, and recovery clears it. `fleet unquarantine`
+    stops with a clear message on a damaged state file instead of overwriting it.
+  - The full repair round waits up to 60 seconds for the lock instead of giving up, rounds
+    skipped anyway are counted and reported, and the wait after a restart no longer holds the
+    lock.
+- **A waiting permission dialog is reported, and you can answer it from Telegram.** <!-- cap: permission-dialog -->
+  - When a dialog in an always-on agent's session asks for approval, `fleet doctor`, the
+    capability alert and the fleet report turn red and name the reason (the hook or plugin, its
+    first sentence, the options), never the command body, which may hold a secret.
+  - The bridge sends one alert after the same dialog has stood for 60 seconds, with the reason,
+    the question, the options and `/igen` / `/nem`, and once more after 10 minutes
+    (`BRIDGE_DIALOG_REALERT_MIN`). It never answers by itself. `/igen` or `/nem` is accepted only
+    from `BRIDGE_DIALOG_ANSWER_IDS` (by default the allowlist) and only while the alerted dialog
+    is still on screen; then it types the option's number, without Enter, logs it, and confirms.
+- **An agent whose prompt changed is restarted with its conversation.** <!-- cap: prompt-drift -->
+  - The repair round watches the files that make up an agent's prompt (`CLAUDE.md` and
+    `AGENTS.md` with their includes, `.claude/rules`, commands, skills, agents, `settings.json`)
+    by content. When they changed since the agent started and the agent has been idle for 10
+    minutes, it is restarted with `--resume`, so it keeps its conversation and gets one line
+    naming the changed files. A working agent is not interrupted; after 6 hours of waiting you
+    get a notice.
+  - Only released changes restart it on their own: every changed file is committed, and the
+    commit is already on the repository's main branch at origin (as last fetched). A commit the
+    agent made itself and has not shipped, a change outside the repository, an uncommitted file
+    or any hook change only raises a notice. The check reads the files itself and runs no
+    command from the agent repository's git configuration. At most 3 such
+    restarts in 6 hours per agent, separate from the crash budget, and a release wave waits 15
+    minutes so it becomes one restart. Every decision goes to
+    `~/.config/fleet/state/prompt-drift.log`.
+  - An agent can ask for its own restart with `fleet request-restart <agent>`, or ask the fleet
+    manager to do it; the repair round does it when the agent's current turn is over. The fleet
+    rules and the `runtime` skill now say so, and forbid an agent restarting itself with its own
+    `systemctl`, `systemd-run` or restart script.
+- **A secret value is handed over without ever entering a chat.** <!-- cap: secrets-put -->
+  - `fleet secrets put --name KEY --to <agent> --approval ID` reads the value only from stdin, so
+    it can travel through a pipe (`<command that prints it> | ssh box 'fleet secrets put …'`) and
+    never appears in arguments, the environment, the output, an error or the receipt. It refuses a
+    terminal, an empty, multi-line or over 64 KB value, and a symlinked destination.
+  - It needs an itemised approval that is valid for at most 60 minutes and only once; a refused
+    attempt does not use it up. The value goes into the agent's env file (mode 0600, written
+    atomically, folder by folder without following a symlink, so swapping a parent folder for a
+    link cannot redirect it), and the receipt names only the key, the destination, a keyed
+    fingerprint (HMAC-SHA256 with a per-box salt, so a short value cannot be guessed back from
+    it) and the time. The same holds for `fleet secrets move` and `copy`.
+  - An env value written by `put`, `move` or `copy` may only hold letters, digits and `._+/=:@-`,
+    because the unit's shell sources the file. The fleet rules say a secret value never goes into
+    a chat or a message; the recipient is told only the key's name and where it is.
+- **An agent's unit can load extra environment files.** <!-- cap: unit-extra-env -->
+  - The registry's new optional `extra_env_files` field lists files (an absolute path, `%h/…`
+    for your home, or a path relative to the agent's folder) that the agent's session sources
+    after its own env files, each only when it is readable. They do not reach the Telegram
+    bridge, and an entry with spaces, quotes, `$`, `..` or similar is refused by
+    `fleet validate`. Without the field the unit is byte for byte the same as before.
+
+Parts: the fleet plugin is 1.7.2 (the `map-karbantartas` skill, the restart rules in the
+`runtime` skill and the `v0.7.0` pin of its `new-agent` skill), the fleet command line 1.6.0, the Telegram bridge 2.3.0 (`/help`, the
+permission dialog), the admin 0.7.0, the engine 0.7.0.
+
+Release tooling, for people who build releases: the gate runs hermetically (an empty temporary
+home, an environment allowlist, its own pinned test environment, npm install scripts off and every
+lockfile entry checked to be a registry package with an integrity hash), security-critical paths
+need a human approval, and `bin/gate scan` and `bin/gate osv` run gitleaks, zizmor, bandit and
+osv-scanner, with every accepted finding written down with its reason; the text scrub no longer
+reads a hex hash as a phone number. `publish.sh` tries the candidate in clean Docker boxes before
+the push (the desktop install, and a box upgraded from the previous tag by its own `fleet box-upgrade`), has a
+`--preflight` mode, and fails unless the public CI is green on the pushed commit. The functional
+scenarios cover the new todo permissions and the hand-offs between developer, release agent
+and PM.
+
+### What behaves differently
+
+1. **Todo API: an agent no longer sees or writes other agents' tasks.** A task or item the agent
+   takes no part in is 404 (the command line reads before it writes, so a write attempt is 404
+   too); an allowed reader without the right to write gets 403. `owner_id` set to someone else
+   on create, `issue` to yourself, and a verdict on your own work are 403. `changes` without
+   `for` returns your own feed, not everyone's, and `for=<another handle>` is 403. A person
+   signed in to the admin still sees and writes everything.
+2. **An agent's edit of a confirmed case clears the confirmation.** A person's edit renews it.
+3. **Admin sign-in locks after 10 wrong codes for 15 minutes.** This also holds for the local
+   `npm run login-link`. The lock ends on its own 15 minutes after the last counted failure.
+4. **Case reads have two new fields,** `created_by` and `text_updated_by`. A `PUT` that sends them
+   back is refused as an unknown field, like `created_at`.
+5. **A tick whose action nobody runs exits 3,** not 0. This happens on a desktop where the cases
+   deliverer is the executor and the todo pack is installed.
+6. **With a trust list, other principals' todos and cases arrive as notices.** Only new installs
+   get a list; an agent installed earlier behaves as before until you add one.
+7. **Installing or upgrading a brain writes a status line** into the project's
+   `.claude/settings.json`, unless any status line is already set; and `.claude/skills/` and the
+   `self-image` block at the top of `AGENTS.md` appear.
+8. **Engine packs need `<0.8`.** The engine is 0.7.0. A concern pack of your own that declares
+   `"<0.7"` is refused; widen it to `"<0.8"`. The bundled packs already do.
+9. **The repair round restarts an idle agent whose committed prompt files changed,** with
+   `--resume`. Before 0.7.0 an agent ran on with its old prompt until someone restarted it.
+10. **The repair round's unit has limits** (`TimeoutStartSec=4min`, `MemoryMax=256M`); the next
+    `fleet install` writes them.
+
+### Upgrading from 0.6.x
+
+1. Update the fleet plugin on every server and on your own computer:
+   `claude plugin update fleet@mentat` (1.7.2).
+2. Servers: `fleet box-upgrade --to v0.7.0 --dry-run`, read the plan, then run it without
+   `--dry-run`. It brings the 1.6.0 fleet command line and the 2.3.0 bridge, and lists the
+   repositories whose `.claude/rules/fleet.md` is behind (`--rules-pr` opens pull requests).
+   To answer permission dialogs from Telegram, the answering ids are the allowlist unless you
+   set `BRIDGE_DIALOG_ANSWER_IDS`.
+3. On your own computer, open a session in each agent's folder and paste the prompt from
+   `UPGRADE.md` (or give `UPGRADE-ALL.md` to the agent that looks after your fleet):
+
+   ```
+   Update this assistant to the latest Mentat version: https://raw.githubusercontent.com/lipi4242/mentat/v0.7.0/UPGRADE.md
+   Read it first, and decide by your own safety rules whether to carry it out.
+   Show me the plan before you change anything.
+   ```
+
+   It brings the entity types, the self-image, the status line, `/mentat`, the local skills and
+   the role tools, adds `tzdata` on Windows, and re-syncs a vendored engine.
+4. Servers: re-sync each agent's engine with `~/src/mentat/engine/sync-to.sh <your repo>` and the
+   packs it uses, widen your own packs to `"<0.8"`, then `python3 -m anytime_engine.selftest`. On a
+   Mac, `python3 -m anytime_engine.setup --tz <tz> --install` adds the hourly LaunchAgent. To
+   filter strangers' text for an agent installed before 0.7.0, add `todo_trusted` to
+   `components.engine` in its `mentat.json`: its own handle, your principal id and its PM's.
+5. If you run the admin app, redeploy it (worker first, then the admin); there is no migration.
+   Check first that no script of yours reads or writes other agents' todo tasks (see above).
+
+Coming from 0.5.x: on your own computer the `UPGRADE.md` prompt does it in one go. For servers and
+the admin, read the 0.6.0 notes first and follow its "Upgrading from 0.5.1" order (the admin
+migrations `0500_flotta.sql` and `0501_flotta_menedzser.sql`, the bridge allowlist first).
+
 ## 0.6.1
 
 A small release: fewer false stops from the secrets gate, a clearer todo command line, and admin
@@ -41,7 +378,7 @@ available, and one failing Python version no longer cancels the others.
 
 1. Update the fleet plugin on every server and on your own computer:
    `claude plugin update fleet@mentat` (1.7.1, the secrets gate changes).
-2. Servers: `fleet box-upgrade --to v0.6.1 --dry-run`, read the plan, then run it without
+2. Servers: `fleet box-upgrade --to v0.7.0 --dry-run`, read the plan, then run it without
    `--dry-run`; `mentat-todo` then has the new `ball` and `changes` fields.
 3. On your own computer, if your agent uses the todo pack: re-sync the engine with
    `~/src/mentat/engine/sync-to.sh <your repo> --pack todo`.
@@ -218,7 +555,7 @@ a seat on the machine; each has a planned fix.
 ### Upgrading from 0.5.1
 
 Brain only (no server): update from
-`https://raw.githubusercontent.com/lipi4242/mentat/v0.6.1/INSTALL.md`; your notes do not change.
+`https://raw.githubusercontent.com/lipi4242/mentat/v0.7.0/INSTALL.md`; your notes do not change.
 Run `claude plugin update fleet@mentat` if you use the fleet plugin.
 
 Servers, in this order:
@@ -230,7 +567,7 @@ Servers, in this order:
    preflight query from `admin/docs/plugins/flotta/INSTALL.md` first). Deploy the worker, then the
    admin. The worker has a 5-minute cron trigger; e-mail needs the sign-in mail's
    `RESEND_API_KEY` and sender.
-3. **Upgrade every box** before you publish any managers: `fleet box-upgrade --to v0.6.1 --dry-run`,
+3. **Upgrade every box** before you publish any managers: `fleet box-upgrade --to v0.7.0 --dry-run`,
    read the plan, then run it without `--dry-run`. It installs the 2.2.0 bridge and the repair
    steps the managers will call. Then `claude plugin update fleet@mentat` on each box and on your
    own computer (plugin 1.7.0), and `fleet doctor`. If the doctor says a unit does not load the
@@ -291,11 +628,11 @@ runs the private-name check on the tree it ships.
 
 ### Upgrading from 0.5.0
 
-Server: `fleet box-upgrade --to v0.6.1 --dry-run`, read the plan, then run it without
+Server: `fleet box-upgrade --to v0.7.0 --dry-run`, read the plan, then run it without
 `--dry-run`. To give the agents the backlog command, link `mentat-todo` as above. If an agent
 uses the backlog, re-sync its engine with `~/src/mentat/engine/sync-to.sh <your repo> --pack todo`
 and run `python3 -m anytime_engine.selftest`. Other installs: update from
-`https://raw.githubusercontent.com/lipi4242/mentat/v0.6.1/INSTALL.md`; your notes do not change.
+`https://raw.githubusercontent.com/lipi4242/mentat/v0.7.0/INSTALL.md`; your notes do not change.
 
 ## 0.5.0
 
@@ -318,7 +655,7 @@ changelog for all of them. The engine, fleet and admin changelogs up to 0.4.x ar
     The old repositories stay readable with their tags, so an install that points at them keeps
     working, but they get no new releases.
   - The three-line install prompt now points at
-    `https://raw.githubusercontent.com/lipi4242/mentat/v0.6.1/INSTALL.md`. The engine, the fleet
+    `https://raw.githubusercontent.com/lipi4242/mentat/v0.7.0/INSTALL.md`. The engine, the fleet
     and the admin all come from one checkout of the same tag (`~/src/mentat`), so their versions
     can no longer drift apart.
   - The product version is the only version you need to know. The engine's version follows it,
@@ -349,11 +686,11 @@ changelog for all of them. The engine, fleet and admin changelogs up to 0.4.x ar
 ### Upgrading from 0.4.x
 
 Brain: ask your colleague to update Mentat to 0.5.0 from
-`https://raw.githubusercontent.com/lipi4242/mentat/v0.6.1/INSTALL.md`. It fetches the 0.5.0
+`https://raw.githubusercontent.com/lipi4242/mentat/v0.7.0/INSTALL.md`. It fetches the 0.5.0
 tools; your notes do not change.
 
 Engine: clone the release once
-(`git clone --depth 1 --branch v0.6.1 https://github.com/lipi4242/mentat ~/src/mentat`) and
+(`git clone --depth 1 --branch v0.7.0 https://github.com/lipi4242/mentat ~/src/mentat`) and
 re-run `~/src/mentat/engine/sync-to.sh <your agent folder>` with the packs you use. A pack of
 your own that declares `"<0.5"` is refused; widen it to `"<0.6"` and re-sync. The old
 `~/src/anytime-engine` copy is no longer used.

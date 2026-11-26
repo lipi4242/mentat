@@ -1,7 +1,8 @@
 #!/bin/sh
 # Node.js 22 for the current user, no sudo: the latest v22 from nodejs.org,
 # checked against its SHASUMS256.txt, unpacked to ~/.local/node, and
-# node/npm/npx linked into ~/.local/bin (put on the login PATH via ~/.profile).
+# node/npm/npx linked into ~/.local/bin (put on the login PATH by login-path.sh:
+# ~/.profile, and ~/.zprofile on zsh).
 # Does nothing when a node >= 22 is already on PATH.
 #
 #   sh worker/scripts/install-node.sh
@@ -30,6 +31,6 @@ for b in node npm npx; do
   if [ -e "$HOME/.local/bin/$b" ] && [ ! -L "$HOME/.local/bin/$b" ]; then echo "~/.local/bin/$b exists and is not a link — left alone" >&2; continue; fi
   ln -sfn "$HOME/.local/node/bin/$b" "$HOME/.local/bin/$b"
 done
-grep -qs '.local/bin' "$HOME/.profile" || printf '\n# mentat-admin: node/npm/npx live in ~/.local/bin\n[ -d "$HOME/.local/bin" ] && PATH="$HOME/.local/bin:$PATH"\n' >> "$HOME/.profile"
+sh "$(dirname "$0")/login-path.sh" >/dev/null
 echo "installed $("$HOME/.local/node/bin/node" -v) in ~/.local/node; new login shells find it."
 echo "In THIS shell run:  export PATH=\"\$HOME/.local/bin:\$PATH\""

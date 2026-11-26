@@ -58,6 +58,7 @@ def build(plan: dict[str, Any]) -> dict[str, Any]:
                     for a in plan.get("actions", [])],
         "skipped": plan.get("skip_reasons") or {},
         "errors": plan.get("context_errors") or [],
+        "unhandled": plan.get("unhandled") or [],
     }
 
 
@@ -99,6 +100,8 @@ def render(s: dict[str, Any]) -> str:
         lines.append(f"Skipped: {name} — {why}")
     for e in s["errors"]:
         lines.append(f"Degraded: {e}")
+    for name in s.get("unhandled") or []:
+        lines.append(f"Unhandled: {name} — planned, but no executor took it")
     return "\n".join(lines)
 
 

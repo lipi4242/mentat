@@ -21,11 +21,12 @@ describe('backlog guards fail closed', () => {
       expect((await act(row.id, 'hold', { [field]: 'a' }, 'c')).status).toBe(422);
     }
     expect((await submit(row.id, {}, 'c')).status).toBe(403);
-    expect((await call('POST', `/tasks/${row.id}/comments`, { body: 'hi', author_id: 'a', expected_rev: row.rev }, { 'X-Mentat-Token': 'c' })).status).toBe(422);
-    expect((await call('POST', `/tasks/${row.id}/comments`, { body: 'hi', expected_rev: row.rev }, { 'X-Mentat-Token': 'c' })).status).toBe(200);
+    expect((await call('POST', `/tasks/${row.id}/comments`, { body: 'hi', expected_rev: row.rev }, { 'X-Mentat-Token': 'c' })).status).toBe(404); // c does not see it
+    expect((await call('POST', `/tasks/${row.id}/comments`, { body: 'hi', author_id: 'a', expected_rev: row.rev }, { 'X-Mentat-Token': 'b' })).status).toBe(422);
+    expect((await call('POST', `/tasks/${row.id}/comments`, { body: 'hi', expected_rev: row.rev }, { 'X-Mentat-Token': 'b' })).status).toBe(200);
     const detail = await get(row.id);
-    expect(detail.comments.at(-1).author_id).toBe('c');
-    expect(detail.events.at(-1).actor_id).toBe('c');
+    expect(detail.comments.at(-1).author_id).toBe('b');
+    expect(detail.events.at(-1).actor_id).toBe('b');
   });
   it('the developer cannot set pm_ok: not in submit, not through accept', async () => {
     const { at, act, results, checks, get } = await backlogApp();

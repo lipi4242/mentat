@@ -116,9 +116,9 @@ class CheckWrite(unittest.TestCase):
     def test_a_hand_edit_after_approval_voids_the_approval(self):
         approved(self.root)
         path = self.root / "brain" / "contracts" / "dinner.json"
-        c = json.loads(path.read_text())
+        c = json.loads(path.read_text(encoding="utf-8"))
         c["terms"]["fields"].append("phone")
-        path.write_text(json.dumps(c))
+        path.write_text(json.dumps(c), encoding="utf-8")
         r = self.check("--fields", "name")
         self.assertEqual(r.returncode, 2, r.stdout)
         self.assertIn("changed after", r.stdout)

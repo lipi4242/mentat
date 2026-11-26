@@ -24,16 +24,16 @@ class Brain(unittest.TestCase):
 
     def run_tool(self, *args, stdin=None):
         return subprocess.run([sys.executable, str(TOOL), "--repo", str(self.root), *args],
-                              capture_output=True, text=True, input=stdin)
+                              capture_output=True, text=True, input=stdin, encoding="utf-8", errors="replace")
 
     def test_new_case_is_filled_indexed_and_prints_only_the_path(self):
         r = self.run_tool("new", "case", "Gázszámla", "--due", ISO(3), "--tags", "haztartas")
         self.assertEqual(r.stdout.strip(), "agy/cases/gazszamla.md")
-        text = (self.root / r.stdout.strip()).read_text()
+        text = (self.root / r.stdout.strip()).read_text(encoding="utf-8")
         self.assertRegex(text, r"case_id: [0-9A-HJKMNP-TV-Z]{26}\n")
         self.assertIn("due_at: %s" % ISO(3), text)
         self.assertIn("tags: [haztartas]", text)
-        meta = (self.root / "agy/cases/_meta.md").read_text()
+        meta = (self.root / "agy/cases/_meta.md").read_text(encoding="utf-8")
         self.assertIn("- [Gázszámla](gazszamla.md) - case, %s" % ISO(3), meta)
 
     def test_every_type_lands_in_its_folder_with_frontmatter(self):
@@ -44,19 +44,19 @@ class Brain(unittest.TestCase):
         for kind, path in want.items():
             r = self.run_tool("new", kind, "x")
             self.assertEqual(r.stdout.strip(), path, kind)
-            self.assertIn("type: %s\n" % kind, (self.root / path).read_text())
+            self.assertIn("type: %s\n" % kind, (self.root / path).read_text(encoding="utf-8"))
 
     def test_never_overwrites_and_body_from_stdin(self):
         self.run_tool("new", "brain-dump", "dump", "--body", "-", stdin="nyers szöveg")
         p = self.root / ("agy/brain-dumps/%s-dump.md" % TODAY)
-        self.assertIn("nyers szöveg", p.read_text())
-        before = p.read_text()
+        self.assertIn("nyers szöveg", p.read_text(encoding="utf-8"))
+        before = p.read_text(encoding="utf-8")
         r = self.run_tool("new", "brain-dump", "dump")
         self.assertEqual(r.returncode, 1)
-        self.assertEqual(p.read_text(), before)
+        self.assertEqual(p.read_text(encoding="utf-8"), before)
 
     def test_admin_backed_cases_are_refused(self):
-        (self.root / "mentat.json").write_text(json.dumps({"cases": {"backend": "admin"}}))
+        (self.root / "mentat.json").write_text(json.dumps({"cases": {"backend": "admin"}}), encoding="utf-8")
         r = self.run_tool("new", "case", "x")
         self.assertEqual(r.returncode, 2)
         self.assertFalse((self.root / "agy/cases/x.md").exists())
@@ -66,7 +66,7 @@ class Brain(unittest.TestCase):
             self.run_tool("new", "todo", t, "--due", d)
         self.run_tool("new", "todo", "Kész", "--due", ISO(1))
         p = self.root / "agy/todos/kesz.md"
-        p.write_text(p.read_text().replace("status: open", "status: done"))
+        p.write_text(p.read_text(encoding="utf-8").replace("status: open", "status: done"), encoding="utf-8")
         out = self.run_tool("due").stdout
         self.assertRegex(out, r"LEJART .*Lejárt")
         self.assertIn("Hamarosan", out)
@@ -80,7 +80,7 @@ class Brain(unittest.TestCase):
         self.run_tool("new", "todo", "Megbeszélés", "--due", ISO(0),
                       "--body", "Egyeztetés: [Kiss Anna](../people/kiss-anna.md)")
         p = self.root / "agy/todos/megbeszeles.md"
-        p.write_text(p.read_text().replace("due: %s" % ISO(0), "due: %s 09:30" % ISO(0)))
+        p.write_text(p.read_text(encoding="utf-8").replace("due: %s" % ISO(0), "due: %s 09:30" % ISO(0)), encoding="utf-8")
         out = self.run_tool("due").stdout
         line = next(ln for ln in out.splitlines() if "Megbeszélés" in ln)
         self.assertIn("09:30", line)
@@ -104,10 +104,10 @@ class LocalDay(unittest.TestCase):
         sys.path.insert(0, str(HERE))
         import mentat_brain_types as bt
         root = pathlib.Path(tempfile.mkdtemp())
-        (root / "mentat.json").write_text(json.dumps({"components": {"engine": {"timezone": "Europe/Budapest"}}}))
+        (root / "mentat.json").write_text(json.dumps({"components": {"engine": {"timezone": "Europe/Budapest"}}}), encoding="utf-8")
         os.environ.pop("ANYTIME_TZ", None)
         self.assertEqual(bt.local_today(root, self.LATE).isoformat(), "2026-10-19")
-        (root / "mentat.json").write_text(json.dumps({"components": {"engine": {"timezone": "UTC"}}}))
+        (root / "mentat.json").write_text(json.dumps({"components": {"engine": {"timezone": "UTC"}}}), encoding="utf-8")
         self.assertEqual(bt.local_today(root, self.LATE).isoformat(), "2026-10-18")
         with self.assertRaises(SystemExit):
             os.environ["ANYTIME_TZ"] = "Mars/Olympus"
@@ -123,7 +123,7 @@ class LocalDay(unittest.TestCase):
                             "--repo", str(root), "--base", "https://x/"], capture_output=True)
             env = dict(os.environ, ANYTIME_TZ=tz)
             r = subprocess.run([sys.executable, str(TOOL), "--repo", str(root), "new", "brain-dump", "d"],
-                               capture_output=True, text=True, env=env)
+                               capture_output=True, text=True, env=env, encoding="utf-8", errors="replace")
             return r.stdout.strip()
         # UTC+14 and UTC-12 never share a date
         self.assertGreater(dump("Pacific/Kiritimati"), dump("Etc/GMT+12"))

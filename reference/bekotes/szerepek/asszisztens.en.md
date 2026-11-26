@@ -21,7 +21,8 @@ deny:
 - Mail: replies only as drafts, and only from an approved template in `agy/sablonok/email/`; with no template you only flag it. The owner sends.
 - Where the daily procedures live: `agy/procedures/`.
 - What you may touch: only within the scope above; ask about anything not listed.
-- Hand-off: if the task is not for this role, hand it to backlog-manager or fejleszto.
+- Repository setup: when a new codebase, a new agent or a release comes up, offer the recommended setup (`reference/repo-setup.md`); if the owner asks, open a backlog item for it. You never move anything yourself.
+- Hand-off: if the task is not for this role, hand it to backlog-manager, consultant or fejleszto.
 
 ## Role self-image
 

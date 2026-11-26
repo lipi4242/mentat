@@ -17,7 +17,7 @@ class CfAccess(unittest.TestCase):
         env = dict(os.environ, CLOUDFLARE_API_BASE=fake.base, CLOUDFLARE_API_TOKEN=token,
                    CLOUDFLARE_ACCOUNT_ID="acc1")
         return subprocess.run([sys.executable, str(TOOL), *args], capture_output=True, text=True,
-                              env=env, cwd=tempfile.mkdtemp())
+                              env=env, cwd=tempfile.mkdtemp(), encoding="utf-8", errors="replace")
 
     def fake(self, **kw):
         f = Fake(**kw)

@@ -12,12 +12,12 @@ for f in bekotes/bekotes.py bekotes/leltar.py bekotes/fajlszuro.py bekotes/linea
   bekotes/szerepek.py bekotes/blokk.py bekotes/check.py bekotes/hivatkozas.py bekotes/korlatozott.py bekotes/olvas_szerep.py bekotes/hely.py bekotes/szuro_kor.py \
   bekotes/olvas.py bekotes/klon.py bekotes/elokeszit.py bekotes/osszefoglalo.py bekotes/szerep_guard.py \
   bekotes/szerep_pin.py bekotes/szerep_rules.py bekotes/szerep_tiltott.py bekotes/szerep_git.py bekotes/szerep_bash.py bekotes/szerep_kint.py bekotes/szerep_engedely.py bekotes/szerep_hook.py \
-  bekotes/szerep_dontes.py bekotes/szerep_kapu.py bekotes/szerep_kapu_db.py bekotes/szerep_kapu_kepesseg.py bekotes/szerep_kapu_id.py bekotes/szerep_kapu_iras.py bekotes/szerep_kapu_szerver.py bekotes/szerep_kapu_fut.py bekotes/szerep_stop.py bekotes/szerep_kuldes.py bekotes/szerep_prompt.py bekotes/szerep_kapu_inline.py bekotes/szerep_szoveg.py bekotes/szerep_start_sched.py bekotes/szerep_kapu_final.py bekotes/szerep_kapu_git.py bekotes/szerep_id.py bekotes/szerep_id_bash.py bekotes/szerep_id_elsofel.py bekotes/szerep_id_halozat.py bekotes/szerep_id_javaslat.py bekotes/szerep_id_felhasznaloi.py bekotes/szerep_naplo.py bekotes/szerepek/asszisztens.hu.md bekotes/szerepek/asszisztens.en.md bekotes/szerepek/backlog-manager.hu.md \
-  bekotes/szerepek/backlog-manager.en.md bekotes/szerepek/fejleszto.hu.md bekotes/szerepek/fejleszto.en.md \
+  bekotes/szerep_dontes.py bekotes/szerep_kapu.py bekotes/szerep_kapu_db.py bekotes/szerep_kapu_kepesseg.py bekotes/szerep_kapu_id.py bekotes/szerep_kapu_iras.py bekotes/szerep_kapu_szerver.py bekotes/szerep_kapu_fut.py bekotes/szerep_stop.py bekotes/szerep_kuldes.py bekotes/szerep_prompt.py bekotes/szerep_kapu_inline.py bekotes/szerep_szoveg.py bekotes/szerep_start_sched.py bekotes/szerep_kapu_final.py bekotes/szerep_kapu_git.py bekotes/szerep_id.py bekotes/szerep_id_bash.py bekotes/szerep_id_elsofel.py bekotes/szerep_id_halozat.py bekotes/szerep_id_javaslat.py bekotes/szerep_id_felhasznaloi.py bekotes/szerep_naplo.py bekotes/szerep_onkep.py bekotes/szerep_onkep_frissit.py bekotes/szerepek/asszisztens.hu.md bekotes/szerepek/asszisztens.en.md bekotes/szerepek/backlog-manager.hu.md \
+  bekotes/szerepek/backlog-manager.en.md bekotes/szerepek/fejleszto.hu.md bekotes/szerepek/fejleszto.en.md bekotes/szerepek/consultant.hu.md bekotes/szerepek/consultant.en.md \
   bekotes/szerepek/kiado.hu.md bekotes/szerepek/kiado.en.md manifest/mentat_manifest.py manifest/mentat_rules.py \
-  manifest/mentat_cli.py manifest/mentat_roles.py; do
+  manifest/mentat_cli.py manifest/mentat_roles.py manifest/mentat_self_image.py; do
   if [ -n "$REF" ]; then cp "$REF/$f" ".mentat/bin/bekotes/${f#*/}" || echo "HIBA: $f"
-  else curl -fsSL "https://raw.githubusercontent.com/lipi4242/mentat/v0.6.1/reference/$f" -o ".mentat/bin/bekotes/${f#*/}" || echo "HIBA: $f"; fi
+  else curl -fsSL "https://raw.githubusercontent.com/lipi4242/mentat/v0.7.0/reference/$f" -o ".mentat/bin/bekotes/${f#*/}" || echo "HIBA: $f"; fi
 done
 cp .mentat/bin/bekotes/mentat_*.py .mentat/bin/
 ```
@@ -26,8 +26,8 @@ Ha kaptál helyi `<x>/reference/` fát, a listát onnan `cp`-vel másold (curl h
 
 ## 1. Kérdések — legfeljebb 3, egyenként
 1. Melyik business, melyik repók, és melyik régi ágens memóriája?
-2. Mi a fő szerep, és mi legyen még telepítve (asszisztens, backlog-manager, fejleszto, kiado)? Ha
-   egy repóban van `.release-agent/`, a kiado nem lehet fő szerep.
+2. Mi a fő szerep, és mi legyen még telepítve (asszisztens, fejleszto, consultant, backlog-manager = PM,
+   kiado)? Ha egy repóban van `.release-agent/`, a kiado nem lehet fő szerep.
 3. Csak ha hozzáférés hiányzik: honnan pótoljuk (klón, export, kulcs)?
 Minden kérdés egy sor a `<root>/business/<név>/bekotes-naplo.md`-ben: `- kérdés: <szöveg>`. Ha a 3
 nem elég (hiányzó hozzáférés, biztonsági tisztázás), egy sor: `- kivétel: <indok>`.

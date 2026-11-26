@@ -29,7 +29,7 @@ class TmpClean(unittest.TestCase):
                 "subprocess.run([sys.executable, '-c', %r])\n"
                 "subprocess.run([sys.executable, '-c', 'import tempfile; tempfile.mkdtemp()'])\n") % (str(HERE), child)
         try:
-            r = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True)
+            r = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True, encoding="utf-8", errors="replace")
             self.assertEqual(r.returncode, 0, r.stderr)
             self.assertEqual(sorted(os.listdir(fresh)), [])
         finally:
@@ -46,7 +46,7 @@ class TmpClean(unittest.TestCase):
         self.assertEqual(missing, [])
 
     def test_both_copies_are_the_same(self):
-        self.assertEqual((HERE / "_tmp_run.py").read_text(), (HERE.parent / "bekotes" / "_tmp_run.py").read_text())
+        self.assertEqual((HERE / "_tmp_run.py").read_text(encoding="utf-8"), (HERE.parent / "bekotes" / "_tmp_run.py").read_text(encoding="utf-8"))
 
 
 if __name__ == "__main__":

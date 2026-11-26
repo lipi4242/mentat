@@ -17,13 +17,13 @@ class StartSched(KintBase):
         return (json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"] if r.stdout.strip() else "")
 
     def engine(self, tick_age_h=None, actions=0):
-        doc = json.loads((self.root / "mentat.json").read_text())
+        doc = json.loads((self.root / "mentat.json").read_text(encoding="utf-8"))
         doc["components"]["engine"] = {"path": "anytime_engine"}
-        (self.root / "mentat.json").write_text(json.dumps(doc))
+        (self.root / "mentat.json").write_text(json.dumps(doc), encoding="utf-8")
         if tick_age_h is not None:
             st = self.root / "data" / "state"
             st.mkdir(parents=True, exist_ok=True)
-            (st / "last-tick.json").write_text(json.dumps({"actions": actions}))
+            (st / "last-tick.json").write_text(json.dumps({"actions": actions}), encoding="utf-8")
             old = time.time() - tick_age_h * 3600
             os.utime(st / "last-tick.json", (old, old))
 
@@ -41,12 +41,12 @@ class StartSched(KintBase):
 
     def test_a_run_that_missed_its_stored_promise_is_said_first(self):
         self.engine(tick_age_h=1, actions=1)
-        doc = json.loads((self.root / "mentat.json").read_text())
+        doc = json.loads((self.root / "mentat.json").read_text(encoding="utf-8"))
         doc["components"]["engine"]["delivery"] = {"channel": "file", "expect": ["Hívd fel:"]}
-        (self.root / "mentat.json").write_text(json.dumps(doc))
+        (self.root / "mentat.json").write_text(json.dumps(doc), encoding="utf-8")
         out = self.root / "data" / "outbox" / "x.md"
         out.parent.mkdir(parents=True)
-        out.write_text("Ma: semmi\n")
+        out.write_text("Ma: semmi\n", encoding="utf-8")
         self.assertIn("lacks what the job promised", self.start())
 
 

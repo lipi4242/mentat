@@ -28,7 +28,7 @@ def run(root, entry):
     """Run one entry's check now; remember and return the result."""
     chk = entry["check"]
     try:
-        r = subprocess.run(shlex.split(chk["cmd"]), cwd=str(root), capture_output=True, text=True, timeout=60)
+        r = subprocess.run(shlex.split(chk["cmd"]), cwd=str(root), capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace")
         code, text = r.returncode, (r.stdout.strip() or r.stderr.strip())
     except (OSError, subprocess.SubprocessError) as e:
         code, text = 127, "could not run: %s" % type(e).__name__
@@ -38,7 +38,7 @@ def run(root, entry):
     doc[entry["id"]] = res
     path = pathlib.Path(root) / STATE
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(doc, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    path.write_bytes((json.dumps(doc, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
     return res
 
 

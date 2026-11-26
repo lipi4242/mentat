@@ -36,6 +36,18 @@ agent”). Az igene nélkül ne vezess helyette backlogot markdown-fájlokban.
 3. Csak ezután: `todo changes --ack <last_seq>`. Amit nem intéztél el, azt ne
    nyugtázd. Ha a nyugta előtt leállsz, legfeljebb újra elolvasod ugyanazt.
 
+## Ki mit lát
+
+- **Azt látod, amiben érintett vagy:** a teendőt vagy tételt, amelynek gazdája, kijelöltje,
+  létrehozója vagy fejlesztője vagy, amelyben (vagy egy hozzászólásában) megemlítettek,
+  vagy amelyről valaha eseményt kaptál.
+- **Egy projekt PM-je** (az alapértelmezett PM) a projekt minden tételét látja.
+- **Az ember** (az Admin webes felülete) mindent lát.
+- Minden más nem létezik számodra: a listák kihagyják, és ha megnyitnád vagy hozzászólnál,
+  `404 task not found` a válasz, nem 403, hogy a létezése se szivárogjon ki. Hozzászólni
+  csak ahhoz tudsz, amit látsz.
+- A `todo changes` csak a saját eseményeidet adja; más principal eseménysora 403.
+
 ## 2. lépés — PM-ként (a tétel gazdájaként)
 
 Egy tétel útja: `draft` → `issued` (KIADVA) → `taken` (ÁTVÉVE) → `review` → `done`,

@@ -13,7 +13,7 @@ from _bekotes_repo import BIZ, HERE, bk, commit_all, done, fill_map, leltar, mak
 class Doc(unittest.TestCase):
     def test_procedure_short_and_same_tool_list(self):
         for lang in ("hu", "en"):
-            self.assertLessEqual(len((HERE / ("BEKOTES.%s.md" % lang)).read_text().splitlines()), 90)
+            self.assertLessEqual(len((HERE / ("BEKOTES.%s.md" % lang)).read_text(encoding="utf-8").splitlines()), 90)
         self.assertEqual(vendor_list("hu"), vendor_list("en"))
         shipped = {"bekotes/" + p.name for p in HERE.glob("*.py") if not p.name.startswith(("test_", "_"))}
         self.assertTrue(shipped <= set(vendor_list("hu")), shipped - set(vendor_list("hu")))
@@ -32,7 +32,7 @@ class Doc(unittest.TestCase):
         self.assertEqual(got[1], want)
 
     def test_procedure_states_preconditions_and_read_rule(self):
-        hu = (HERE / "BEKOTES.hu.md").read_text()
+        hu = (HERE / "BEKOTES.hu.md").read_text(encoding="utf-8")
         for s in ("mentat.json megvan (init-brain)", 'BK="python3 .mentat/bin/bekotes/bekotes.py"',
                   "CSAK `$BK olvas`"):
             self.assertIn(s, hu)
@@ -106,10 +106,10 @@ class Check(unittest.TestCase):
     def test_blocked_source_without_reason_fails_hianylista(self):
         done(self.root)
         p = self.root / BIZ / "leltar.json"
-        d = json.loads(p.read_text())
+        d = json.loads(p.read_text(encoding="utf-8"))
         d["sources"][0]["state"] = "blokkolt"
         d["hianylista"] = []
-        p.write_text(json.dumps(d))
+        p.write_text(json.dumps(d), encoding="utf-8")
         commit_all(self.root)
         r = self.check()
         self.assertEqual(r.returncode, 1)
@@ -133,10 +133,10 @@ class Check(unittest.TestCase):
     def test_kiado_default_with_release_agent_fails(self):
         done(self.root)
         p = self.root / BIZ / "leltar.json"
-        p.write_text(json.dumps(dict(json.loads(p.read_text()), kiado_alapnak=False)))
-        m = json.loads((self.root / "mentat.json").read_text())
+        p.write_text(json.dumps(dict(json.loads(p.read_text(encoding="utf-8")), kiado_alapnak=False)), encoding="utf-8")
+        m = json.loads((self.root / "mentat.json").read_text(encoding="utf-8"))
         m["roles"] = {"default": "kiado", "installed": ["kiado"]}
-        (self.root / "mentat.json").write_text(json.dumps(m))
+        (self.root / "mentat.json").write_text(json.dumps(m), encoding="utf-8")
         write(self.root, "agy/szerepek/kiado.md", "x\n")
         commit_all(self.root)
         r = self.check()

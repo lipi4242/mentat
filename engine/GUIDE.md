@@ -130,7 +130,7 @@ The engine is **vendored** — copied into your repo, not installed from PyPI. T
 assistant's repo clones and runs anywhere, with no network and no auth.
 
 ```bash
-git clone --depth 1 --branch v0.6.1 https://github.com/lipi4242/mentat ~/src/mentat
+git clone --depth 1 --branch v0.7.0 https://github.com/lipi4242/mentat ~/src/mentat
 ~/src/mentat/engine/sync-to.sh /path/to/your-agent-repo
 ```
 
@@ -314,7 +314,7 @@ Configuration (first wins; no api or no handle = the pack is off and silent):
 | Setting | Source |
 |---|---|
 | api | `TODO_API` (e.g. `https://admin.example/api/todo/v1`), else `.mentat/local.json` `admin.url` + `/api/todo/v1` when `mentat.json` `components.admin.plugins` lists `todo` |
-| handle | `TODO_HANDLE`, else `mentat.json` `components.engine.todo_handle` |
+| handle | `TODO_HANDLE`, else `mentat.json` `components.engine.todo_handle`, else `components.admin.todo_handle` (written by the admin's `connect --plugins todo`), else on a desktop `TODO_HANDLE` in `~/.config/todo/env` |
 | token | `TODO_TOKEN_FILE` (only the token, mode 0600, refused otherwise), else `$<admin.token_env>` or that key in the repo's `.env` |
 
 The token needs the `todo:write` scope, and the agent needs a todo principal

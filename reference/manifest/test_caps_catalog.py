@@ -74,7 +74,7 @@ class Catalog(unittest.TestCase):
     @unittest.skipUnless(os.environ.get("ENGINE_SRC"), "ENGINE_SRC not set: engine commands not checked")
     def test_every_engine_command_exists_in_the_engine(self):
         src = pathlib.Path(os.environ["ENGINE_SRC"]) / "src"
-        main = (src / "anytime_engine" / "__main__.py").read_text()
+        main = (src / "anytime_engine" / "__main__.py").read_text(encoding="utf-8")
         for e in entries():
             mods = [e["probe"]["module"]] if "module" in e["probe"] else []
             for t in texts(e):

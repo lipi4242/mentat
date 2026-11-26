@@ -6,20 +6,28 @@
 // The token is never printed.
 //
 //   npm run connect -- --repo <path> --url <admin-url> --local|--remote
-//       [--agent <name>] [--scope cases:write] [--days 90] [--token-env NAME] [--plugins cases]
+//       [--agent <name>] [--scope S] [--days 90] [--token-env NAME] [--plugins cases,todo] [--handle h]
 //       [--email owner@example.com]   (--local: who signs in to the UI; default: the repo's git user.email, else admin@example.com)
 //       [--migrate-brain] [--check]
+//   npm run connect -- --local --uninstall     stop the local admin service and remove it (data, tokens, repo untouched)
 //
-// --agent defaults to mentat.json agent.name. Needs python3 for the shared
-// .mentat/lock (fcntl.flock).
+// --agent defaults to mentat.json agent.name. --plugins adds to what the repo
+// already uses; the token gets one scope per plugin (cases:write, todo:write)
+// unless --scope says otherwise. A token that works and covers them is kept;
+// otherwise a new one replaces it and the old one is revoked once the new one
+// answers (lib/connect-token.mjs). With todo the agent's principal follows the
+// token; its handle (--handle) goes to mentat.json components.admin.todo_handle.
+// Needs python3 for the shared .mentat/lock (fcntl.flock).
 //
 // --local is the one way to bind a local admin. Before minting it also
-//   links node/npm/npx into ~/.local/bin (on the login PATH via ~/.profile),
+//   links node/npm/npx into ~/.local/bin (on the login PATH via ~/.profile, ~/.zprofile on zsh),
 //   writes worker/.dev.vars (URL, owner e-mail, a random secret; other lines
 //   survive), builds the admin UI (admin/dist), applies the local migrations
-//   (npm run migrate:local, with its backup), installs + starts the systemd
-//   user unit mentat-admin.service (API + UI on the URL's port, at boot
-//   thanks to linger) and waits for /api/health. It then finishes the agent's
+//   (npm run migrate:local, with its backup), installs + starts the service
+//   (API + UI on the URL's port): Linux the systemd user unit
+//   mentat-admin.service (at boot thanks to linger), macOS the launchd agent
+//   ~/Library/LaunchAgents/com.mentat.admin.plist (at login, KeepAlive), and
+//   waits for /api/health. It then finishes the agent's
 //   side too: cases_cli into <repo>/.mentat/bin, the managed block at the END
 //   of <repo>/AGENTS.md (<!-- mentat:admin:start -->), and with
 //   --migrate-brain the brain's cases into the admin. Rerunning is safe: a
@@ -27,6 +35,7 @@
 //   --check changes nothing: it lists what is done and what is missing.
 import { execFileSync } from 'node:child_process';
 import { cliState, blockState, envValue, installCli, migrateBrain, tokenWorks, writeBlock } from './lib/agent-setup.mjs';
+import { bindToken, pluginsFor } from './lib/connect-token.mjs';
 import { closingLines } from './lib/onboard.mjs';
 import { randomBytes } from 'node:crypto';
 import { chmodSync, existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -35,12 +44,17 @@ import { dirname, join, resolve } from 'node:path';
 import { connect } from './lib/connect.mjs';
 import { mint } from './lib/mint.mjs';
 import { d1Query, flag, parseTarget, ROOT, WORKER_DIR } from './lib/d1.mjs';
-import { installService, linkNode, localPort, waitHealthy } from './lib/local-admin.mjs';
+import { installService, linkNode, localPort, uninstallService, waitHealthy } from './lib/local-admin.mjs';
 import { readJson } from './lib/manifest.mjs';
 import { gitEmail, updateDevVars } from './lib/local-config.mjs';
 
 const argv = process.argv.slice(2);
 const target = parseTarget(argv);
+if (target === 'local' && argv.includes('--uninstall')) {
+  const { removed } = uninstallService({ home: homedir(), uid: process.getuid?.() });
+  console.log(removed.length ? `service: stopped; removed ${removed.join(', ')}` : 'service: none installed — nothing to remove');
+  process.exit(0);
+}
 const repo = flag(argv, '--repo');
 const url = flag(argv, '--url');
 if (!target || !repo || !url) {
@@ -48,7 +62,7 @@ if (!target || !repo || !url) {
   process.exit(1);
 }
 const plugins = flag(argv, '--plugins')?.split(',').filter(Boolean);
-const cases = !plugins || plugins.includes('cases');
+const cases = pluginsFor(readJson(join(resolve(repo), 'mentat.json')), plugins).includes('cases');
 const tokenEnv = flag(argv, '--token-env') ?? 'MENTAT_ADMIN_TOKEN';
 const home = homedir();
 const dir = WORKER_DIR.startsWith(home + '/') ? `~${WORKER_DIR.slice(home.length)}` : WORKER_DIR;
@@ -70,15 +84,15 @@ async function setupLocal() {
   if (!existsSync(join(ROOT, 'admin', 'node_modules'))) execFileSync('npm', ['ci', '--prefix', join(ROOT, 'admin')], quiet);
   execFileSync('npm', ['--prefix', join(ROOT, 'admin'), 'run', 'build'], quiet);
   execFileSync('npm', ['run', 'migrate:local'], { cwd: WORKER_DIR, stdio: ['ignore', 'inherit', 'inherit'] });
-  const svc = installService({ home: homedir(), user: userInfo().username, workerDir: WORKER_DIR, nodeBin, port });
+  const svc = installService({ home: homedir(), uid: process.getuid?.(), user: userInfo().username, workerDir: WORKER_DIR, nodeBin, port });
   if (!svc.installed) {
     console.log(`service: ${svc.reason}`);
     return vars.email;
   }
   console.log(`service: ${svc.unitPath} enabled${svc.linger ? ', starts at boot (linger on)' : ''}`);
-  if (svc.hint) console.log(`service: ${svc.hint}`);
+  for (const line of [svc.note, svc.hint]) if (line) console.log(`service: ${line}`);
   if (!(await waitHealthy(new URL(url).origin))) {
-    throw new Error(`the admin did not answer on ${new URL(url).origin}/api/health — see: journalctl --user -u mentat-admin.service`);
+    throw new Error(`the admin did not answer on ${new URL(url).origin}/api/health — see: npm run status`);
   }
   return vars.email;
 }
@@ -107,25 +121,19 @@ try {
   const owner = target === 'local' ? await setupLocal() : undefined;
   const repoAbs = resolve(repo);
   const nextSteps = [];
-  const kept = await tokenWorks(origin, envValue(repoAbs, tokenEnv)) && !!readJson(join(repoAbs, 'mentat.json'))?.components?.admin;
-  if (kept) {
-    console.log(`token: the one in ${repo}/.env is still accepted — kept (revoke/rotate: npm run revoke-token)`);
-  } else {
-    const query = d1Query(target);
-    const out = await connect({
-      repo: repoAbs,
-      url,
-      agent: flag(argv, '--agent'),
-      scopes: flag(argv, '--scope') ?? 'cases:write',
-      days: flag(argv, '--days'),
-      tokenEnv,
-      plugins,
-      mintFn: (req) => mint(query, req),
-    });
+  const query = d1Query(target);
+  const connectFn = (scopes, all) =>
+    connect({ repo: repoAbs, url, agent: flag(argv, '--agent'), scopes, days: flag(argv, '--days'), tokenEnv, plugins: all, mintFn: (req) => mint(query, req) });
+  const works = (tok) => tokenWorks(origin, tok);
+  const b = await bindToken({ query, repo: repoAbs, tokenEnv, asked: plugins, scope: flag(argv, '--scope'), handle: flag(argv, '--handle'), works, connectFn });
+  if (b.kept) console.log(`token: the one in ${repo}/.env is accepted and has "${b.kept.scopes}" — kept (rotate: npm run revoke-token)`);
+  else {
+    const out = b.minted;
     console.log(`connected ${out.label} → ${out.url}`);
     console.log(`  token ${out.id} (scopes "${out.scopes}", expires ${out.expires_at} UTC) in ${out.envFile} as ${out.tokenEnv}`);
-    console.log(`  revoke: npm run revoke-token -- --id ${out.id} --${target}`);
+    if (b.revoked.length) console.log(`  the previous token ${b.revoked.join(', ')} is revoked (the new one answered first)`);
   }
+  if (b.handle) console.log(`todo: this agent is @${b.handle} (mentat.json components.admin.todo_handle) — check: mentat-todo me`);
   if (cases) console.log(`cases_cli: ${installCli(repoAbs)} in .mentat/bin`);
   console.log(`AGENTS.md: mentat:admin block ${writeBlock(repoAbs, blockOpts)}`);
   if (argv.includes('--migrate-brain') && cases) {

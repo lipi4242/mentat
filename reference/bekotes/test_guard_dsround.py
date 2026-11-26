@@ -44,9 +44,9 @@ class DsRound(KintBase):
             self.assertIn("mentat_final.py", reason, cmd)
 
     def test_an_english_brain_gets_english_bounces(self):
-        doc = json.loads((self.root / "mentat.json").read_text())
+        doc = json.loads((self.root / "mentat.json").read_text(encoding="utf-8"))
         doc["agent"] = {"name": "x", "language": "en"}
-        (self.root / "mentat.json").write_text(json.dumps(doc))
+        (self.root / "mentat.json").write_text(json.dumps(doc), encoding="utf-8")
         _, reason = self.bash("cat .env")
         self.assertIn("the USER", reason)
         self.assertNotIn("FELHASZNÁLÓ", reason)

@@ -147,7 +147,9 @@ def essentials_for(entry: dict) -> dict:
     sent = essentials_env.send_failures(entry, home)
     from fleet import kepesseg  # 11-07: és le is fut-e (küldés dry-run, todo, állapot, git)
     cap = kepesseg.check(entry, home)
-    return {**r, "red": r["red"] + ([sent] if sent else []) + cap["red"],
+    from fleet import pane_engedely  # 11-18: engedélykérő ablak a pane-ben = piros, okkal (doctor + flotta)
+    dlg = pane_engedely.red_line(entry)
+    return {**r, "red": r["red"] + ([sent] if sent else []) + cap["red"] + ([dlg] if dlg else []),
             "unknown": r["unknown"] + cap["unknown"], "facts": [kepesseg.summary(cap)] if cap["ok"] else []}
 
 
@@ -187,6 +189,9 @@ def doctor(agent: str | None = None, fix: bool = False) -> list[dict]:
                      if m["signals"]["process"]["state"] == "up" else (None, None),
                      outward=outward_hold_box.read(_workdir(e)) if e.get("workdir") else None,
                      bridge_stale=_bridge_stale(e), essentials=essentials_for(e))
+        if not is_dormant(e):
+            from fleet import place_drift, rules_state
+            rep["warnings"] = list(rep.get("warnings", [])) + place_drift.warnings_for(e) + rules_state.warnings_for(e)
         out.append(rep)
     if agent is None:  # 11-07: a box-sor — riasztási út, kanári-lenyomat, kiadás-lemaradás
         from fleet import doctor_box

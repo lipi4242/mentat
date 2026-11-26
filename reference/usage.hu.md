@@ -21,11 +21,19 @@ Az agy egy privát git repó, ezért ugyanaz az ágens több helyen is élhet. E
 |---|---|---|
 | A saját gépeden | Claude Code (asztali alkalmazás vagy terminál); Windowson a Git for Windows is | Kezdésnek. Nem technikai felhasználónak is működik, a telepítés néhány perc. |
 | Több gépen | Ugyanaz a privát repó (például GitHubon) mindegyiken klónozva; az ágens gitbe ment, a másik gépen kezdés előtt lehúzod a változásokat | Egy embernek laptoppal és asztali géppel, vagy egy ágensnek, aki több családi gépen segít. |
-| Szerveren, folyamatosan | Egy Linux szerver a [flotta](https://github.com/lipi4242/mentat/tree/v0.6.1/fleet) futtatójával; Telegram a beszélgetéshez | Ütemezve dolgozik, és a telefonodon is válaszol, akkor is, ha a géped ki van kapcsolva. |
+| Szerveren, folyamatosan | Egy Linux szerver a [flotta](https://github.com/lipi4242/mentat/tree/v0.7.0/fleet) futtatójával; Telegram a beszélgetéshez | Ütemezve dolgozik, és a telefonodon is válaszol, akkor is, ha a géped ki van kapcsolva. |
 | Több session egy gépen | Több Claude Code session ugyanabban a mappában; ha kell, sessionönként egy szerep (`MENTAT_ROLE=<szerep> claude`) | Két dolgon egyszerre dolgozni. A sessionök egy közös hosszú távú memóriát használnak. |
 | Telefonról vagy webről | `/rc` (remote control) a sessionben | A gépen elindított session folytatása máshonnan. |
 
 Egy szabály minden felállásra érvényes: a motor ütemezése csak egy helyen fusson. Ha két gép is tickel ugyanannak az ágensnek, az emlékeztetők kétszer mennek ki. Szerveren ezt a flotta tartja kézben; saját gépen a `setup --doctor` megmutatja, mi van telepítve.
+
+### Súgó: /mentat
+
+A `/mentat` megmondja, mit tud az ágens, ad három kezdőfeladatot, és ugyanazt mondja minden gépen: a szövege kézzel írt és verziózott, nem a modell fogalmazza. A `/mentat status` négy sorban mutatja, ki dolgozik veled, be van-e kapcsolva a todo, ki ütemezi a futásokat, és mi a következő lépés. A `/mentat todo` lépésről lépésre végigvezet a todo és a backlog bekapcsolásán, először a saját gépeden.
+
+### Ki dolgozik veled: a státuszsor és a /whoami
+
+A Claude Code alján egy sor mutatja, ki dolgozik veled: az ágens nevét és szerepét, flottánál azt is, kinek a flottájában van, valamint a modellt, a kontextus telítettségét, a keret állását (ha a Claude Code megadja), a mappát az ággal és egy rövid tippet. Ha valamelyik adat hiányzik, az a rész egyszerűen kimarad. A telepítés beírja a projekt `.claude/settings.json`-jába. Ha már van saját státuszsorod (például egy másik eszközé), azt nem cseréli le, csak ha igent mondasz rá, és a döntést feljegyzi a `.mentat/statusline.json`-ba. Ahol nincs státuszsor, például a Claude asztali alkalmazásában, ugyanezt a `/whoami` parancs írja ki.
 
 ## Tipikus helyzetek
 

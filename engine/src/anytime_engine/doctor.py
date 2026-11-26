@@ -1,4 +1,5 @@
-"""setup --doctor — the installed timer units against what `setup --install` would write now.
+"""setup --doctor — the installed timer units (on macOS: the LaunchAgent) against what
+`setup --install` would write now.
 
     python3 -m anytime_engine.setup --doctor [--unit-dir DIR]
 
@@ -17,7 +18,7 @@ from __future__ import annotations
 import difflib
 from pathlib import Path
 
-from . import config, engine_manifest as em, schedule
+from . import config, engine_manifest as em, launchd, schedule
 
 FIX = ("fix: put the change into the setup flags (or mentat.json components.engine), then "
        "`python3 -m anytime_engine.setup --install --tz <tz>` rewrites the units")
@@ -48,9 +49,12 @@ def run(unit_dir: str | None) -> int:
     if not plugins:
         print("doctor: cannot compare — components.engine.plugins is empty")
         return 2
-    folder = Path(unit_dir) if unit_dir else Path.home() / ".config/systemd/user"
     agent = config.repo_root().resolve().name
-    units = schedule.render_systemd(agent, "hourly", "hourly", plugins)
+    if schedule.platform() == "darwin":
+        folder, units = launchd.folder(unit_dir), schedule.render_launchd(agent, "hourly", plugins)
+    else:
+        folder = Path(unit_dir) if unit_dir else Path.home() / ".config/systemd/user"
+        units = schedule.render_systemd(agent, "hourly", "hourly", plugins)
     bad, lines = False, []
     for fname, want in units.items():
         path = folder / fname

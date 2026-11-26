@@ -78,7 +78,7 @@ class Wiring(unittest.TestCase):
             got = set(re.search(r"/manifest/\{([^}]*)\}", line).group(1).split(","))
             self.assertTrue(need <= got, (lang, need - got))
             self.assertIn("mentat_dates.py", intake(lang))
-        ids = [e["id"] for e in json.loads((HERE / "capabilities" / "contract.json").read_text())]
+        ids = [e["id"] for e in json.loads((HERE / "capabilities" / "contract.json").read_text(encoding="utf-8"))]
         self.assertIn("dates", ids)
 
 

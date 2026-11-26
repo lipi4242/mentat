@@ -1,6 +1,7 @@
 """`fleet secrets approve|move|copy|audit`: tételes, lejáró, egyszer használható jóváhagyás; az érték
-nem kerül argv-be, kimenetbe, hibaüzenetbe; nyugta hash8-cal; audit fájl:sorral, érték nélkül."""
+nem kerül argv-be, kimenetbe, hibaüzenetbe; nyugta kulcsolt lenyomattal (HMAC); audit fájl:sorral, érték nélkül."""
 import _hermetic  # noqa: F401  (első import: HOME → tmp, lásd tests/_hermetic.py)
+import hashlib
 import io
 import json
 from unittest import mock
@@ -49,7 +50,9 @@ class Move(Base):
         self.assertEqual(dest.stat().st_mode & 0o777, 0o600)
         self.assertFalse(dest.is_symlink())
         rec = json.loads((self.home / ".mentat/titkok/nyugtak.jsonl").read_text().splitlines()[-1])
-        self.assertEqual((rec["name"], rec["approval"], len(rec["hash8"])), ("SZ_TOKEN", aid, 8))
+        self.assertEqual((rec["name"], rec["approval"], len(rec["hmac"])), ("SZ_TOKEN", aid, 64))
+        self.assertNotIn("hash8", rec)
+        self.assertNotIn(hashlib.sha256(FAKE.encode()).hexdigest()[:8], json.dumps(rec) + text)
         self.assertNotIn(FAKE, json.dumps(rec))
         self.assertIn(f"SZ_TOKEN={FAKE}", (self.home / ".config/szervezo/szervezo.env").read_text())  # copy
 

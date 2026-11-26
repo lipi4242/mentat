@@ -36,9 +36,9 @@ class Checks(CapsBase):
         self.tool(1, "token invalid")
         self.run_where("--probe", "cf.token")
         p = self.root / ".mentat" / "state" / "capability-checks.json"
-        doc = json.loads(p.read_text())
+        doc = json.loads(p.read_text(encoding="utf-8"))
         doc["cf.token"]["at"] = time.time() - 3 * 24 * 3600
-        p.write_text(json.dumps(doc))
+        p.write_text(json.dumps(doc), encoding="utf-8")
         c = self.by_id("cloudflare token", "cf.token")
         self.assertEqual((c["availability"], c["verified"]["stale"]), ("on", True))
 
@@ -53,9 +53,9 @@ class DailyChanges(CapsBase):
         self.write("projects/lista/README.md", "# Lista\n")
         self.assertNotIn("Változás", self.run_where("--find", "tedd ki a netre").stdout)  # same day
         p = self.root / ".mentat" / "state" / "capability-index.json"
-        doc = json.loads(p.read_text())
+        doc = json.loads(p.read_text(encoding="utf-8"))
         doc["at"] = time.time() - 25 * 3600
-        p.write_text(json.dumps(doc))
+        p.write_text(json.dumps(doc), encoding="utf-8")
         out = self.run_where("--find", "tedd ki a netre").stdout
         self.assertIn("Változás", out)
         self.assertIn("+ own.project.lista", out)

@@ -40,17 +40,17 @@ class Identity(KintBase):
         os.link(x, self.home / "business" / "hard.txt")  # the same file under another name
         self.assertEqual(self.d("Read", {"file_path": str(self.home / "business/hard.txt")}), "allow")
         x.rename(self.home / "business" / "old.txt")
-        x.write_text("new\n")  # replaced at the approved path
+        x.write_text("new\n", encoding="utf-8")  # replaced at the approved path
         self.assertEqual(self.d("Read", {"file_path": str(x)}), "ask")
 
 
 class CaseSensitiveDisk(KintBase):
     def test_approving_one_spelling_does_not_open_the_other(self):  # CISO + Codex 3
         d = self.home / "business"
-        (d / "Foo.txt").write_text("1\n")
+        (d / "Foo.txt").write_text("1\n", encoding="utf-8")
         if (d / "foo.txt").exists():
             self.skipTest("case-insensitive disk here: Foo.txt and foo.txt are one file (inode rule covers it)")
-        (d / "foo.txt").write_text("2\n")
+        (d / "foo.txt").write_text("2\n", encoding="utf-8")
         self.post("Read", {"file_path": str(d / "Foo.txt")})
         self.assertEqual(self.d("Read", {"file_path": str(d / "Foo.txt")}), "allow")
         self.assertEqual(self.d("Read", {"file_path": str(d / "foo.txt")}), "ask")
@@ -64,7 +64,7 @@ class HookFailureBlocks(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.root, True)
         self.assertEqual(leltar(self.root).returncode, 0)
         self.assertEqual(szerepek(self.root).returncode, 0)
-        s = json.loads((self.root / ".claude/settings.json").read_text())
+        s = json.loads((self.root / ".claude/settings.json").read_text(encoding="utf-8"))
         self.pre = s["hooks"]["PreToolUse"][-1]["hooks"][0]
 
     def run_hook(self, **env_over):
@@ -72,14 +72,14 @@ class HookFailureBlocks(unittest.TestCase):
                    "tool_input": {"file_path": "README.md"}}
         e = dict(env(self.root), CLAUDE_PROJECT_DIR=str(self.root), **env_over)
         return subprocess.run(["/bin/sh", "-c", self.pre["command"]], input=json.dumps(payload),
-                              capture_output=True, text=True, env=e, cwd=self.root)
+                              capture_output=True, text=True, env=e, cwd=self.root, encoding="utf-8", errors="replace")
 
     def test_the_handler_blocks_on_failure_with_a_short_timeout(self):
         self.assertEqual(self.pre.get("onFailure"), "block")
         self.assertLessEqual(self.pre.get("timeout", 600), 10)
 
     def test_crash_import_error_and_missing_python_are_failures_not_allows(self):
-        (self.root / ".mentat/bin/bekotes/szerep_dontes.py").write_text("raise ImportError('broken')\n")
+        (self.root / ".mentat/bin/bekotes/szerep_dontes.py").write_text("raise ImportError('broken')\n", encoding="utf-8")
         r = self.run_hook()
         self.assertNotEqual(r.returncode, 0)  # a failure: onFailure blocks it
         self.assertNotIn('"allow"', r.stdout)
@@ -104,7 +104,7 @@ class FailureModes(HookFailureBlocks):
     def test_exit1_bad_json_missing_script_and_timeout(self):
         guard = self.root / ".mentat/bin/bekotes/szerep_guard.py"
         for body in ("raise SystemExit(1)\n", "print('{nem json')\n"):
-            guard.write_text(body)
+            guard.write_text(body, encoding="utf-8")
             self.assertFalse(self.silent_allow(self.run_hook()), body)
         guard.unlink()
         self.assertFalse(self.silent_allow(self.run_hook()))
@@ -117,8 +117,8 @@ class SelfProtection(KintBase):
 
     def test_parents_and_interpreters_cannot_be_swapped(self):
         (self.root / ".mentat").mkdir(exist_ok=True)
-        (self.root / ".mentat" / "engedelyek.json").write_text('{"engedelyek": []}')
-        before = (self.root / ".mentat" / "engedelyek.json").read_text()
+        (self.root / ".mentat" / "engedelyek.json").write_text('{"engedelyek": []}', encoding="utf-8")
+        before = (self.root / ".mentat" / "engedelyek.json").read_text(encoding="utf-8")
         for cmd in ("mv .mentat .mentat.old", "rm -rf .mentat", "mv .mentat/naplo /tmp/n"):
             self.assertEqual(self.bash(cmd), "deny", cmd)
         for cmd in ("mv .claude .claude.old", "ln -sfn /tmp/evil .mentat/bin/bekotes", "rm -rf .mentat/bin",
@@ -127,7 +127,7 @@ class SelfProtection(KintBase):
         with mock.patch.dict(os.environ, {"PATH": str(self.root / "bin") + os.pathsep + os.environ["PATH"]}):
             self.assertEqual(self.bash("cp agy/a.md bin/python3"), "ask")
             self.assertEqual(self.bash("cp README.md bin/notes"), "allow")
-        self.assertEqual((self.root / ".mentat" / "engedelyek.json").read_text(), before)
+        self.assertEqual((self.root / ".mentat" / "engedelyek.json").read_text(encoding="utf-8"), before)
 
 
 class ImportShadow(unittest.TestCase):
@@ -138,13 +138,13 @@ class ImportShadow(unittest.TestCase):
         self.assertEqual(szerepek(root).returncode, 0)
         (root / ".mentat/bin/shlex.py").write_text(  # would blind the Bash parser if it were imported
             "class shlex:\n    def __init__(self, *a, **k):\n        self.whitespace_split = True\n"
-            "    def __iter__(self):\n        return iter([])\n")
-        s = json.loads((root / ".claude/settings.json").read_text())
+            "    def __iter__(self):\n        return iter([])\n", encoding="utf-8")
+        s = json.loads((root / ".claude/settings.json").read_text(encoding="utf-8"))
         cmd = [h["command"] for e in s["hooks"]["PreToolUse"] for h in e["hooks"]][0]
         payload = {"session_id": "s1", "cwd": str(root), "permission_mode": "default", "tool_name": "Bash",
                    "tool_input": {"command": "cat ~/.ssh/id_rsa"}}
         r = subprocess.run(["sh", "-c", cmd], input=json.dumps(payload), capture_output=True, text=True,
-                           env=dict(env(root), CLAUDE_PROJECT_DIR=str(root)), cwd=root)
+                           env=dict(env(root), CLAUDE_PROJECT_DIR=str(root)), cwd=root, encoding="utf-8", errors="replace")
         self.assertEqual(json.loads(r.stdout)["hookSpecificOutput"]["permissionDecision"], "ask", r.stderr)
 
 

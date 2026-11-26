@@ -24,7 +24,7 @@ TOOL = HERE / "mentat_serve.py"
 
 def run(root, *args):
     return subprocess.run([sys.executable, "-I", str(TOOL), "--repo", str(root), *args],
-                          capture_output=True, text=True, timeout=60)
+                          capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace")
 
 
 def url_of(out):
@@ -35,9 +35,9 @@ class Serve(unittest.TestCase):
     def setUp(self):
         self.root = pathlib.Path(tempfile.mkdtemp())
         subprocess.run(["git", "init", "-q", str(self.root)], check=True)
-        (self.root / ".gitignore").write_text(".env\n.env.*\n.mentat/\n")
+        (self.root / ".gitignore").write_text(".env\n.env.*\n.mentat/\n", encoding="utf-8")
         (self.root / "site").mkdir()
-        (self.root / "site" / "index.html").write_text("<h1>szia</h1>")
+        (self.root / "site" / "index.html").write_text("<h1>szia</h1>", encoding="utf-8")
         self.addCleanup(run, self.root, "stop", "--all")
 
     def test_start_returns_at_once_with_an_answering_url(self):
@@ -81,7 +81,7 @@ class Serve(unittest.TestCase):
         self.assertIn("nem figyelek", r.stdout)  # the log's tail, so the agent sees why
 
     def test_secret_form_writes_a_0600_ignored_env_line_and_never_prints_the_value(self):
-        (self.root / ".env").write_text("OTHER=1\nCF_TOKEN=old\n")
+        (self.root / ".env").write_text("OTHER=1\nCF_TOKEN=old\n", encoding="utf-8")
         r = run(self.root, "start", "kulcs", "--secret", "CF_TOKEN")
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         url = url_of(r.stdout)
@@ -91,11 +91,11 @@ class Serve(unittest.TestCase):
         urllib.request.urlopen(urllib.request.Request(url, data=body), timeout=5).read()
         time.sleep(0.5)
         env = self.root / ".env"
-        self.assertEqual(env.read_text(), "OTHER=1\nCF_TOKEN=s3cr3t-value\n")
+        self.assertEqual(env.read_text(encoding="utf-8"), "OTHER=1\nCF_TOKEN=s3cr3t-value\n")
         self.assertEqual(env.stat().st_mode & 0o777, 0o600)
         st = run(self.root, "status", "kulcs").stdout
         self.assertIn("received", st)
-        logs = "".join(p.read_text() for p in (self.root / ".mentat/state/serve").iterdir())
+        logs = "".join(p.read_text(encoding="utf-8") for p in (self.root / ".mentat/state/serve").iterdir())
         self.assertNotIn("s3cr3t", logs + st + r.stdout)
         with self.assertRaises(OSError):  # one save, then the form is gone
             urllib.request.urlopen(url, timeout=2)
@@ -116,7 +116,7 @@ class Serve(unittest.TestCase):
     def test_stop_never_kills_a_process_it_did_not_start(self):
         state = self.root / ".mentat/state/serve"
         state.mkdir(parents=True)
-        (state / "idegen.json").write_text(json.dumps({"name": "idegen", "pid": os.getpid()}))
+        (state / "idegen.json").write_text(json.dumps({"name": "idegen", "pid": os.getpid()}), encoding="utf-8")
         r = run(self.root, "stop", "idegen")
         self.assertIn("not running", r.stdout)
 
@@ -129,7 +129,7 @@ class Serve(unittest.TestCase):
             self.assertEqual(f.stat().st_mode & 0o077, 0, f.name)
 
     def test_dir_mode_never_serves_dot_files_symlinks_out_or_a_folder_outside(self):  # CISO M2
-        (self.root / ".env").write_text("X=1\n")
+        (self.root / ".env").write_text("X=1\n", encoding="utf-8")
         (self.root / "site" / "link").symlink_to(self.root / ".env")
         url = url_of(run(self.root, "start", "gyoker", "--dir", ".").stdout)
         for path in (".env", "%2Eenv", ".git/config", ".mentat/state/serve/gyoker.json", "site/link"):
@@ -153,7 +153,7 @@ class Serve(unittest.TestCase):
         urllib.request.urlopen(urllib.request.Request(url, data=body), timeout=5).read()
         time.sleep(1.5)
         self.assertIn("stopped", run(self.root, "status", "kulcs").stdout)
-        self.assertIn("CF_TOKEN=elso", (self.root / ".env").read_text())
+        self.assertIn("CF_TOKEN=elso", (self.root / ".env").read_text(encoding="utf-8"))
 
 
     def test_a_command_without_a_port_runs_detached_and_bounded(self):  # a watcher, not a server

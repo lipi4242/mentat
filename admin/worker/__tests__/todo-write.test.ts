@@ -36,7 +36,7 @@ describe('todo revisions and atomic writes', () => {
     expect(count()).toBe(1); expect((await call('GET', `/tasks/${row.id}`)).body.rev).toBe(1);
   });
   it('clears assignment on handback, restricts caller, retains owner and open status', async () => {
-    const { create, call } = await todoApp(); const row = await create({ owner_id: 'b', assignee_id: 'a', assignee_note: 'Step' });
+    const { call } = await todoApp(); const row = await ((set: Record<string, unknown>) => call('POST', '/tasks', { title: 'Task', idem_key: crypto.randomUUID(), ...set }, { 'X-Mentat-Token': 'b' }).then(r => r.body))({ assignee_id: 'a', assignee_note: 'Step' });
     const path = `/tasks/${row.id}/handback`;
     expect((await call('POST', path, { expected_rev: 1 }, { 'X-Mentat-Token': 'b' })).status).toBe(403);
     expect((await call('POST', path, { expected_rev: 1, note: 'Ready' })).body).toMatchObject({ owner_id: 'b', status: 'open', assignee_id: null, assignee_note: null, rev: 2 });
@@ -48,8 +48,8 @@ describe('todo revisions and atomic writes', () => {
     expect(res.body).toMatchObject({ status: 'done', assignee_id: null, done_by: 'a', rev: 2 });
   });
   it('allows the assignee to complete the whole task while retaining its owner', async () => {
-    const { create, call } = await todoApp();
-    const row = await create({ owner_id: 'b', assignee_id: 'a', assignee_note: 'Step' });
+    const { call } = await todoApp();
+    const row = await ((set: Record<string, unknown>) => call('POST', '/tasks', { title: 'Task', idem_key: crypto.randomUUID(), ...set }, { 'X-Mentat-Token': 'b' }).then(r => r.body))({ assignee_id: 'a', assignee_note: 'Step' });
     expect((await call('POST', `/tasks/${row.id}/complete`, { expected_rev: 1 })).body)
       .toMatchObject({ owner_id: 'b', status: 'done', assignee_id: null, assignee_note: null, done_by: 'a' });
   });

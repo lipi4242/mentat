@@ -18,6 +18,8 @@ import argparse
 import json
 import pathlib
 import sys
+for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows: a pipe is the ANSI code page, not UTF-8
+    getattr(_s, "reconfigure", lambda **k: None)(encoding="utf-8", errors="replace")
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import google_secrets as secrets  # noqa: E402
@@ -41,7 +43,7 @@ def status(a, root, d):
     if not tok.exists():
         print("not signed in (%s/token.json missing)" % secrets.REL)
         return 1
-    print("signed in; scopes: %s" % ", ".join(json.loads(tok.read_text()).get("scopes") or ["?"]))
+    print("signed in; scopes: %s" % ", ".join(json.loads(tok.read_text(encoding="utf-8")).get("scopes") or ["?"]))
     return 0
 
 

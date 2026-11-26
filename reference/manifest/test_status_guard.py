@@ -14,7 +14,7 @@ CLI = pathlib.Path(__file__).resolve().parent / "mentat_cli.py"
 def run(root, *args):
     env = {k: v for k, v in os.environ.items() if k != "MENTAT_ROLE"}
     return subprocess.run([sys.executable, str(CLI), *args, "--repo", str(root)],
-                          capture_output=True, text=True, env=env)
+                          capture_output=True, text=True, env=env, encoding="utf-8", errors="replace")
 
 
 class GuardStatus(unittest.TestCase):
@@ -32,7 +32,7 @@ class GuardStatus(unittest.TestCase):
         self.assertIn("szerep-őr: NINCS TELEPÍTVE", run(root, "status").stdout)
         guard = root / ".mentat/bin/bekotes/szerep_guard.py"
         guard.parent.mkdir(parents=True)
-        guard.write_text("# guard\n")
+        guard.write_text("# guard\n", encoding="utf-8")
         out = run(root, "status").stdout
         self.assertIn("szerep-őr: telepítve (asszisztens)", out)
         self.assertNotIn("NINCS", out)

@@ -95,10 +95,10 @@ class Shapes(unittest.TestCase):
         error = "\n".join(t for _, t, _ in SHAPES)
         r = subprocess.run([sys.executable, "-I", str(TOOL), "draft", "--summary", "doctor fails",
                             "--error", error, "--offline", "--repo", str(self.repo)],
-                           capture_output=True, text=True, timeout=60, env=self.env)
+                           capture_output=True, text=True, timeout=60, env=self.env, encoding="utf-8", errors="replace")
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         d = pathlib.Path([l.split(" ", 1)[1] for l in r.stdout.splitlines() if l.startswith("DRAFT ")][0])
-        sent = (d / "draft.md").read_text() + json.loads((d / "draft.json").read_text())["body"]
+        sent = (d / "draft.md").read_text(encoding="utf-8") + json.loads((d / "draft.json").read_text(encoding="utf-8"))["body"]
         for shape, _, value in SHAPES:
             self.assertNotIn(value, sent, shape)
 
@@ -131,7 +131,7 @@ class RealInstallNames(unittest.TestCase):
         subprocess.run(["git", "init", "-q", str(self.repo)], check=True)
         for key, value in (("user.name", "Dmy Kovaxa"), ("user.email", FAMILY_MAIL)):
             subprocess.run(["git", "-C", str(self.repo), "config", key, value], check=True)
-        (self.repo / "mentat.json").write_text(json.dumps({"schema": 1, "agent": {"name": "media-agent"}}))
+        (self.repo / "mentat.json").write_text(json.dumps({"schema": 1, "agent": {"name": "media-agent"}}), encoding="utf-8")
         self.env = dict(os.environ, HOME=str(self.repo.parent / "home"), PATH="/usr/bin:/bin")
 
     def test_unit_parts_rule(self):
@@ -145,10 +145,10 @@ class RealInstallNames(unittest.TestCase):
         r = subprocess.run([sys.executable, "-I", str(TOOL), "draft", "--summary", "media-agent tick fails",
                             "--error", "run by Dmy Kovaxa (dmyowner) for example-family, see github.com docs",
                             "--offline", "--repo", str(self.repo)],
-                           capture_output=True, text=True, timeout=60, env=self.env)
+                           capture_output=True, text=True, timeout=60, env=self.env, encoding="utf-8", errors="replace")
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         d = pathlib.Path([l.split(" ", 1)[1] for l in r.stdout.splitlines() if l.startswith("DRAFT ")][0])
-        sent = (d / "draft.md").read_text()
+        sent = (d / "draft.md").read_text(encoding="utf-8")
         for private in ("media-agent", "Dmy Kovaxa", "Kovaxa", "dmyowner", "example-family"):
             self.assertNotIn(private, sent, private)
         self.assertIn("Mentat agent", sent)      # the footer survives

@@ -1,7 +1,8 @@
 """setup — everything after `sync-to.sh`, in one command (a dry run unless --install).
 
     python3 -m anytime_engine.setup --tz Europe/Budapest [--morning 07:00]
-        [--deliver file|telegram] [--lang en|hu] [--expect TEXT]... [--install [--no-timer]] [--cron] [--verbose]
+        [--deliver file|telegram] [--lang en|hu] [--expect TEXT]... [--todo-owner p_ID] [--todo-pm p_ID]
+        [--install [--no-timer]] [--cron] [--verbose]
     python3 -m anytime_engine.setup --doctor     # installed units vs generated (doctor.py), read only
 
 Prints ~8 lines (what was recorded, selftest, timer, next step); --verbose adds the
@@ -13,7 +14,8 @@ settings and the full unit files. A refusal or a red selftest is printed whole.
    --quiet-hours (default 22:00-07:00, or off): no Telegram message in that window
 3. runs the selftest
 4. records timezone, morning, delivery (+ --expect: what every output must contain; kept on a
-   re-run, read by the brain's done-check) and the executor in components.engine (--install)
+   re-run, read by the brain's done-check), the executor, and — only if absent — the first
+   todo_trusted list (this agent + --todo-owner + --todo-pm) in components.engine (--install)
 5. installs the hourly timer (schedule.py) — unless --no-timer or the fleet owns the schedule:
    then the fleet's tick picks up the recorded executor by itself
 
@@ -29,7 +31,7 @@ import io
 import subprocess
 import sys
 
-from . import agents_block, config, doctor, engine_manifest as em, mentat_manifest as mm, report_setup as report, schedule, clock
+from . import agents_block, config, doctor, engine_manifest as em, mentat_manifest as mm, report_setup as report, schedule, clock, trusted_seed
 
 CASES = "anytime_cases"
 DELIVER = "python3 -m anytime_cases.deliver"
@@ -49,12 +51,14 @@ def _quiet_ok(raw: str) -> None:
         pass
 
 
-def _settings(args, plugins: list[str]) -> dict:
+def _settings(args, plugins: list[str], trusted: list[str] | None = None) -> dict:
     expect = args.expect or (em.section().get("delivery") or {}).get("expect") or []
     data = {"timezone": args.tz, "morning": args.morning, "quiet_hours": args.quiet_hours,
             "delivery": {"channel": args.deliver, "lang": args.lang, **({"expect": expect} if expect else {})}}
     if CASES in plugins:
         data["exec"] = DELIVER
+    if trusted is not None:
+        data["todo_trusted"] = trusted
     return data
 
 
@@ -69,6 +73,10 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--expect", action="append", default=[], help="text every scheduled output must contain")
     p.add_argument("--quiet-hours", default="22:00-07:00",
                    help="local HH:MM-HH:MM when no Telegram message goes out, or off")
+    p.add_argument("--todo-owner", help="the owner's todo principal id (e.g. p_krisz): listed in "
+                   "components.engine.todo_trusted when that list is first created (never overwritten)")
+    p.add_argument("--todo-pm", help="the agent's own PM's todo principal id: listed with the owner "
+                   "(first list only, like --todo-owner)")
     p.add_argument("--install", action="store_true", help="record + install (else: dry run)")
     p.add_argument("--cron", action="store_true", help="a crontab line instead of systemd")
     p.add_argument("--no-timer", action="store_true",
@@ -115,7 +123,11 @@ def main(argv: list[str] | None = None) -> int:
             return refuse("the selftest is not green:\n" + (r.stdout + r.stderr).rstrip())
         selftest = (r.stdout.strip().splitlines() or ["selftest: OK"])[-1].split(" (")[0]
 
-    data = _settings(args, plugins)
+    owner_id = trusted_seed.owner_of(args.todo_owner)
+    had = em.section().get("todo_trusted")
+    trusted = trusted_seed.seed(em.section(), mm.load(em.root()), owner_id, trusted_seed.pm_of(args.todo_pm),
+                                explicit=(args.todo_owner, args.todo_pm))
+    data = _settings(args, plugins, trusted)
     if args.install:
         em.record_settings(data)
         agents = agents_block.upsert(em.root() / "AGENTS.md", agents_block.text(data))
@@ -124,6 +136,10 @@ def main(argv: list[str] | None = None) -> int:
     sched += ["--unit-dir", args.unit_dir] if args.unit_dir else []
     sched += ["--no-enable"] if args.no_enable else []
     lines = report.summary(args, data, selftest)
+    if trusted is not None and had is not None:
+        lines.append("todo_trusted: added " + ", ".join(trusted[len(had):]))
+    elif trusted is not None and not owner_id:
+        lines.append(trusted_seed.HINT)
     if args.install:
         lines.append(f"AGENTS.md engine block: {agents}")
     if owner == "fleet":

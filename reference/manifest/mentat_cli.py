@@ -15,6 +15,8 @@ import json
 import os
 import pathlib
 import sys
+for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows: a pipe is the ANSI code page, not UTF-8
+    getattr(_s, "reconfigure", lambda **k: None)(encoding="utf-8", errors="replace")
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import mentat_manifest as mm  # noqa: E402
@@ -42,9 +44,9 @@ def init_brain(args):
     mm.update("brain", "cases", {"backend": "markdown"}, root, seed=True)
     mm.update("brain", "installed", args.version, root)
     ignore = root / ".gitignore"
-    text = ignore.read_text() if ignore.exists() else ""
+    text = ignore.read_text(encoding="utf-8") if ignore.exists() else ""
     if ".mentat/" not in text.split():
-        ignore.write_text(text + ("" if text.endswith("\n") or not text else "\n") + ".mentat/\n")
+        ignore.write_bytes((text + ("" if text.endswith("\n") or not text else "\n") + ".mentat/\n").encode("utf-8"))
     print("mentat.json and .mentat/local.json written; .mentat/ is git-ignored")
     return 0
 

@@ -10,11 +10,12 @@ import mentat_brain_types as bt
 
 
 def _git(root, *args):
-    return subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True)
+    return subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True, encoding="utf-8", errors="replace")
 
 
-def _title_of(text):
-    m = re.search(r"^(?:title|name|topic): *(.+)$", text.split("\n---", 1)[0], re.M)
+def _title_of(text, extra=()):
+    keys = "|".join(("title", "name", "topic") + tuple(extra))
+    m = re.search(r"^(?:%s): *(.+)$" % keys, text.split("\n---", 1)[0], re.M)
     return m.group(1).strip() if m else ""
 
 
@@ -40,7 +41,9 @@ def mv(a, root, brain):
     if new.exists() and new != old:
         print("STOP exists: %s" % new.relative_to(root))
         return 1
-    old_title = _title_of(text) if a.title else ""
+    import mentat_brain_tipus as tp
+    own = [d.get("title_field") for d in tp.load(root, brain).values() if d.get("title_field")]
+    old_title = _title_of(text, own) if a.title else ""
     link = re.compile(r"(?<![\w.-])%s(?![\w-])" % re.escape(old.name))
     changed = []
     for p in sorted(list(base.rglob("*.md")) + [root / "AGENTS.md"]):
@@ -59,7 +62,7 @@ def mv(a, root, brain):
     if _git(root, "mv", str(old), str(new)).returncode != 0:
         os.rename(old, new)
     for p, t in changed:
-        (new if p == old else p).write_text(t, encoding="utf-8")
+        (new if p == old else p).write_bytes(t.encode("utf-8"))
     return 0
 
 
@@ -92,7 +95,7 @@ def _json(p):
 def _timer(names):
     try:
         out = subprocess.run(["systemctl", "--user", "list-timers", "--all", "--no-legend"],
-                             capture_output=True, text=True, timeout=5).stdout
+                             capture_output=True, text=True, timeout=5, encoding="utf-8", errors="replace").stdout
     except (OSError, subprocess.SubprocessError):
         return ""
     for ln in out.splitlines():
@@ -113,6 +116,11 @@ def where(a, root, brain, lang):
     ident = (loc.get("fleet") or {}).get("agent_id") or (m.get("agent") or {}).get("name") or ""
     n = sum(1 for p in (root / brain).rglob("*.md") if p.name != "_meta.md")
     print("agy: %s/ (%s) - %d %s; `mentat_brain.py due|find`" % (brain, lang, n, "jegyzet" if hu else "notes"))
+    import mentat_brain_tipus as tp
+    own = tp.load(root, brain)
+    if own:
+        print("%s: %s; `types`" % ("típusok" if hu else "types", ", ".join("%s (%d)" % (s, sum(
+            1 for p in (root / brain / d["dir"]).glob("*.md") if p.name != "_meta.md")) for s, d in own.items())))
     eng = comp.get("engine")
     if eng is None:
         print("motor: %s" % none)

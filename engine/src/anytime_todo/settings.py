@@ -6,6 +6,10 @@ First wins, per setting:
             | .mentat/local.json admin.url + "/api/todo/v1", only when
               mentat.json components.admin.plugins lists "todo"
     handle  TODO_HANDLE | mentat.json components.engine.todo_handle
+            | mentat.json components.admin.todo_handle (written by the admin's
+              `npm run connect -- --plugins todo`)
+            | on a desktop: TODO_HANDLE in ~/.config/todo/env (the machine-wide
+              default, for a session in a repo without its own handle)
     token   TODO_TOKEN_FILE (a file holding only the token, mode 0600)
             | the admin connection's token: $<admin.token_env>, or that key
               in the repo's .env (written by the admin's `npm run connect`)
@@ -91,7 +95,8 @@ def load(root: Path) -> Settings | None:
     api = os.environ.get("TODO_API")
     if not api and admin.get("url") and "todo" in (admin_comp.get("plugins") or []):
         api = str(admin["url"]).rstrip("/") + API_PATH
-    handle = os.environ.get("TODO_HANDLE") or (comps.get("engine") or {}).get("todo_handle")
+    handle = (os.environ.get("TODO_HANDLE") or (comps.get("engine") or {}).get("todo_handle")
+              or admin_comp.get("todo_handle"))
     token_file = os.environ.get("TODO_TOKEN_FILE") or None
     box = _box(handle)
     # A tárolt token csak ahhoz az API-hoz megy, amelyik mellette van (~/.config/todo/env):
@@ -107,16 +112,18 @@ def load(root: Path) -> Settings | None:
 
 
 def _box(handle: str | None) -> dict:
-    """The box convention: under a fleet unit (FLEET_AGENT), or on a desktop with a known handle."""
+    """The box convention: under a fleet unit (FLEET_AGENT), or on a desktop (handle known, or
+    TODO_HANDLE in ~/.config/todo/env)."""
     agent = os.environ.get("FLEET_AGENT")
-    if not agent and not handle:
-        return {}
     cfg = Path(os.environ.get("XDG_CONFIG_HOME") or Path.home() / ".config") / "todo"
     if not cfg.is_dir():
         cfg = Path.home() / ".config" / "todo"
     out: dict = {"api": _dotenv(cfg / "env", "TODO_API")}
     if not handle:
-        handle = _dotenv(cfg / "handles", agent) or agent
+        # box: the unit's agent → handle; desktop: the machine-wide default in ~/.config/todo/env
+        handle = (_dotenv(cfg / "handles", agent) or agent) if agent else _dotenv(cfg / "env", "TODO_HANDLE")
+        if not handle:
+            return {}
         out["handle"] = handle
     tok = cfg / f"{handle}.token"
     if tok.is_file():

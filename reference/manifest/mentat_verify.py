@@ -20,6 +20,8 @@ import json
 import pathlib
 import re
 import sys
+for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows: a pipe is the ANSI code page, not UTF-8
+    getattr(_s, "reconfigure", lambda **k: None)(encoding="utf-8", errors="replace")
 
 PAIR = re.compile(r'-o\s+"?([^"\s]+)"?\s+"(https://[^"]+)"')
 TAG = re.compile(r"^https://raw\.githubusercontent\.com/[^/]+/[^/]+/v[^/]+/")
@@ -90,9 +92,9 @@ def _strike(bin_dir, what):
     """One clean re-download, then the end (the count is in .mentat/state/, outside the download)."""
     mark = bin_dir.parent / "state" / "verify-failures"
     try:
-        n = int(mark.read_text().strip() or 0) + 1 if mark.is_file() else 1
+        n = int(mark.read_text(encoding="utf-8").strip() or 0) + 1 if mark.is_file() else 1
         mark.parent.mkdir(parents=True, exist_ok=True)
-        mark.write_text(str(n))
+        mark.write_bytes(str(n).encode("utf-8"))
     except (OSError, ValueError):  # cannot count: no second chance
         n = 2
     return (ONCE if n < 2 else FINAL) % what
@@ -146,7 +148,7 @@ def main(argv=None):
     meta["files_known"] = known(a.write)
     if a.freeze:
         meta["files_frozen"] = True
-    meta_path.write_text(json.dumps(meta, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    meta_path.write_bytes((json.dumps(meta, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
     print("%s: %d files%s" % (meta_path, len(meta["files"]), ", frozen" if a.freeze else ""))
     return 0
 

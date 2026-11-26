@@ -23,7 +23,7 @@ class WebDeploy(unittest.TestCase):
 
     def deploy(self, *args):
         return subprocess.run([sys.executable, str(TOOL), "deploy", *args, "--", *self.cmd],
-                              capture_output=True, text=True)
+                              capture_output=True, text=True, encoding="utf-8", errors="replace")
 
     def test_without_an_explicit_yes_nothing_runs(self):
         for extra in ((), ("--approved", ""), ("--approved", "  ")):
@@ -40,7 +40,7 @@ class WebDeploy(unittest.TestCase):
 
     def test_a_failed_deploy_says_not_live(self):
         r = subprocess.run([sys.executable, str(TOOL), "deploy", "--approved", "yes", "--",
-                            sys.executable, "-c", "raise SystemExit(3)"], capture_output=True, text=True)
+                            sys.executable, "-c", "raise SystemExit(3)"], capture_output=True, text=True, encoding="utf-8", errors="replace")
         self.assertEqual(r.returncode, 3)
         self.assertIn("NOT LIVE", r.stdout)
 

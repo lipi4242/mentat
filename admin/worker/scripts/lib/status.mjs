@@ -1,5 +1,5 @@
 // Pure parts of `npm run status`: turn gathered facts into the lines an agent
-// quotes. Gathering (systemctl, fetch, git, D1) is in scripts/status.mjs.
+// quotes. Gathering (systemctl/launchctl, fetch, git, D1) is in scripts/status.mjs.
 
 export function pendingMigrations(files, applied) {
   const done = new Set(applied);
@@ -14,12 +14,18 @@ export function portOfUnit(text) {
 
 const day = (s) => (s ? String(s).slice(0, 10) : 'never');
 
+const LAUNCHD = { name: 'launchd agent com.mentat.admin', none: 'no launchd agent', log: 'see ~/Library/Logs/mentat-admin.log', restart: 'launchctl kickstart -k gui/$(id -u)/com.mentat.admin' };
+const SYSTEMD = { name: 'mentat-admin.service', none: 'no systemd unit', log: 'journalctl --user -u mentat-admin.service', restart: 'systemctl --user restart mentat-admin' };
+
 export function formatStatus(f) {
+  const svc = f.manager === 'launchd' ? LAUNCHD : SYSTEMD;
   const urlPort = f.url ? Number(new URL(f.url).port) : null;
   const unit = f.unit === 'none'
-    ? 'not installed (no systemd unit) — npm run dev:local'
-    : `mentat-admin.service ${f.unit}${f.port ? `, port ${f.port}` : ''}` +
-      (f.port && urlPort && f.port !== urlPort ? ` ≠ the URL's ${urlPort} — rerun connect --local` : '');
+    ? `not installed (${svc.none}) — npm run connect -- --local (or npm run dev:local for this terminal only)`
+    : `${svc.name} ${f.unit}${f.port ? `, port ${f.port}` : ''}` +
+      (f.runs ? `, started ${f.runs}× (KeepAlive restarts it)` : '') +
+      (f.port && urlPort && f.port !== urlPort ? ` ≠ the URL's ${urlPort} — rerun connect --local` : '') +
+      (f.nodeOk === false ? `; node ${f.node ?? '(none)'} is gone (node upgraded or moved?) — rerun connect --local` : '');
   const m = f.migrations;
   const migrations = m.error
     ? `unknown (${m.error})`
@@ -31,8 +37,8 @@ export function formatStatus(f) {
   return [
     `url:        ${f.url ?? 'unknown (no worker/.dev.vars — not a connect --local admin)'}  (admin UI + API)`,
     `service:    ${unit}`,
-    `health:     ${f.health ? 'ok' : 'DOWN — journalctl --user -u mentat-admin.service'}`,
-    `ui:         ${f.ui ? 'served' : 'NOT served — npm --prefix ../admin run build, then systemctl --user restart mentat-admin'}`,
+    `health:     ${f.health ? 'ok' : `DOWN — ${svc.log}`}`,
+    `ui:         ${f.ui ? 'served' : `NOT served — npm --prefix ../admin run build, then ${svc.restart}`}`,
     `version:    ${f.version}, commit ${f.commit} (${f.branch})${f.dirty ? `, ${f.dirty} uncommitted file(s)` : ''}`,
     `migrations: ${migrations}`,
     `tokens:     ${tokens}`,

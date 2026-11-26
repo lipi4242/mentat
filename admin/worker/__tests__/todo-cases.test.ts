@@ -36,20 +36,21 @@ describe('cases: confirmation, review, completion', () => {
     expect(await due()).toEqual([older.id, old.id]);
     await call('POST', `/tasks/${older.id}/review`, { expected_rev: 1 });
     expect(await due()).toEqual([old.id]);
-    expect(await due('for=b')).toEqual([other.id]);
+    expect((await call('GET', '/cases/review-due?for=b')).status).toBe(403); // an agent asks about itself
+    expect((await call('GET', '/cases/review-due?for=b', undefined, { 'X-Mentat-Token': 'b' })).body.map((r: any) => r.id)).toEqual([other.id]);
     expect((await call('GET', '/cases/review-due?for=nobody')).status).toBe(422);
   });
   it('completing a case with open children needs children: close or keep', async () => {
     const { call, create } = await backlogApp();
     const kase = await newCase(call, undefined);
-    const child = await create({ parent_id: kase.id, owner_id: 'b' }), grandchild = await create({ parent_id: child.id });
+    const child = await create({ parent_id: kase.id, assignee_id: 'b' }), grandchild = await create({ parent_id: child.id });
     const blocked = await call('POST', `/tasks/${kase.id}/complete`, { expected_rev: 1 });
     expect(blocked.status).toBe(409); expect(blocked.body.open_children.sort()).toEqual([child.id, grandchild.id].sort());
     expect((await call('POST', `/tasks/${kase.id}/complete`, { expected_rev: 1, children: 'later' })).status).toBe(422);
     const closed = await call('POST', `/tasks/${kase.id}/complete`, { expected_rev: 1, children: 'close' });
     expect(closed.body.status).toBe('done');
     for (const id of [child.id, grandchild.id]) expect((await call('GET', `/tasks/${id}`)).body).toMatchObject({ status: 'done', rev: 2 });
-    const events = (await call('GET', '/changes?for=b')).body.map((e: any) => e.kind);
+    const events = (await call('GET', '/changes?for=b', undefined, { 'X-Mentat-Token': 'b' })).body.map((e: any) => e.kind);
     expect(events).toContain('completed');
     const kept = await newCase(call, undefined), open = await create({ parent_id: kept.id });
     expect((await call('POST', `/tasks/${kept.id}/complete`, { expected_rev: 1, children: 'keep' })).body.status).toBe('done');

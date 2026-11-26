@@ -18,7 +18,9 @@ The engine gives your Mentat colleague a schedule. It sends the morning summary 
 - A reminder three days before each deadline and one on the day, in a file or on Telegram, and quiet at night.
 - A message tied to something you approved goes out only when it matches it, and a finished step is not repeated, even after a crash.
 
-For developers: the decision is plain Python with no model call, so the same moment always gives the same plan, and your agent does the work. One instance runs per assistant on a durable systemd or cron timer, and `setup --doctor` compares the installed timer with what setup would write.
+On a Mac or a Linux desktop this runs in the background once the schedule is installed (`python3 -m anytime_engine.setup --tz <tz> --install`): every hour while the computer is awake, and once after it wakes. Without the schedule, each new Claude session catches up once. A server runs it around the clock. Windows has no background schedule: there you ask "what's due?".
+
+For developers: the decision is plain Python with no model call, so the same moment always gives the same plan, and your agent does the work. One instance runs per assistant on a durable timer (systemd, cron, or a LaunchAgent on macOS), and `setup --doctor` compares the installed timer with what setup would write.
 
 ## Installing it
 
@@ -26,11 +28,11 @@ Easiest: ask your Mentat colleague to add the engine; it runs these steps for yo
 
 ```
 Install the Mentat engine into this repo. Run exactly:
-  git clone --depth 1 --branch v0.6.1 https://github.com/lipi4242/mentat ~/src/mentat
+  git clone --depth 1 --branch v0.7.0 https://github.com/lipi4242/mentat ~/src/mentat
   ~/src/mentat/engine/sync-to.sh . --pack cases
   python3 -m anytime_engine.selftest -q
 If ~/src/mentat already exists, run git -C ~/src/mentat fetch --tags and
-git -C ~/src/mentat checkout v0.6.1 instead of the clone.
+git -C ~/src/mentat checkout v0.7.0 instead of the clone.
 Then ask me my timezone and where reminders should go (a file or Telegram), and run
 python3 -m anytime_engine.setup --tz <tz> --deliver <file|telegram>, with --install once I say yes.
 ```

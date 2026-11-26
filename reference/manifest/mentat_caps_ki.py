@@ -97,7 +97,7 @@ def fleet_find(root, query):
         return [], None
     try:
         r = subprocess.run(["fleet", "capabilities", "find", "--as", agent, "--json", query],
-                           capture_output=True, text=True, timeout=8)
+                           capture_output=True, text=True, timeout=8, encoding="utf-8", errors="replace")
         results = json.loads(r.stdout).get("results") if r.returncode == 0 else None
     except (OSError, subprocess.SubprocessError, ValueError, AttributeError):
         results = None

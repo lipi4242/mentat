@@ -24,6 +24,26 @@ export type CaseRow = {
   [own: string]: unknown;
 };
 
+// Who wrote an event: an agent token reads as its todo principal, a token with no principal as
+// `token:<id>`, a human session as NULL. Computed from the event trail (no column, no migration),
+// never from anything a client sends.
+const AUTHOR = `CASE WHEN e.actor = 'agent' THEN coalesce(
+    (SELECT p.id FROM todo_principal p WHERE p.agent_token_id = e.actor_token_id), 'token:' || e.actor_token_id) END`;
+
+/** The fields whose text an agent reads as the case: a write to any of them makes its writer the text's author. */
+export const TEXT_FIELDS = ['title', 'description', 'next_action', 'brain_ref', 'context'] as const;
+
+/**
+ * Select columns over `cases_case` (unaliased). `created_by`: the creator; a later PUT by someone
+ * else does not change it. `text_updated_by`: whoever last created or changed one of TEXT_FIELDS;
+ * a change of status or dates does not count.
+ */
+export const AUTHORS = `(SELECT ${AUTHOR} FROM cases_event e WHERE e.case_id = cases_case.id AND e.kind = 'case.created'
+    ORDER BY e.id LIMIT 1) AS created_by,
+  (SELECT ${AUTHOR} FROM cases_event e WHERE e.case_id = cases_case.id AND e.kind IN ('case.created', 'case.updated')
+    AND EXISTS (SELECT 1 FROM json_each(e.body, '$.fields') f WHERE f.value IN (${TEXT_FIELDS.map((f) => `'${f}'`).join(', ')}))
+    ORDER BY e.id DESC LIMIT 1) AS text_updated_by`;
+
 /** How many open occurrences a single read lists per case, at most. */
 export const OPEN_CAP = 60;
 
@@ -59,7 +79,7 @@ export function openDates(row: CaseRow, until: string): string[] {
 
 /** One case in full: the row, its closed and open occurrences, its trail. */
 export async function detail(DB: Env['DB'], id: string): Promise<Record<string, unknown> | null> {
-  const row = await getCase(DB, id);
+  const row = await DB.prepare(`SELECT *, ${AUTHORS} FROM cases_case WHERE id = ?1`).bind(id).first<CaseRow>();
   if (!row) return null;
   const { results: events } = await DB.prepare(
     `SELECT id, at, actor, actor_token_id, kind, body FROM cases_event WHERE case_id = ?1 ORDER BY id DESC`,

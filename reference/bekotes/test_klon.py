@@ -45,9 +45,9 @@ class Klon(unittest.TestCase):
         git(origin, "add", "-A")
         git(origin, "commit", "-q", "-m", "i")
         p = self.root / BIZ / "bekotes.json"
-        d = json.loads(p.read_text())
+        d = json.loads(p.read_text(encoding="utf-8"))
         d["sources"].append({"name": "masodik", "kind": "repo", "path": "munka/masodik", "tiltott": ["archiv/**"]})
-        p.write_text(json.dumps(d, ensure_ascii=False))
+        p.write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
         r = bk(self.root, "klon", "--config", BIZ + "/bekotes.json", "--name", "masodik", "--from", str(origin))
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         files = sorted(q.relative_to(self.root / "munka/masodik").as_posix()
@@ -77,10 +77,10 @@ class KlonCaseSensitive(unittest.TestCase):
         self.root = make_agent()
         self.addCleanup(shutil.rmtree, self.root, True)
         cfg = self.root / BIZ / "bekotes.json"
-        d = json.loads(cfg.read_text())
+        d = json.loads(cfg.read_text(encoding="utf-8"))
         d["sources"].append({"name": "kis", "kind": "repo", "path": "munka/cs/kis",
                              "tiltott": ["ugyfelek/private.json", "*.jpg"]})
-        cfg.write_text(json.dumps(d, ensure_ascii=False))
+        cfg.write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
         self.origin = self.root / ".home/origin3"
         for f in ("Ugyfelek/Private.json", "sub/UGYFELEK/PRIVATE.JSON", "Photo.JPG", "ok.txt"):
             write(self.root, ".home/origin3/" + f, "x\n")
@@ -99,7 +99,7 @@ class KlonCaseSensitive(unittest.TestCase):
         self.assertEqual(files, ["ok.txt"])
         import subprocess
         cfgval = subprocess.run(["git", "-C", str(dest), "config", "--local", "core.ignorecase"],
-                                capture_output=True, text=True).stdout.strip()
+                                capture_output=True, text=True, encoding="utf-8", errors="replace").stdout.strip()
         self.assertEqual(cfgval, "true")
 
 
@@ -125,7 +125,7 @@ def _case_sensitive_volume(test):
 def subprocess_ls(repo):
     import subprocess
     return subprocess.run(["git", "-C", str(repo), "ls-tree", "-r", "--name-only", "HEAD"],
-                          capture_output=True, text=True).stdout
+                          capture_output=True, text=True, encoding="utf-8", errors="replace").stdout
 
 
 if __name__ == "__main__":

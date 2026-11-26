@@ -49,6 +49,6 @@ class InstalledAppFlow(Flow):
 def install(folder, broken=False):
     pkg = pathlib.Path(folder) / "google_auth_oauthlib"
     pkg.mkdir(parents=True, exist_ok=True)
-    (pkg / "__init__.py").write_text("raise ImportError('not installed')\n" if broken else "")
-    (pkg / "flow.py").write_text(FLOW)
+    (pkg / "__init__.py").write_text("raise ImportError('not installed')\n" if broken else "", encoding="utf-8")
+    (pkg / "flow.py").write_text(FLOW, encoding="utf-8")
     return str(folder)

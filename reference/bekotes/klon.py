@@ -21,7 +21,7 @@ import leltar as lt
 
 
 def _git(*args):
-    r = subprocess.run(["git", *args], capture_output=True, text=True)
+    r = subprocess.run(["git", *args], capture_output=True, text=True, encoding="utf-8", errors="replace")
     if r.returncode != 0:
         raise hely.HelyError("git %s: %s" % (args[0] if args[0] != "-C" else args[2],
                                              (r.stderr.strip().splitlines() or ["hiba"])[-1]))

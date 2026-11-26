@@ -22,11 +22,11 @@ class Base(unittest.TestCase):
 
     def run_tool(self, *args, stdin=None):
         return subprocess.run([sys.executable, str(TOOL), "--repo", str(self.root), *args],
-                              capture_output=True, text=True, input=stdin)
+                              capture_output=True, text=True, input=stdin, encoding="utf-8", errors="replace")
 
     def git(self, *args):
         return subprocess.run(["git", "-C", str(self.root), "-c", "user.name=t", "-c", "user.email=t@x",
-                               *args], capture_output=True, text=True)
+                               *args], capture_output=True, text=True, encoding="utf-8", errors="replace")
 
 
 class Due(Base):
@@ -51,7 +51,7 @@ class Due(Base):
 class BrainDump(Base):
     def test_no_empty_open_questions_header(self):
         r = self.run_tool("new", "brain-dump", "d", "--body", "-", stdin="nyers")
-        self.assertNotIn("Nyitott kérdések", (self.root / r.stdout.strip()).read_text())
+        self.assertNotIn("Nyitott kérdések", (self.root / r.stdout.strip()).read_text(encoding="utf-8"))
 
 
 class Mv(Base):
@@ -68,9 +68,9 @@ class Mv(Base):
         new = self.root / "agy/cases/tabor-marcinak-es-lilinek.md"
         self.assertTrue(new.exists())
         self.assertFalse((self.root / self.old).exists())
-        self.assertIn("title: Tábor Marcinak és Lilinek", new.read_text())
-        self.assertIn("tabor-marcinak-es-lilinek.md", (self.root / "agy/todos/befizetes.md").read_text())
-        meta = (self.root / "agy/cases/_meta.md").read_text()
+        self.assertIn("title: Tábor Marcinak és Lilinek", new.read_text(encoding="utf-8"))
+        self.assertIn("tabor-marcinak-es-lilinek.md", (self.root / "agy/todos/befizetes.md").read_text(encoding="utf-8"))
+        meta = (self.root / "agy/cases/_meta.md").read_text(encoding="utf-8")
         self.assertIn("[Tábor Marcinak és Lilinek](tabor-marcinak-es-lilinek.md)", meta)
         self.assertNotIn("lanyoknak", meta)
         self.assertIn("R", self.git("status", "--short").stdout)  # git mv, not delete+add
@@ -99,8 +99,8 @@ class Commit(Base):
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertEqual(self.git("log", "-1", "--format=%s").stdout.strip(), "agy: egy")
         self.assertIn("nothing", self.run_tool("commit", "agy: semmi").stdout)
-        (self.root / ".gitignore").write_text("")
-        (self.root / "agy" / ".env").write_text("K=v")
+        (self.root / ".gitignore").write_text("", encoding="utf-8")
+        (self.root / "agy" / ".env").write_text("K=v", encoding="utf-8")
         r = self.run_tool("commit", "agy: env")
         self.assertEqual(r.returncode, 1)
         self.assertEqual(self.git("log", "-1", "--format=%s").stdout.strip(), "agy: egy")
@@ -109,9 +109,9 @@ class Commit(Base):
 class Where(Base):
     def test_where_reads_the_manifest_and_says_none_for_the_rest(self):
         (self.root / "mentat.json").write_text(json.dumps({"schema": 1, "agent": {"name": "t"},
-            "components": {"brain": {"root": "agy"}, "engine": {"path": "anytime_engine"}}}))
+            "components": {"brain": {"root": "agy"}, "engine": {"path": "anytime_engine"}}}), encoding="utf-8")
         (self.root / "data/state").mkdir(parents=True)
-        (self.root / "data/state/last-tick.json").write_text("{}")
+        (self.root / "data/state/last-tick.json").write_text("{}", encoding="utf-8")
         out = self.run_tool("where").stdout
         self.assertLessEqual(len(out.splitlines()), 8)
         self.assertRegex(out, r"(?m)^agy: agy/")
@@ -120,7 +120,7 @@ class Where(Base):
         self.assertRegex(out, r"(?m)^admin: NINCS")
         (self.root / ".mentat").mkdir()
         (self.root / ".mentat/local.json").write_text(json.dumps({"schema": 1,
-            "fleet": {"agent_id": "t-1", "host": "box"}, "admin": {"url": "http://localhost:8787"}}))
+            "fleet": {"agent_id": "t-1", "host": "box"}, "admin": {"url": "http://localhost:8787"}}), encoding="utf-8")
         out = self.run_tool("where").stdout
         self.assertIn("fleet doctor t-1", out)
         self.assertIn("http://localhost:8787", out)

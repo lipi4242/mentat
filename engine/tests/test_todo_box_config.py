@@ -90,6 +90,25 @@ class BoxConfig(unittest.TestCase):
         s = settings.load(self.root)
         self.assertEqual((s.handle, s.token(), s.api), ("kata", "not-a-real-token", "https://todo.example/api/todo/v1"))
 
+    def test_desktop_handle_and_token_from_the_admin_connect(self):
+        # `npm run connect -- --plugins todo` writes exactly these three; nothing else is needed
+        (self.root / "mentat.json").write_text(
+            '{"schema": 1, "components": {"admin": {"plugins": ["todo"], "todo_handle": "anna"}}}')
+        (self.root / ".mentat").mkdir()
+        (self.root / ".mentat" / "local.json").write_text(
+            '{"schema": 1, "admin": {"url": "http://localhost:8787", "token_env": "MENTAT_ADMIN_TOKEN"}}')
+        (self.root / ".env").write_text("MENTAT_ADMIN_TOKEN=from-connect\n")
+        s = settings.load(self.root)
+        self.assertEqual((s.api, s.handle, s.token()),
+                         ("http://localhost:8787/api/todo/v1", "anna", "from-connect"))
+
+    def test_desktop_machine_wide_handle_for_a_repo_without_mentat(self):
+        # a session in a repo with no mentat.json: TODO_HANDLE in ~/.config/todo/env, no --as
+        cfg = self.tmp / "home" / ".config" / "todo"
+        (cfg / "env").write_text("TODO_API=https://todo.example/api/todo/v1/\nTODO_HANDLE=kata\n")
+        s = settings.load(self.root)
+        self.assertEqual((s.handle, s.token_file), ("kata", str(self.tok)))
+
 
 if __name__ == "__main__":
     unittest.main()

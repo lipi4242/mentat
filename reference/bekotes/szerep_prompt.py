@@ -17,6 +17,8 @@ import pathlib
 import re
 import sys
 import time
+for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows: a pipe is the ANSI code page, not UTF-8
+    getattr(_s, "reconfigure", lambda **k: None)(encoding="utf-8", errors="replace")
 
 SAID = os.path.join(".mentat", "state", "user-said")
 MAX_LINES = 200
@@ -71,7 +73,7 @@ def record(data, root):
     lines.append(json.dumps({"at": time.time(), "text": text[:4000]}, ensure_ascii=False))
     tmp = d / (".%s.%d.tmp" % (sid, os.getpid()))
     fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w", encoding="utf-8") as f:
+    with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as f:
         f.write("\n".join(lines) + "\n")
     os.replace(tmp, path)
 

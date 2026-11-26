@@ -16,9 +16,13 @@ in a defined order.
 
 ## Installing
 
-If your environment supports skill files (e.g. `.claude/skills/<name>/SKILL.md`),
-copy the matching file there. If it does not, that is fine: **fetch and follow
-the skill document directly** — it is written to be executable by reading.
+The installer puts every skill above (except `bekotes`, which is a reference procedure) in the
+USER's language under `.claude/skills/<name>/SKILL.md`, from the release it installed: no download
+when a skill is used, and Claude Code finds it by its description. An update replaces a skill you
+did not change; one you edited is kept, and the update says where the new version is
+(`python3 .mentat/bin/mentat_skills.py --lang <hu|en>` runs it on its own). Without the installer,
+copy the matching file there, or **fetch and follow the skill document directly**: it is written to
+be executable by reading.
 
 ## Why these are skills and not just documents
 

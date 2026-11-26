@@ -24,6 +24,8 @@ import sys
 import urllib.error
 import urllib.parse
 import urllib.request
+for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows: a pipe is the ANSI code page, not UTF-8
+    getattr(_s, "reconfigure", lambda **k: None)(encoding="utf-8", errors="replace")
 
 HERE = pathlib.Path(__file__).resolve().parent
 
@@ -36,7 +38,7 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
 def _headers(a):
     h = {"User-Agent": "mentat-web-check"}
     if a.cookie_file:
-        raw = pathlib.Path(a.cookie_file).read_text().strip()
+        raw = pathlib.Path(a.cookie_file).read_text(encoding="utf-8").strip()
         h["Cookie"] = raw if "=" in raw else "CF_Authorization=" + raw
     if a.service_token_env:
         id_var, secret_var = a.service_token_env
@@ -91,7 +93,7 @@ def deploy(a):
     print("approved: %s" % a.approved.strip())
     if "wrangler" in " ".join(cmd) and _preflight():
         return 2
-    r = subprocess.run(cmd, capture_output=True, text=True)
+    r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace")
     sys.stdout.write(r.stdout)
     sys.stderr.write(r.stderr)
     if r.returncode:
@@ -113,7 +115,7 @@ def deploy(a):
 def _preflight():
     tool = next((d / "mentat_cf_token.py" for d in (HERE / "web", HERE.parent / "web") if (d / "mentat_cf_token.py").is_file()), None)
     r = tool and pathlib.Path("wrangler.toml").is_file() and subprocess.run(
-        [sys.executable, str(tool), "--check", "--for", "wrangler.toml"], capture_output=True, text=True)
+        [sys.executable, str(tool), "--check", "--for", "wrangler.toml"], capture_output=True, text=True, encoding="utf-8", errors="replace")
     if r and r.returncode:
         print("NOT DEPLOYED: the token is not ready for this project — %s" % (r.stdout.strip() or r.stderr.strip()))
     return bool(r and r.returncode)

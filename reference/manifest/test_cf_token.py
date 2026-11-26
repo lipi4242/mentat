@@ -16,13 +16,13 @@ TOOL = pathlib.Path(__file__).resolve().parent.parent / "web" / "mentat_cf_token
 class CfToken(unittest.TestCase):
     def setUp(self):
         self.dir = pathlib.Path(tempfile.mkdtemp())
-        (self.dir / ".gitignore").write_text("node_modules/\n")
+        (self.dir / ".gitignore").write_text("node_modules/\n", encoding="utf-8")
 
     def run_tool(self, fake, *args):
         env = {k: v for k, v in os.environ.items() if not k.startswith("CLOUDFLARE_")}
         env["CLOUDFLARE_API_BASE"] = fake.base
         return subprocess.run([sys.executable, str(TOOL), *args], capture_output=True, text=True,
-                              env=env, cwd=self.dir)
+                              env=env, cwd=self.dir, encoding="utf-8", errors="replace")
 
     def fake(self, **kw):
         f = Fake(**kw)
@@ -34,30 +34,30 @@ class CfToken(unittest.TestCase):
         env = self.dir / ".env"
         self.assertTrue(env.is_file())
         self.assertEqual(stat.S_IMODE(env.stat().st_mode), 0o600)
-        self.assertIn(".env", (self.dir / ".gitignore").read_text())
+        self.assertIn(".env", (self.dir / ".gitignore").read_text(encoding="utf-8"))
         self.assertIn("STEP", r.stdout)
         self.assertLessEqual(r.stdout.count("STEP"), 1)  # one step per message
         self.assertEqual(r.returncode, 3)  # waiting for the USER
 
     def test_missing_permission_is_the_next_step_and_named(self):
-        (self.dir / ".env").write_text("CLOUDFLARE_API_TOKEN=%s\n" % TOKEN)
+        (self.dir / ".env").write_text("CLOUDFLARE_API_TOKEN=%s\n" % TOKEN, encoding="utf-8")
         r = self.run_tool(self.fake(perms=("workers",)), "next")
         self.assertEqual(r.returncode, 3)
         self.assertIn("D1", r.stdout)
         self.assertNotIn(TOKEN, r.stdout + r.stderr)
 
     def test_all_good_records_the_account_and_check_is_green(self):
-        (self.dir / ".env").write_text("CLOUDFLARE_API_TOKEN=%s\n" % TOKEN)
+        (self.dir / ".env").write_text("CLOUDFLARE_API_TOKEN=%s\n" % TOKEN, encoding="utf-8")
         f = self.fake()
         r = self.run_tool(f, "next")
         self.assertEqual(r.returncode, 0, r.stdout)
-        self.assertIn("CLOUDFLARE_ACCOUNT_ID=acc1", (self.dir / ".env").read_text())
+        self.assertIn("CLOUDFLARE_ACCOUNT_ID=acc1", (self.dir / ".env").read_text(encoding="utf-8"))
         r = self.run_tool(f, "--check")
         self.assertEqual(r.returncode, 0, r.stdout)
         self.assertNotIn(TOKEN, r.stdout + r.stderr)
 
     def test_bad_token_says_so(self):
-        (self.dir / ".env").write_text("CLOUDFLARE_API_TOKEN=nope\n")
+        (self.dir / ".env").write_text("CLOUDFLARE_API_TOKEN=nope\n", encoding="utf-8")
         r = self.run_tool(self.fake(), "--check")
         self.assertEqual(r.returncode, 1)
         self.assertIn("invalid", r.stdout)

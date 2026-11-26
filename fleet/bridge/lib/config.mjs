@@ -64,6 +64,11 @@ export function loadConfig(env) {
     receiptFile: `${stateDir}/telegram-state/receipts.json`,
     // Todo-ebresztes: a box todo-beallitasabol; nincs todo = KI, sosem fatalis.
     todo: parseTodoConfig(env, stateDir),
+    // /help es "sugo" (lib/help.mjs): az agens repoja; ures = a tmux-pane mappaja.
+    helpRepo: env.BRIDGE_HELP_REPO || "",
+    // Engedelykero ablak (lib/dialog-wire.mjs): ujrariasztas percben; ki valaszolhat (/igen /nem).
+    dialogReAlertMs: Number(env.BRIDGE_DIALOG_REALERT_MIN || 10) * 60_000,
+    dialogAnswerIds: (env.BRIDGE_DIALOG_ANSWER_IDS || env.TELEGRAM_ALLOWLIST_IDS).split(",").map((s) => s.trim()).filter(Boolean),
     // Csak tesztnek (helyi hamis Telegram) — ugyanaz a nev, mint a send.mjs-ben.
     telegramApi: env.SUBETHA_TELEGRAM_API || "https://api.telegram.org",
   };

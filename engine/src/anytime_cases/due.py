@@ -9,6 +9,9 @@ cannot be read goes to `invalid` and the rest still count.
 A signal is one message the deadline concern owes: `upcoming` when an open
 occurrence is 1..WARN_DAYS away, `due` from its day on. It is owed until a
 `delivered:<key>` receipt with result ok exists (delivery.py).
+
+With a trusted list (anytime_engine.trust), a case a stranger created or last rewrote (admin:
+created_by, text_updated_by) is only a notice. Markdown/CSV rows (no creator) pass as own.
 """
 from __future__ import annotations
 
@@ -16,7 +19,7 @@ import os
 from datetime import date, timedelta
 from typing import Any
 
-from anytime_engine import config
+from anytime_engine import config, trust
 from anytime_engine.assembler import register_provider
 
 from . import csvsource, delivery, source
@@ -24,6 +27,8 @@ from .recurrence import RecurrenceError, occurrences
 
 WEEK = 7
 OPEN = ("open", "waiting")
+AUTHORS = ("created_by", "text_updated_by")
+KEEP = ("case_id", "status", "due_at", "days", *AUTHORS)
 
 
 def warn_days() -> int:
@@ -60,11 +65,12 @@ def _occ(c: dict[str, Any], d: date, today: date) -> dict[str, Any]:
     return {"case_id": c["case_id"], "title": c["title"], "status": c["status"],
             "description": c.get("description"), "next_action": c.get("next_action"),
             "due_at": d.isoformat(), "days": (d - today).days, "ref": c["ref"],
-            **{k: c[k] for k in ("contract", "row") if c.get(k)}}
+            **{k: c[k] for k in ("contract", "row", *AUTHORS) if c.get(k)}}
 
 
 def _waiting(c: dict[str, Any]) -> dict[str, Any]:
-    return {k: c.get(k) for k in ("case_id", "title", "description", "next_action")}
+    return {**{k: c.get(k) for k in ("case_id", "title", "description", "next_action")},
+            **{k: c[k] for k in AUTHORS if c.get(k)}}
 
 
 def _from_markdown(root, today: date, until: date) -> dict[str, Any]:
@@ -112,6 +118,9 @@ def compute(state) -> dict[str, Any]:
     result["invalid"] += bad
     result["scanned"] = dict(result.get("scanned") or {}, csv_rows=len(rows))
     result["occ"].sort(key=lambda o: (o["due_at"], o["case_id"]))
+    trusted = trust.trusted_list(None, root)
+    for k in ("occ", "waiting"):
+        result[k] = trust.screen(result[k], trusted, KEEP, unattributed_ok=True)
     state._cases_memo = (state.now(), result)
     return result
 

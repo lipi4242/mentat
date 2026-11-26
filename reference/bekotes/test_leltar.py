@@ -12,7 +12,7 @@ HERE = Path(__file__).parent
 
 def run(*args, env=None):
     return subprocess.run([sys.executable, str(HERE / "bekotes.py"), *args],
-                          capture_output=True, text=True, env=env)
+                          capture_output=True, text=True, env=env, encoding="utf-8", errors="replace")
 
 
 def git(repo, *a):
@@ -27,34 +27,34 @@ class LeltarFixture(unittest.TestCase):
         self.root = Path(self.tmp.name)
         web = self.root / "web"
         (web / "node_modules").mkdir(parents=True)
-        (web / "node_modules" / "x.js").write_text("x")
+        (web / "node_modules" / "x.js").write_text("x", encoding="utf-8")
         (web / ".release-agent").mkdir()
-        (web / ".release-agent" / "config.json").write_text("{}")
-        (web / "big.txt").write_text("a" * (300 * 1024))
-        (web / "a.py").write_text("print(1)\n")
+        (web / ".release-agent" / "config.json").write_text("{}", encoding="utf-8")
+        (web / "big.txt").write_text("a" * (300 * 1024), encoding="utf-8")
+        (web / "a.py").write_text("print(1)\n", encoding="utf-8")
         git(web, "init", "-q")
         git(web, "add", "-A")
         git(web, "commit", "-q", "-m", "first mail me at bob@example.com")
-        (web / "b.py").write_text("2\n")
+        (web / "b.py").write_text("2\n", encoding="utf-8")
         git(web, "add", "-A")
         git(web, "commit", "-q", "-m", "second")
         mem = self.root / "mem"
         mem.mkdir()
-        (mem / "a.md").write_text("---\nname: a\ndescription: Alpha note\n---\nbody\n")
-        (mem / "b.md").write_text("---\ndescription: Beta\n---\nbody\n")
+        (mem / "a.md").write_text("---\nname: a\ndescription: Alpha note\n---\nbody\n", encoding="utf-8")
+        (mem / "b.md").write_text("---\ndescription: Beta\n---\nbody\n", encoding="utf-8")
         (self.root / "lin.json").write_text(json.dumps({
             "exported_at": "2026-01-02T00:00:00Z", "complete": True,
             "issues": [{"id": "1", "identifier": "ZOL-1", "title": "Mail x@example.com",
                         "state": "Todo", "updatedAt": "2026-01-01T00:00:00Z"},
                        {"id": "2", "identifier": "ZOL-2", "title": "t2",
-                        "state": "Done", "updatedAt": "2026-01-03T00:00:00Z"}]}))
+                        "state": "Done", "updatedAt": "2026-01-03T00:00:00Z"}]}), encoding="utf-8")
         self.cfg = self.root / "bekotes.json"
         self.cfg.write_text(json.dumps({"schema": 1, "business": "zoldag", "sources": [
             {"name": "web", "kind": "repo", "path": "web"},
             {"name": "memoria", "kind": "memory", "path": "mem"},
             {"name": "linear", "kind": "linear", "export": "lin.json", "team": "ZOL"},
             {"name": "elo", "kind": "live", "path": "missing.txt"},
-            {"name": "levelezes", "kind": "mail", "state": "tiltott", "reason": "csak kérésre"}]}))
+            {"name": "levelezes", "kind": "mail", "state": "tiltott", "reason": "csak kérésre"}]}), encoding="utf-8")
         self.out = self.root / "leltar.json"
 
     def go(self):
@@ -66,7 +66,7 @@ class LeltarTest(LeltarFixture):
     def test_leltar_states_and_exclusions(self):
         r = self.go()
         self.assertEqual(r.returncode, 0, r.stderr)
-        d = json.loads(self.out.read_text())
+        d = json.loads(self.out.read_text(encoding="utf-8"))
         st = {s["name"]: s["state"] for s in d["sources"]}
         self.assertEqual(st, {"web": "elérhető", "memoria": "elérhető", "linear": "elérhető",
                               "elo": "blokkolt", "levelezes": "tiltott"})
@@ -95,18 +95,18 @@ class LeltarTest(LeltarFixture):
         self.assertEqual(first, self.out.read_bytes())
 
     def test_dotdot_rejected(self):
-        c = json.loads(self.cfg.read_text())
+        c = json.loads(self.cfg.read_text(encoding="utf-8"))
         c["sources"][3]["path"] = "../x"
-        self.cfg.write_text(json.dumps(c))
+        self.cfg.write_text(json.dumps(c), encoding="utf-8")
         r = self.go()  # contract since the friction round: '..' fails the command, it is not a gap
         self.assertEqual(r.returncode, 1)
         self.assertIn("elo.path", r.stderr)
         self.assertFalse(self.out.exists())
 
     def test_dirty_flag(self):
-        (self.root / "web" / "a.py").write_text("changed\n")
+        (self.root / "web" / "a.py").write_text("changed\n", encoding="utf-8")
         self.go()
-        d = json.loads(self.out.read_text())
+        d = json.loads(self.out.read_text(encoding="utf-8"))
         self.assertTrue(next(s for s in d["sources"] if s["name"] == "web")["dirty"])
 
 

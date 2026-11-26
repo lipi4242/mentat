@@ -30,7 +30,7 @@ class Auth(unittest.TestCase):
         return run(self.root, None, *args, tool="mentat_google_auth.py", extra_env=env or self.env)
 
     def calls(self):
-        with open(self.log) as f:
+        with open(self.log, encoding="utf-8") as f:
             return [json.loads(line) for line in f]
 
     def secret(self, name):
@@ -47,7 +47,7 @@ class Auth(unittest.TestCase):
         self.client()
         self.assertEqual(stat.S_IMODE(self.secret("client.json").stat().st_mode), 0o600)
         self.assertEqual(stat.S_IMODE(self.secret("client.json").parent.stat().st_mode), 0o700)
-        self.assertIn(".secrets/", (self.root / ".gitignore").read_text().split())
+        self.assertIn(".secrets/", (self.root / ".gitignore").read_text(encoding="utf-8").split())
 
     def test_a_tracked_secrets_folder_stops_everything(self):
         self.client()
@@ -73,7 +73,7 @@ class Auth(unittest.TestCase):
                          ("run_local_server", 8765, False, 120))
         self.assertIn("ssh -L 8765:localhost:8765", r.stdout)
         self.assertEqual(stat.S_IMODE(self.secret("token.json").stat().st_mode), 0o600)
-        note = (self.root / "brain" / "connectors" / "google.md").read_text()
+        note = (self.root / "brain" / "connectors" / "google.md").read_text(encoding="utf-8")
         self.assertIn(".secrets/google/token.json", note)
         self.assertIn("calendar", note)
         for leak in ("csecret", "a-good", "r-1"):
@@ -102,8 +102,8 @@ class Auth(unittest.TestCase):
     def test_an_expired_remote_sign_in_starts_again(self):
         self.client()
         self.auth("login", "--remote")
-        p = json.loads(self.secret("pending.json").read_text())
-        self.secret("pending.json").write_text(json.dumps(dict(p, expires=0)))
+        p = json.loads(self.secret("pending.json").read_text(encoding="utf-8"))
+        self.secret("pending.json").write_text(json.dumps(dict(p, expires=0)), encoding="utf-8")
         r = self.auth("finish", "http://localhost:8765/?state=s-1&code=c-1")
         self.assertEqual(r.returncode, 1, r.stdout)
         self.assertIn("start again", r.stdout)
@@ -122,7 +122,7 @@ class Token(unittest.TestCase):
                 "2026-11-07T09:00:00", "--end", "2026-11-07T10:00:00", "--tz", "Europe/Budapest", "--notify", "none")
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         self.assertEqual(self.fake.calls[0][3]["grant_type"], "refresh_token")
-        self.assertEqual(json.loads(path.read_text())["token"], "a-new")
+        self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["token"], "a-new")
         self.assertEqual(stat.S_IMODE(path.stat().st_mode), 0o600)
 
     def test_no_token_says_how_to_sign_in(self):

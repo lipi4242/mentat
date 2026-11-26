@@ -3,6 +3,7 @@ import { current, getTask, marked, mutate, now } from './store';
 import { keys, object, Problem, textField, type Task, type TodoEnv } from './types';
 import { actorId, handleId, isHuman } from './kinds';
 import { caseDetail } from './case-fields';
+import { requireSelf, visibleWhere } from './visible';
 const view = (db: D1Database, id: string) => getTask(db, id).then(t => t && caseDetail(db, t));
 async function openCase(c: Context<TodoEnv>, allowed: string[]) {
   const body = object(await c.req.json()); keys(body, allowed);
@@ -36,13 +37,15 @@ export function registerCases(app: Hono<TodoEnv>) {
   app.get('/cases/review-due', async c => {
     const handle = c.req.query('for'), db = c.env.DB, args: string[] = [];
     const ball = handle === undefined ? '' : (args.push(await handleId(db, 'for', handle)), 'AND coalesce(t.assignee_id, t.owner_id) = ?');
+    if (handle !== undefined) requireSelf(c, args[0]);
+    const v = visibleWhere(c); args.push(...v.args);
     const since = 'julianday(coalesce(k.last_reviewed_at, t.created_at))';
     const { results } = await db.prepare(`SELECT t.*, k.goal, k.frame, k.next_action, k.waiting_on, k.due_reason, k.brain_ref,
         k.review_every, k.last_reviewed_at, k.last_reviewed_by, k.confirmed_at, k.confirmed_by,
         julianday('now') - ${since} - k.review_every AS overdue_days
       FROM todo_task t JOIN todo_case k ON k.task_id = t.id
       WHERE t.kind = 'case' AND t.status = 'open' AND t.archived = 0 AND k.confirmed_at IS NOT NULL
-        AND k.review_every IS NOT NULL AND ${since} + k.review_every <= julianday('now') ${ball}
+        AND k.review_every IS NOT NULL AND ${since} + k.review_every <= julianday('now') ${ball} AND ${v.sql}
       ORDER BY overdue_days DESC, t.id`).bind(...args).all<Task>();
     return c.json(results);
   });

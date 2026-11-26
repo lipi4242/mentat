@@ -21,9 +21,9 @@ class SharedMap(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.root, True)
         write(self.root, ".home/bank/befizetesek.csv", "datum;osszeg\n")
         cfg = self.root / BIZ / "bekotes.json"
-        d = json.loads(cfg.read_text())
+        d = json.loads(cfg.read_text(encoding="utf-8"))
         d["sources"].append({"name": "bank", "kind": "live", "path": "~/bank/befizetesek.csv"})
-        cfg.write_text(json.dumps(d, ensure_ascii=False))
+        cfg.write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
         done(self.root)  # installs fejleszto: Read(**/bank/**)
 
     def check(self, files):

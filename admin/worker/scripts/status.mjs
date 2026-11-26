@@ -9,6 +9,7 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 import { d1Query, ROOT, WORKER_DIR } from './lib/d1.mjs';
+import { launchdState } from './lib/launchd.mjs';
 import { defaultRun, UNIT } from './lib/local-admin.mjs';
 import { parseDevVars } from './lib/local-config.mjs';
 import { formatStatus, pendingMigrations, portOfUnit } from './lib/status.mjs';
@@ -31,7 +32,18 @@ async function get(url) {
 
 const vars = parseDevVars(read(join(WORKER_DIR, '.dev.vars')));
 const url = vars.BETTER_AUTH_URL;
-const unitText = read(join(homedir(), '.config', 'systemd', 'user', UNIT));
+const mac = process.platform === 'darwin';
+const unitText = mac ? '' : read(join(homedir(), '.config', 'systemd', 'user', UNIT));
+const ld = mac ? launchdState({ home: homedir(), uid: process.getuid(), run: defaultRun }) : null;
+const service = mac
+  ? ld.installed
+    ? { manager: 'launchd', unit: ld.state, port: ld.port, runs: ld.runs, pid: ld.pid, node: ld.node, nodeOk: ld.nodeOk }
+    : { manager: 'launchd', unit: 'none', port: null }
+  : {
+      manager: 'systemd',
+      unit: unitText ? defaultRun('systemctl', ['--user', 'is-active', UNIT]).stdout.trim() || 'unknown' : 'none',
+      port: portOfUnit(unitText),
+    };
 const health = url ? await get(`${url}/api/health`) : null;
 const ui = url ? await get(`${url}/`) : null;
 
@@ -53,8 +65,7 @@ try {
 
 const facts = {
   url,
-  unit: unitText ? defaultRun('systemctl', ['--user', 'is-active', UNIT]).stdout.trim() || 'unknown' : 'none',
-  port: portOfUnit(unitText),
+  ...service,
   health: !!health?.ok,
   ui: !!ui?.ok && (ui.headers.get('content-type') ?? '').includes('text/html'),
   version: JSON.parse(read(join(WORKER_DIR, 'package.json'))).version,

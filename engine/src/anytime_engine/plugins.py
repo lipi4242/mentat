@@ -2,7 +2,9 @@
 
 A pack is a Python package inside the agent repo. Its `__init__.py` declares
 
-    ANYTIME_PLUGIN = {"name": "cases", "engine": ">=0.4,<0.7"}
+    ANYTIME_PLUGIN = {"name": "cases", "engine": ">=0.4,<0.7",
+                      "exec": "python3 -m anytime_cases.deliver"}   # optional
+
 
 and each direct submodule self-registers concerns, providers and @actions on
 import. `load()` refuses — before importing any submodule — a package outside
@@ -11,6 +13,9 @@ code), an engine outside the declared range, a malformed declaration; and,
 while importing, any collision between packs: pack name, concern name,
 provider name. An undeclared package still loads (the pre-contract layout),
 with a warning.
+
+"exec" is the pack's own executor (route.py): the actions of its concerns go to it
+when the recorded executor is a pack's own (the desktop) instead of a generic one.
 """
 from __future__ import annotations
 
@@ -22,7 +27,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from . import __version__, assembler, config, versions
+from . import __version__, assembler, config, registry, versions
 
 _NAME = re.compile(r"^[a-z][a-z0-9_-]*$")
 
@@ -37,6 +42,20 @@ class PluginInfo:
     name: str
     engine: str | None
     declared: bool
+    exec: str | None = None
+
+
+_OWNER: dict[str, PluginInfo] = {}   # concern name -> the pack that registered it
+
+
+def pack_exec(concern: str) -> str | None:
+    """The executor the concern's pack names, or None."""
+    info = _OWNER.get(concern)
+    return info.exec if info else None
+
+
+def pack_execs() -> set[str]:
+    return {i.exec for i in _OWNER.values() if i.exec}
 
 
 def _declaration(pkg_name: str, module) -> PluginInfo:
@@ -59,7 +78,10 @@ def _declaration(pkg_name: str, module) -> PluginInfo:
     if not ok:
         raise PluginError(f"{pkg_name} ('{decl['name']}') needs engine {spec}; "
                           f"this is {__version__}")
-    return PluginInfo(pkg_name, decl["name"], spec, True)
+    ex = decl.get("exec")
+    if ex is not None and not (isinstance(ex, str) and ex.strip()):
+        raise PluginError(f"{pkg_name}: ANYTIME_PLUGIN['exec'] must be a command (non-empty text)")
+    return PluginInfo(pkg_name, decl["name"], spec, True, ex)
 
 
 def _check_inside(pkg_name: str, root: Path) -> None:
@@ -98,6 +120,7 @@ def load(packages: list[str], *, root: Path | None = None) -> list[PluginInfo]:
                               f"{names[info.name]} and {pkg_name}")
         names[info.name] = pkg_name
         before = assembler.registered_providers()
+        had = set(registry.all_concerns())
         try:
             _import_modules(pkg_name, sys.modules[pkg_name])
         except ValueError as e:  # registry.register: duplicate concern
@@ -109,5 +132,7 @@ def load(packages: list[str], *, root: Path | None = None) -> list[PluginInfo]:
                 raise PluginError(f"provider '{pname}' registered by both "
                                   f"{provider_owner[pname]} and {pkg_name}")
             provider_owner[pname] = pkg_name
+        for concern in set(registry.all_concerns()) - had:
+            _OWNER[concern] = info
         infos.append(info)
     return infos

@@ -42,7 +42,7 @@ class CapsBase(unittest.TestCase):
         for k in ("CLOUDFLARE_API_TOKEN", "CLAUDE_CONFIG_DIR", "ANYTIME_REPO_ROOT"):
             env.pop(k, None)  # the machine's own setup never leaks into a test
         return subprocess.run([sys.executable, str(TOOL), "--repo", str(self.root), "where", *args],
-                              capture_output=True, text=True, env=env)
+                              capture_output=True, text=True, env=env, encoding="utf-8", errors="replace")
 
     def find(self, query):
         r = self.run_where("--find", query, "--json")

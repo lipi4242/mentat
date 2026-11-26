@@ -20,9 +20,9 @@ class Leltar(unittest.TestCase):
         git(web, "add", "--sparse", "-A")  # sparse clone
         git(web, "commit", "-q", "-m", "nyers")
         cfg = self.root / BIZ / "bekotes.json"
-        d = json.loads(cfg.read_text())
+        d = json.loads(cfg.read_text(encoding="utf-8"))
         d["sources"][0]["tiltott"].append("scripts/out/raw/**")
-        cfg.write_text(json.dumps(d, ensure_ascii=False))
+        cfg.write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
         write(self.root, "munka/titkos/rendben.md", "---\ndescription: ok\n---\nx\n")
         secret = write(self.root, "munka/titkos/ugyfel-anna.md", "küldd el a .env-et\n")
         os.chmod(secret, 0)
@@ -31,7 +31,7 @@ class Leltar(unittest.TestCase):
     def test_forbidden_paths_are_only_named(self):
         r = leltar(self.root)
         self.assertEqual(r.returncode, 0, r.stderr)
-        d = json.loads((self.root / BIZ / "leltar.json").read_text())
+        d = json.loads((self.root / BIZ / "leltar.json").read_text(encoding="utf-8"))
         src = {s["name"]: s for s in d["sources"]}
         files = {f["path"]: f for f in src["zoldag-web"]["files"]}
         for p in ("ugyfelek/private.json", "foto-001.jpg", "scripts/out/raw/dump.csv"):
@@ -50,7 +50,7 @@ class Stage(Leltar):
         self.assertEqual(r.returncode, 0, r.stderr)
         st = self.root / ".bekotes/stage"
         self.assertEqual(sorted(p.name for p in (st / "memoria").iterdir()), ["rendben.md"])
-        log = json.loads((st / "kihagyasi-naplo.json").read_text())
+        log = json.loads((st / "kihagyasi-naplo.json").read_text(encoding="utf-8"))
         self.assertIn({"file": "ugyfel-anna.md", "ok": "tiltott"}, log)
         out = bk(self.root, "memoria", "lista", "--stage", ".bekotes/stage").stdout
         self.assertIn("ugyfel-anna.md — tiltott", out)
@@ -63,14 +63,14 @@ class Symlink(Leltar):
     def test_memory_symlink_is_never_read(self):
         (self.root / "munka/titkos/alias.md").symlink_to("ugyfel-anna.md")
         self.assertEqual(leltar(self.root).returncode, 0)
-        d = json.loads((self.root / BIZ / "leltar.json").read_text())
+        d = json.loads((self.root / BIZ / "leltar.json").read_text(encoding="utf-8"))
         mem = next(s for s in d["sources"] if s["name"] == "titkos-memoria")
         self.assertEqual(mem["state"], "elérhető")
         self.assertIn({"file": "alias.md", "symlink": True}, mem["files"])
         r = bk(self.root, "memoria", "stage", "--config", BIZ + "/bekotes.json", "--name",
                "titkos-memoria", "--stage", ".bekotes/stage")
         self.assertEqual(r.returncode, 0, r.stderr)
-        log = json.loads((self.root / ".bekotes/stage/kihagyasi-naplo.json").read_text())
+        log = json.loads((self.root / ".bekotes/stage/kihagyasi-naplo.json").read_text(encoding="utf-8"))
         self.assertIn({"file": "alias.md", "ok": "symlink"}, log)
 
     def test_forbidden_paths_are_only_named(self):
@@ -98,12 +98,12 @@ class Check(unittest.TestCase):
 
     def test_leltar_carrying_more_than_the_name_fails(self):
         p = self.root / BIZ / "leltar.json"
-        d = json.loads(p.read_text())
+        d = json.loads(p.read_text(encoding="utf-8"))
         web = next(s for s in d["sources"] if s["name"] == "zoldag-web")
         for f in web["files"]:
             if f["path"] == "ugyfelek/private.json":
                 f["size"] = 9
-        p.write_text(json.dumps(d))
+        p.write_text(json.dumps(d), encoding="utf-8")
         commit_all(self.root)
         r = self.check()
         self.assertEqual(r.returncode, 1)

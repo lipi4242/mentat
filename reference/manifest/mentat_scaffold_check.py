@@ -10,6 +10,8 @@ import pathlib
 import re
 import subprocess
 import sys
+for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows: a pipe is the ANSI code page, not UTF-8
+    getattr(_s, "reconfigure", lambda **k: None)(encoding="utf-8", errors="replace")
 
 HERE = pathlib.Path(__file__).resolve().parent
 IGNORES = [".env", ".env.*", ".mentat/"]
@@ -20,7 +22,7 @@ NEWER_IDS = ["intake"]  # added after 0.2: missing in an older brain = WARN, not
 
 def git(root, *args):
     try:
-        return subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True)
+        return subprocess.run(["git", "-C", str(root), *args], capture_output=True, text=True, encoding="utf-8", errors="replace")
     except FileNotFoundError:
         return None
 
@@ -62,10 +64,23 @@ def append_blocks(path, lang, base):
     """The one writer here (mentat_scaffold.py calls it): the missing blocks at the end of AGENTS.md."""
     add = missing_blocks(path.read_text(encoding="utf-8"), lang, base)
     if add:
-        with open(path, "a", encoding="utf-8") as f:
+        with open(path, "a", encoding="utf-8", newline="\n") as f:
             f.write("".join("\n" + block for _, block in add))
     return "exists  AGENTS.md (left as it is%s)" % ("; added at the end: " + ", ".join(i for i, _ in add)
                                                    if add else "")
+
+
+def self_image(root, lang, text, warnings):
+    """The self-image block: missing in an older brain = WARN; out of order or stale = a problem."""
+    import mentat_self_image as si
+    try:
+        bad = si.problems(text, si.block(si.facts(root, lang)))
+    except si.TooBig as e:
+        return ["TOO BIG %s" % e]
+    if any(b.startswith("MISSING") for b in bad):
+        warnings.append("WARN missing self-image block (newer product rule) - fix: python3 "
+                        ".mentat/bin/mentat_self_image.py")
+    return [b for b in bad if not b.startswith("MISSING")]
 
 
 def check(root, lang):
@@ -85,16 +100,20 @@ def check(root, lang):
                             "their yes, never a managed block")
         warnings += [upgrade_hint(root, lang, i) for i in NEWER_IDS
                      if "mentat:managed:start %s -->" % i not in text]
+        problems += self_image(root, lang, text, warnings)
+    import mentat_skills
+    warnings += ["WARN missing %s (newer product rule) - fix: python3 .mentat/bin/mentat_skills.py --lang %s"
+                 % (m, lang) for m in mentat_skills.missing(root)]
     claude = root / "CLAUDE.md"
-    if not claude.exists() or "@AGENTS.md" not in claude.read_text().splitlines():
+    if not claude.exists() or "@AGENTS.md" not in claude.read_text(encoding="utf-8").splitlines():
         problems.append("MISSING @AGENTS.md line in CLAUDE.md")
     problems += ["MISSING %s/_meta.md" % d for d in layout(lang)["dirs"]
                  if not (root / d / "_meta.md").exists()]
     ignore = root / ".gitignore"
-    have = ignore.read_text().splitlines() if ignore.exists() else []
+    have = ignore.read_text(encoding="utf-8").splitlines() if ignore.exists() else []
     problems += ["MISSING %s in .gitignore" % i for i in IGNORES if i not in have]
     try:
-        brain = json.loads((root / "mentat.json").read_text())["components"]["brain"]
+        brain = json.loads((root / "mentat.json").read_text(encoding="utf-8"))["components"]["brain"]
     except (OSError, ValueError, KeyError, TypeError):
         brain = None
     if not brain:

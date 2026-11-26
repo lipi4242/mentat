@@ -13,9 +13,9 @@ class SopresKisbetu(GuardBase):
         biz = self.root / "agy" / "business" / "zoldag"
         biz.mkdir(parents=True, exist_ok=True)
         (self.root / "munka" / "bank").mkdir(parents=True, exist_ok=True)
-        (self.root / "munka" / "bank" / "befizetesek.csv").write_text("datum;osszeg\n")
+        (self.root / "munka" / "bank" / "befizetesek.csv").write_text("datum;osszeg\n", encoding="utf-8")
         (biz / "bekotes.json").write_text(json.dumps({"schema": 1, "business": "zoldag", "sources": [
-            {"name": "bank", "kind": "live", "path": "munka/bank/befizetesek.csv"}]}))
+            {"name": "bank", "kind": "live", "path": "munka/bank/befizetesek.csv"}]}), encoding="utf-8")
 
     def test_developer_grep_over_an_ancestor_of_a_denied_source(self):
         for inp in ({"pattern": "60000", "path": str(self.root / "munka")},

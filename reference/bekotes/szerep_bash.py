@@ -24,14 +24,24 @@ SHELLS = {"sh", "bash", "zsh", "dash"}
 PREFIX = {"env", "sudo", "command", "nohup", "time", "nice", "exec"}
 CD = {"cd", "pushd"}
 CODE = set("()'\"`=;$")
-EMBED = re.compile(r"(?:~|\$\{?HOME\}?)?[\w.@-]*/[\w./@-]*")
+EMBED = re.compile(r"(?:~|\$\{?HOME\}?)?[\w.@-]*/[\w./@-]*|[A-Za-z]:[\\/][^\s'\"()]*")  # Windows: C:\\… too
 ASSIGN = re.compile(r"^[A-Za-z_]\w*=")
+NT = os.name == "nt"
+
+
+def win_path(p, nt=None):
+    """Windows: C:\\Users\\x, a mixed C:\\Users\\x/y and Git Bash's /c/Users/x are one C:/Users/x."""
+    if not (NT if nt is None else nt):
+        return p
+    p = p.replace("\\", "/")
+    m = re.match(r"^/([A-Za-z])(?=/|$)", p)
+    return m.group(1).upper() + ":" + (p[2:] or "/") if m else p
 
 
 def _expand(w):
     home = os.environ.get("HOME", "")
     if home:
-        w = re.sub(r"^\$\{?HOME\}?(?=/|$)", home, w)
+        w = re.sub(r"^\$\{?HOME\}?(?=/|$)", lambda _m: home, w)  # a function: C:\Users is no template
     return os.path.expanduser(w)
 
 
@@ -66,7 +76,7 @@ def _segments(tokens):
 
 
 def _join(cwd, w):
-    w = _expand(w)
+    w = win_path(_expand(w))
     return os.path.normpath(w if os.path.isabs(w) or not cwd else os.path.join(cwd, w))
 
 
@@ -103,7 +113,7 @@ def _reads(words, cwd):
             cands += [m for m in EMBED.findall(w) if re.search(r"\w", m)]  # not a bare `/`
         for c in cands:
             p = _join(cwd, c)
-            if "/" in c or (cwd and os.path.lexists(p)):
+            if "/" in win_path(c) or (cwd and os.path.lexists(p)):
                 out.append(p)
             if cwd and set("*?[") & set(c):
                 out += glob.glob(p)

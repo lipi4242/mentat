@@ -6,9 +6,12 @@
     values(path) -> {név: érték}   CSAK folyamaton belül (move/audit); a kimenetbe sosem kerül
 
 Az ujjlenyomat sha256(érték)[:8]: azonosít (ugyanaz-e a kulcs két helyen), de nem fejthető vissza.
+A nyugta lenyomata mac(érték, só): HMAC-SHA256 a boxonkénti sóval (titok_hely.receipt_salt), mert
+egy rövid kulcs sha256[:8]-a próbálgatással visszafejthető, a só nélkül a HMAC nem számolható.
 """
 from __future__ import annotations
 import hashlib
+import hmac
 import json
 import re
 from pathlib import Path
@@ -21,6 +24,10 @@ SECRET_FIELD = re.compile(r"key|token|secret|passw|credential", re.I)
 
 def fp(value: str | bytes) -> str:
     return hashlib.sha256(value.encode() if isinstance(value, str) else value).hexdigest()[:8]
+
+
+def mac(value: str | bytes, salt: bytes) -> str:
+    return hmac.new(salt, value.encode() if isinstance(value, str) else value, hashlib.sha256).hexdigest()
 
 
 def _unquote(v: str) -> str:

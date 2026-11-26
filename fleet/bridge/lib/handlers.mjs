@@ -18,7 +18,7 @@ function reactionEmojis(arr) {
 // bot(): { username, id } — a getMe utan ismert, ezert fuggveny.
 export function createHandlers({
   groupId, allowIds, requireMention, maxFileBytes, bot,
-  deliver, enqueueMedia, logInbound, log = () => {}, onApprovalCandidate = () => {},
+  deliver, enqueueMedia, logInbound, log = () => {}, onApprovalCandidate = () => {}, onHelp = () => false,
 }) {
   const allowedChats = new Set([String(groupId)]);
   const allowedUsers = new Set(allowIds.map(String));
@@ -97,6 +97,10 @@ export function createHandlers({
     const raw = rawText(msg);
     const text = sanitize(raw);
     if (!text) return;
+    const line = () => buildTextLine({ who, fromId, chatId, messageId: msg.message_id, replyTo, text: raw, edited, updateId });
+    const cmd = !edited && onHelp({ text, chatId, messageId: msg.message_id, fromId, fallback: () => deliver(line()) });
+    // /help, sugo (lib/help.mjs) vagy /igen /nem (lib/dialog-wire.mjs, kind "dialog"): a pane-be nem megy
+    if (cmd) return logInbound({ chat_id: chatId, msg_id: msg.message_id, kind: typeof cmd === "string" ? cmd : "help", from: sanitize(who), from_id: fromId, reply_to: replyTo, text });
     // Jovahagyo webhook (3.1): minden reply, nem szerkesztett uzenet, ami a
     // fenti kapun (allowDecision + mention) atjutott; a jogosultsagot a szerver
     // donti el (tg_from_id), a hid nem szuk ujra. A tartos sor-iras a
@@ -108,7 +112,7 @@ export function createHandlers({
       kick = onApprovalCandidate(approvalBody(msg, chatId, fromId, replyTo, raw), approvalCtx(msg));
     }
     // A NYERS szoveg megy a sorepitonek: o vag 6000-nel, CSONKA-jellel.
-    deliver(buildTextLine({ who, fromId, chatId, messageId: msg.message_id, replyTo, text: raw, edited, updateId }));
+    deliver(line());
     if (typeof kick === "function") kick();
     logInbound({ chat_id: chatId, msg_id: msg.message_id, kind: edited ? "edited" : "message",
       from: sanitize(who), from_id: fromId, reply_to: replyTo, text });

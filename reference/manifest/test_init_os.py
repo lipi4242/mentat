@@ -27,15 +27,34 @@ class HookShell(unittest.TestCase):
         git = pathlib.Path(tempfile.mkdtemp()) / "Git"
         (git / "cmd").mkdir(parents=True)
         (git / "bin").mkdir()
-        (git / "cmd" / "git.exe").write_text("")
-        (git / "bin" / "bash.exe").write_text("")
+        (git / "cmd" / "git.exe").write_text("", encoding="utf-8")
+        (git / "bin" / "bash.exe").write_text("", encoding="utf-8")
         with mock.patch.object(osx, "system", return_value="windows"), \
                 mock.patch.object(osx.shutil, "which", return_value=str(git / "cmd" / "git.exe")):
             self.assertEqual(osx.hook_shell({}), [str(git / "bin" / "bash.exe"), "-c"])
 
+    def test_windows_inside_git_bash_finds_the_bash_above_mingw64(self):
+        # Claude Code's Bash tool IS Git Bash: its PATH finds …\Git\mingw64\bin\git.exe first
+        git = pathlib.Path(tempfile.mkdtemp()) / "Git"
+        (git / "mingw64" / "bin").mkdir(parents=True)
+        (git / "bin").mkdir()
+        (git / "mingw64" / "bin" / "git.exe").write_text("", encoding="utf-8")
+        (git / "bin" / "bash.exe").write_text("", encoding="utf-8")
+        with mock.patch.object(osx, "system", return_value="windows"), \
+                mock.patch.object(osx.shutil, "which", return_value=str(git / "mingw64" / "bin" / "git.exe")):
+            self.assertEqual(osx.hook_shell({}), [str(git / "bin" / "bash.exe"), "-c"])
+
+    def test_windows_falls_back_to_the_standard_git_folder(self):
+        pf = pathlib.Path(tempfile.mkdtemp())
+        (pf / "Git" / "bin").mkdir(parents=True)
+        (pf / "Git" / "bin" / "bash.exe").write_text("", encoding="utf-8")
+        with mock.patch.object(osx, "system", return_value="windows"), \
+                mock.patch.object(osx.shutil, "which", return_value=None):
+            self.assertEqual(osx.hook_shell({"ProgramFiles": str(pf)}), [str(pf / "Git" / "bin" / "bash.exe"), "-c"])
+
     def test_windows_honours_the_claude_code_setting(self):
         bash = pathlib.Path(tempfile.mkdtemp()) / "bash.exe"
-        bash.write_text("")
+        bash.write_text("", encoding="utf-8")
         with mock.patch.object(osx, "system", return_value="windows"), \
                 mock.patch.object(osx.shutil, "which", return_value=None):
             self.assertEqual(osx.hook_shell({"CLAUDE_CODE_GIT_BASH_PATH": str(bash)}), [str(bash), "-c"])

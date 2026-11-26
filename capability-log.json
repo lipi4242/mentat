@@ -3,6 +3,424 @@
   "_doc": "One entry per release step. A change moves one or more catalog capabilities (reference/manifest/capabilities/*.json): new | extended | improved | removed. Each change is one CHANGELOG bullet carrying <!-- cap: <id> -->. Check and render: python3 reference/manifest/mentat_caplog.py check | render md --lang en|hu | render json.",
   "releases": [
     {
+      "version": "0.7.0",
+      "date": null,
+      "components": {
+        "brain": "0.7.0",
+        "engine": "0.7.0",
+        "fleet": "0.7.0",
+        "admin": "0.7.0"
+      },
+      "changes": [
+        {
+          "id": "upgrade-prompt",
+          "component": "brain",
+          "title": {
+            "en": "Upgrade from any earlier version with one prompt",
+            "hu": "Frissítés bármely korábbi verzióról egyetlen prompttal"
+          },
+          "summary": {
+            "en": "UPGRADE.md: plan first, backup branch, your files and changed role self-image kept, brains from before 0.5 included; UPGRADE-ALL.md upgrades a fleet one agent at a time, canary first; INSTALL.md is now FIRST-INSTALL.md.",
+            "hu": "UPGRADE.md: előbb terv, mentő ág, a fájljaid és a módosított szerep-önkép megmarad, a 0.5 előtti agyakra is; az UPGRADE-ALL.md ágensenként, kanárival kezdve frissíti a flottát; az INSTALL.md mostantól FIRST-INSTALL.md."
+          },
+          "capabilities": [
+            {
+              "id": "mentat.init",
+              "change": "extended"
+            },
+            {
+              "id": "fleet",
+              "change": "improved"
+            }
+          ]
+        },
+        {
+          "id": "own-types",
+          "component": "brain",
+          "title": {
+            "en": "Your own entity types",
+            "hu": "Saját entitástípusok"
+          },
+          "summary": {
+            "en": "A type is one file in the brain (fields, folder, template); type add/adopt/edit, new <type>, find --type, due and check know them; type suggest, collect, rename, merge and split let types grow with the brain.",
+            "hu": "Egy típus egy fájl az agyban (mezők, mappa, sablon); type add/adopt/edit, new <típus>, find --type, a due és a check ismeri; a type suggest, collect, rename, merge és split az aggyal együtt fejleszti a típusokat."
+          },
+          "capabilities": [
+            {
+              "id": "brain.types",
+              "change": "new"
+            }
+          ]
+        },
+        {
+          "id": "six-roles",
+          "component": "brain",
+          "title": {
+            "en": "Six standard roles, a consultant template, and roles of your own",
+            "hu": "Hat standard szerep, consultant-sablon és saját szerep"
+          },
+          "summary": {
+            "en": "Assistant, developer, consultant, product manager, release agent and fleet manager, in one role map; roles --install refuses a role without a file or template; a fresh install brings the role tools.",
+            "hu": "Asszisztens, fejlesztő, consultant, product manager, kiadó ágens és flottamenedzser egy szerep-térképen; a roles --install elutasítja a fájl és sablon nélküli szerepet; a friss telepítés hozza a szerep-eszközöket."
+          },
+          "capabilities": [
+            {
+              "id": "roles",
+              "change": "extended"
+            }
+          ]
+        },
+        {
+          "id": "self-image",
+          "component": "brain",
+          "title": {
+            "en": "The agent knows who it is: a self-image at the top of AGENTS.md",
+            "hu": "Az ágens tudja, ki ő: önkép az AGENTS.md elején"
+          },
+          "summary": {
+            "en": "A generated self-image block (name, roles, the self-image file) leads AGENTS.md and your text stays below it; a release replaces only role self-images you never changed.",
+            "hu": "Egy generált self-image blokk (név, szerepek, az önkép-fájl) áll az AGENTS.md elején, a saját szöveged alatta marad; a kiadás csak a sosem módosított szerep-önképet cseréli."
+          },
+          "capabilities": [
+            {
+              "id": "roles",
+              "change": "improved"
+            },
+            {
+              "id": "takeover",
+              "change": "improved"
+            }
+          ]
+        },
+        {
+          "id": "mentat-help",
+          "component": "brain",
+          "title": {
+            "en": "/mentat help, a status line and /whoami",
+            "hu": "/mentat súgó, státuszsor és /whoami"
+          },
+          "summary": {
+            "en": "A hand-written, versioned help with /mentat status and /mentat todo; a status line with name, roles, model and context; Telegram /help answers with the same text.",
+            "hu": "Kézzel írt, verziózott súgó /mentat status és /mentat todo paranccsal; státuszsor névvel, szerepekkel, modellel és kontextussal; a Telegram /help ugyanezt a szöveget adja."
+          },
+          "capabilities": [
+            {
+              "id": "mentat.status",
+              "change": "extended"
+            }
+          ]
+        },
+        {
+          "id": "skills-local",
+          "component": "brain",
+          "title": {
+            "en": "The brain's skills are installed in your project",
+            "hu": "Az agy skilljei a projektedbe települnek"
+          },
+          "summary": {
+            "en": "The six skills install once as native Claude Code skills in .claude/skills, checked against the release hashes; a skill you edited is kept.",
+            "hu": "A hat skill egyszer, natív Claude Code skillként települ a .claude/skills alá, a kiadás hash-eivel ellenőrizve; a kézzel átírt skill megmarad."
+          },
+          "capabilities": [
+            {
+              "id": "mentat.init",
+              "change": "improved"
+            },
+            {
+              "id": "develop",
+              "change": "improved"
+            }
+          ]
+        },
+        {
+          "id": "windows",
+          "component": "brain",
+          "title": {
+            "en": "Mentat installs and runs on Windows",
+            "hu": "A Mentat Windowson is települ és fut"
+          },
+          "summary": {
+            "en": "UTF-8 and LF everywhere, Git Bash found next to git.exe, Windows paths in the guard's boundary, and tzdata added by the install and the upgrade.",
+            "hu": "Mindenhol UTF-8 és LF, a Git Bash a git.exe mellől is megvan, a Windows-utak a szerep-őr határában, és a telepítés meg a frissítés felteszi a tzdata-t."
+          },
+          "capabilities": [
+            {
+              "id": "mentat.init",
+              "change": "improved"
+            },
+            {
+              "id": "guard",
+              "change": "improved"
+            }
+          ]
+        },
+        {
+          "id": "desktop-schedule",
+          "component": "brain",
+          "title": {
+            "en": "Scheduled runs on your Mac, and a catch-up when a session starts",
+            "hu": "Ütemezett futás a Macen, és pótlás a session indulásakor"
+          },
+          "summary": {
+            "en": "setup --install adds an hourly LaunchAgent on macOS; without a schedule each new session runs one tick --once; tick --render prints the actions' prompts.",
+            "hu": "A setup --install macOS-en óránkénti LaunchAgentet tesz fel; ütemező nélkül minden új session egy tick --once-t futtat; a tick --render az akciók promptját írja ki."
+          },
+          "capabilities": [
+            {
+              "id": "engine.schedule",
+              "change": "extended"
+            }
+          ]
+        },
+        {
+          "id": "unhandled-actions",
+          "component": "brain",
+          "title": {
+            "en": "A planned action that nobody runs is no longer silent",
+            "hu": "A senki által nem futtatott akció nem tűnik el némán"
+          },
+          "summary": {
+            "en": "A pack can name its own executor; an action nobody takes is counted as unhandled in last-tick.json and anytime_engine last, and the tick exits 3.",
+            "hu": "Egy csomag megnevezheti a saját végrehajtóját; a senki által fel nem vett akció unhandled a last-tick.json-ban és az anytime_engine last kimenetében, a tick pedig 3-mal zár."
+          },
+          "capabilities": [
+            {
+              "id": "engine.last",
+              "change": "improved"
+            },
+            {
+              "id": "engine.core",
+              "change": "improved"
+            }
+          ]
+        },
+        {
+          "id": "stranger-text",
+          "component": "brain",
+          "title": {
+            "en": "Untrusted text reaches the agent as data, or not at all",
+            "hu": "A nem megbízható szöveg adatként jut el az ágenshez, vagy sehogy"
+          },
+          "summary": {
+            "en": "Shared-store text is cleaned, capped and framed as data; with a trust list, todos and cases created or rewritten by others arrive only as notices; new installs seed the list.",
+            "hu": "A közös tár szövege tisztítva, vágva, adatként keretezve megy a promptba; bizalmi listával a mások által létrehozott vagy átírt todo és ügy csak értesítés; a friss telepítés kitölti a listát."
+          },
+          "capabilities": [
+            {
+              "id": "engine.todo",
+              "change": "improved"
+            },
+            {
+              "id": "engine.cases",
+              "change": "improved"
+            }
+          ]
+        },
+        {
+          "id": "own-address",
+          "component": "brain",
+          "title": {
+            "en": "Your own account address is never written into a command",
+            "hu": "A saját fiók-cím nem kerül parancsba"
+          },
+          "summary": {
+            "en": "The brain's rules read the owner's address from configuration or the environment, so a headless agent is not stopped by a privacy check.",
+            "hu": "Az agy szabálya szerint a tulajdonos címe konfigból vagy env-ből jön, így a headless ágenst nem állítja meg adatvédelmi ellenőrzés."
+          },
+          "capabilities": [
+            {
+              "id": "guard",
+              "change": "improved"
+            }
+          ]
+        },
+        {
+          "id": "todo-permissions",
+          "component": "brain",
+          "title": {
+            "en": "Todo store: an agent writes and reads only what it takes part in",
+            "hu": "Todo-tár: az ágens csak azt írja és olvassa, amiben érintett"
+          },
+          "summary": {
+            "en": "Object-level write rules, no PM-and-developer on one item, involvement-based reads with 404 for the rest, and the changes feed is your own.",
+            "hu": "Objektum-szintű írási szabályok, egy tételen nem lehet ugyanaz a PM és a dev, érintett-alapú olvasás, a többire 404, és a changes csak a saját folyam."
+          },
+          "capabilities": [
+            {
+              "id": "backlog",
+              "change": "improved"
+            },
+            {
+              "id": "admin",
+              "change": "improved"
+            }
+          ]
+        },
+        {
+          "id": "admin-login-lock",
+          "component": "brain",
+          "title": {
+            "en": "The admin's e-mail sign-in code cannot be guessed from many addresses",
+            "hu": "Az admin e-mailes belépőkódja sok címről sem találgatható"
+          },
+          "summary": {
+            "en": "Ten wrong codes lock an address for 15 minutes across IPs and codes; unknown addresses get the wrong-code answer; agent tokens no longer see e-mail addresses.",
+            "hu": "Tíz rossz kód 15 percre lezárja a címet, IP-ktől és kódoktól függetlenül; az ismeretlen cím a rossz kód válaszát kapja; az ágens-token nem látja az e-mail-címeket."
+          },
+          "capabilities": [
+            {
+              "id": "admin",
+              "change": "improved"
+            }
+          ]
+        },
+        {
+          "id": "admin-local-service",
+          "component": "brain",
+          "title": {
+            "en": "The local admin on a Mac runs as a service; connecting is one command",
+            "hu": "A helyi admin Macen szolgáltatásként fut; a bekötés egy parancs"
+          },
+          "summary": {
+            "en": "connect --local installs a LaunchAgent on macOS; connect --plugins swaps the token when the scopes change and binds the todo handle in mentat.json.",
+            "hu": "A connect --local macOS-en LaunchAgentet telepít; a connect --plugins hatókör-változáskor tokent cserél, és a todo-handle-t a mentat.json-ba köti."
+          },
+          "capabilities": [
+            {
+              "id": "admin",
+              "change": "improved"
+            }
+          ]
+        },
+        {
+          "id": "fleet-map",
+          "component": "brain",
+          "title": {
+            "en": "Fleet map: one file says who is who in a fleet",
+            "hu": "Flottatérkép: egy fájl mondja meg, ki kicsoda a flottában"
+          },
+          "summary": {
+            "en": "fleet-map.json with validate, show, render, check, audit and move-check; a fleet-place block in each AGENTS.md; the map-karbantartas skill for the fleet manager.",
+            "hu": "fleet-map.json validate, show, render, check, audit és move-check paranccsal; fleet-place blokk minden AGENTS.md-ben; map-karbantartas skill a flottamenedzsernek."
+          },
+          "capabilities": [
+            {
+              "id": "fleet",
+              "change": "extended"
+            }
+          ]
+        },
+        {
+          "id": "fleet-files-pr",
+          "component": "brain",
+          "title": {
+            "en": "Fleet files reach an agent's repository as a pull request",
+            "hu": "A flotta-fájlok pull requestként jutnak az ágens repójába"
+          },
+          "summary": {
+            "en": "fleet upgrade --pr delivers the fleet-place block, --rules the rules file; doctor and status name stale rules; box-upgrade lists them and can open the pull requests.",
+            "hu": "A fleet upgrade --pr a fleet-place blokkot, a --rules a szabályfájlt kézbesíti; a doctor és a status megnevezi az elavult szabályt; a box-upgrade listázza, és megnyithatja a PR-eket."
+          },
+          "capabilities": [
+            {
+              "id": "fleet",
+              "change": "improved"
+            }
+          ]
+        },
+        {
+          "id": "fleet-reconcile",
+          "component": "brain",
+          "title": {
+            "en": "Fewer missed alerts and skipped repair rounds on a server",
+            "hu": "Kevesebb elnyelt riasztás és kimaradt javítási kör a szerveren"
+          },
+          "summary": {
+            "en": "A second quarantine and a lasting budget exhaustion alert again; the full repair round waits for the lock and skipped rounds are reported.",
+            "hu": "A második karantén és a tartós keret-kimerülés újra riaszt; a teljes javítási kör megvárja a zárat, a kimaradt köröket jelenti."
+          },
+          "capabilities": [
+            {
+              "id": "fleet",
+              "change": "improved"
+            }
+          ]
+        },
+        {
+          "id": "permission-dialog",
+          "component": "brain",
+          "title": {
+            "en": "A waiting permission dialog is reported and answered from Telegram",
+            "hu": "A várakozó engedélykérő ablak riaszt, és Telegramról megválaszolható"
+          },
+          "summary": {
+            "en": "doctor and the fleet report turn red and name the reason; the bridge alerts once with the options and accepts /igen or /nem from an allowed sender while the dialog is still there.",
+            "hu": "A doctor és a flotta-jelentés piros, és megnevezi az okot; a híd egyszer riaszt az opciókkal, és engedélyezett küldőtől elfogadja az /igen-t vagy a /nem-et, amíg az ablak áll."
+          },
+          "capabilities": [
+            {
+              "id": "fleet",
+              "change": "improved"
+            }
+          ]
+        },
+        {
+          "id": "prompt-drift",
+          "component": "brain",
+          "title": {
+            "en": "An agent whose prompt changed is restarted with its conversation",
+            "hu": "A megváltozott promptú ágens a beszélgetésével indul újra"
+          },
+          "summary": {
+            "en": "When released prompt files change, the repair round restarts the idle agent with --resume, rate-limited and logged; fleet request-restart asks for it, and an agent never restarts itself.",
+            "hu": "Ha a kiadott promptfájlok változnak, a javítási kör a tétlen ágenst --resume-mal újraindítja, korláttal és naplóval; a fleet request-restart kéri ugyanezt, az ágens magát sosem indítja újra."
+          },
+          "capabilities": [
+            {
+              "id": "fleet",
+              "change": "extended"
+            }
+          ]
+        },
+        {
+          "id": "unit-extra-env",
+          "component": "brain",
+          "title": {
+            "en": "An agent's unit can load extra environment files",
+            "hu": "Az ágens unitja további env-fájlokat is betölthet"
+          },
+          "summary": {
+            "en": "The optional extra_env_files registry field lists files the agent's session sources after its own, guarded and validated; the bridge does not get them.",
+            "hu": "Az opcionális extra_env_files registry-mező olyan fájlokat sorol, amelyeket az ágens sessionje a sajátjai után, őrzötten és ellenőrizve tölt be; a híd nem kapja meg őket."
+          },
+          "capabilities": [
+            {
+              "id": "fleet",
+              "change": "improved"
+            }
+          ]
+        },
+        {
+          "id": "secrets-put",
+          "component": "brain",
+          "title": {
+            "en": "A secret value is handed over without entering a chat",
+            "hu": "A titok értéke chat nélkül adható át"
+          },
+          "summary": {
+            "en": "fleet secrets put reads the value only from stdin, with an itemised single-use approval, writes it 0600 and atomically, and keeps it out of output and receipts.",
+            "hu": "A fleet secrets put az értéket csak stdin-ről olvassa, tételes, egyszer használható jóváhagyással, 0600-zal és atomikusan írja, és kihagyja a kimenetből és a nyugtából."
+          },
+          "capabilities": [
+            {
+              "id": "fleet",
+              "change": "extended"
+            }
+          ]
+        }
+      ]
+    },
+    {
       "version": "0.6.1",
       "date": null,
       "components": {

@@ -29,6 +29,5 @@ def changes(root, states, now=None):
         out += ["~ %s: %s → %s" % (i, prev[i], states[i]) for i in sorted(set(prev) & set(states))
                 if prev[i] != states[i]]
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps({"at": now, "states": states}, indent=1, ensure_ascii=False) + "\n",
-                    encoding="utf-8")
+    path.write_bytes((json.dumps({"at": now, "states": states}, indent=1, ensure_ascii=False) + "\n").encode("utf-8"))
     return out

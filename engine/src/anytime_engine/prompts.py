@@ -55,3 +55,9 @@ def format_context(data: Any) -> str:
             return f"(error: {data['error']})"
         return json.dumps(data, indent=2, ensure_ascii=False, default=str)
     return str(data)
+
+
+def format_untrusted(data: Any) -> str:
+    """Like format_context, for content other people or agents wrote: cleaned, capped, fenced as DATA."""
+    from .untrusted import clean_tree, frame
+    return frame(format_context(clean_tree(data)))

@@ -13,6 +13,10 @@ import re
 import sys
 
 ROLE_NAME = re.compile(r"^[a-z][a-z0-9-]*$")
+HERE = pathlib.Path(__file__).resolve().parent
+# the shipped templates: vendored next to this file (.mentat/bin/bekotes/), below it
+# (.mentat/bin/), or in the reference tree (manifest/ -> bekotes/)
+TEMPLATE_DIRS = (HERE / "szerepek", HERE / "bekotes" / "szerepek", HERE.parent / "bekotes" / "szerepek")
 
 
 def roles_errors(manifest):
@@ -42,9 +46,27 @@ def roles(args):
         if not ROLE_NAME.fullmatch(name):
             raise mm.ManifestError("invalid role name: %s" % name)
     installed = [default] + [x for x in dict.fromkeys(extra) if x != default]
+    brain = _brain_root(mm.load(args.repo) or {})
+    for name in installed:
+        if not _resolvable(pathlib.Path(args.repo) / brain, name):
+            raise mm.ManifestError(
+                "unknown role: %s (no role file %s and no shipped template); write the role "
+                "file first, then run this again (reference/roles.md, Custom roles)"
+                % (name, pathlib.Path(brain) / "szerepek" / (name + ".md")))
     mm.update("brain", "roles", {"default": default, "installed": installed}, args.repo)
     print("roles written: default %s, installed %s" % (default, ", ".join(installed)))
     return 0
+
+
+def _brain_root(manifest):
+    import mentat_rules as rules
+    return rules._get(manifest, "components", "brain", "root") or "."
+
+
+def _resolvable(brain_root, name):
+    """The role guard reads <brain root>/szerepek/<name>.md; the `szerepek` step writes it from a template."""
+    return (brain_root / "szerepek" / (name + ".md")).is_file() or any(
+        (d / ("%s.%s.md" % (name, lang))).is_file() for d in TEMPLATE_DIRS for lang in ("hu", "en"))
 
 
 def role(args):

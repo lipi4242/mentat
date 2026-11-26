@@ -58,18 +58,18 @@ class UserGateStepsBack(KintBase):
     def setUp(self):
         super().setUp()
         (self.home / ".mentat").mkdir()
-        (self.home / ".mentat" / "identitas.txt").write_text(ADDR + "\n")
+        (self.home / ".mentat" / "identitas.txt").write_text(ADDR + "\n", encoding="utf-8")
         self.kapu = self.home / ".mentat" / "bin" / "identitas-kapu" / "current" / "kapu.py"
 
     def settings(self, base, block=True, exists=True):
         if exists:
             self.kapu.parent.mkdir(parents=True, exist_ok=True)
-            self.kapu.write_text("#")
+            self.kapu.write_text("#", encoding="utf-8")
         hook = {"type": "command", "command": "/usr/bin/python3 -I %s --hook" % self.kapu}
         if block:
             hook["onFailure"] = "block"
         base.mkdir(parents=True, exist_ok=True)
-        (base / "settings.json").write_text(json.dumps({"hooks": {"PreToolUse": [{"matcher": "*", "hooks": [hook]}]}}))
+        (base / "settings.json").write_text(json.dumps({"hooks": {"PreToolUse": [{"matcher": "*", "hooks": [hook]}]}}), encoding="utf-8")
 
     def fetch(self):
         return self.d("WebFetch", {"url": OPENALEX, "prompt": "x"})
@@ -83,13 +83,13 @@ class UserGateStepsBack(KintBase):
         import szerep_kapu_id
         self.settings(self.home / ".claude")
         s = self.home / ".claude" / "settings.json"
-        doc = json.loads(s.read_text())
+        doc = json.loads(s.read_text(encoding="utf-8"))
         del doc["hooks"]["PreToolUse"][0]["matcher"]
-        s.write_text(json.dumps(doc))
+        s.write_text(json.dumps(doc), encoding="utf-8")
         self.assertTrue(szerep_kapu_id.user_gate_active(self.root))
         h = doc["hooks"]["PreToolUse"][0]["hooks"][0]
         h["command"] = "cd %s && python3 identitas-kapu/current/kapu.py --hook" % self.home
-        s.write_text(json.dumps(doc))
+        s.write_text(json.dumps(doc), encoding="utf-8")
         self.assertFalse(szerep_kapu_id.user_gate_active(self.root))
 
     def test_unverified_or_in_repo_settings_do_not_count(self):
@@ -115,7 +115,7 @@ class SshConfigHostsOnly(unittest.TestCase):
         import szerep_id_javaslat as jav
         cfg = Path(tempfile.mkdtemp()) / "config"
         cfg.write_text("Host doboz tartalek\n  HostName box.example.net\n  User titkos-felhasznalo\n"
-                       "  IdentityFile ~/.ssh/kulcs-fajl\n  Port 2222\nHost *\n  ForwardAgent no\n")
+                       "  IdentityFile ~/.ssh/kulcs-fajl\n  Port 2222\nHost *\n  ForwardAgent no\n", encoding="utf-8")
         got = jav._ssh_hosts(str(cfg))
         self.assertEqual(got, ["doboz", "tartalek", "box.example.net"])
         for leaked in ("titkos-felhasznalo", "kulcs-fajl", "2222", "*"):

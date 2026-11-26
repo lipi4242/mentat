@@ -24,6 +24,8 @@ import subprocess
 import sys
 import time
 import urllib.parse
+for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows: a pipe is the ANSI code page, not UTF-8
+    getattr(_s, "reconfigure", lambda **k: None)(encoding="utf-8", errors="replace")
 
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.append(str(HERE))  # at the END: with `python3 -I` a planted module here cannot shadow the stdlib
@@ -70,7 +72,7 @@ def files(root, paths):
 
 
 def unsaved(root):
-    r = subprocess.run(["git", "-C", str(root), "status", "--porcelain", "--", "."], capture_output=True, text=True)
+    r = subprocess.run(["git", "-C", str(root), "status", "--porcelain", "--", "."], capture_output=True, text=True, encoding="utf-8", errors="replace")
     if r.returncode != 0:
         return ["WARN not a git folder: nothing here is saved in history"]
     changed = [ln[3:] for ln in r.stdout.splitlines() if ln.strip()]

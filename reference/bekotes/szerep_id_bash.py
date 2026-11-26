@@ -40,7 +40,7 @@ def _read(path, cwd, read):
     p = os.path.join(cwd or ".", os.path.expanduser(path))
     try:
         if read and os.path.isfile(p) and os.path.getsize(p) <= MAX:
-            with open(p, errors="replace") as f:
+            with open(p, errors="replace", encoding="utf-8") as f:
                 return f.read()
     except OSError:
         pass
@@ -76,7 +76,7 @@ def _strip(seg):
 def _git_hosts(cwd):
     try:
         out = subprocess.run(["git", "-C", cwd or ".", "config", "--get-regexp", r"^remote\..*\.url$"],
-                             capture_output=True, text=True, timeout=3).stdout.split()[1::2]
+                             capture_output=True, text=True, timeout=3, encoding="utf-8", errors="replace").stdout.split()[1::2]
     except (OSError, subprocess.SubprocessError):
         return set()
     return {(URL.findall(u) or [SSH_HOST.match(u.split("@")[-1]).group(1)])[0]

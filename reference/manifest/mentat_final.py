@@ -18,6 +18,8 @@ import re
 import secrets
 import sys
 import time
+for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows: a pipe is the ANSI code page, not UTF-8
+    getattr(_s, "reconfigure", lambda **k: None)(encoding="utf-8", errors="replace")
 
 sys.path.append(str(pathlib.Path(__file__).resolve().parent))  # at the END (python3 -I)
 import mentat_final_to as to  # noqa: E402
@@ -38,7 +40,7 @@ def _sha(path):
 def _save(path, doc):
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(".tmp")
-    tmp.write_text(json.dumps(doc, ensure_ascii=False, indent=1), encoding="utf-8")
+    tmp.write_bytes(json.dumps(doc, ensure_ascii=False, indent=1).encode("utf-8"))
     tmp.replace(path)
 
 

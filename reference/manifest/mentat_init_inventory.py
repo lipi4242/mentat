@@ -89,7 +89,7 @@ def found_lines(inv, lang):
 
 
 def _git(root, *a):
-    return subprocess.run(["git", "-C", str(root), *a], capture_output=True, text=True)
+    return subprocess.run(["git", "-C", str(root), *a], capture_output=True, text=True, encoding="utf-8", errors="replace")
 
 
 def after_lines(root, before_head, lang):
@@ -98,7 +98,9 @@ def after_lines(root, before_head, lang):
     head = _git(root, "rev-parse", "-q", "--verify", "HEAD").stdout.strip()
     if head and head != before_head:
         files = _git(root, "show", "--name-only", "--format=", "--relative", "HEAD").stdout.split()
-        out.append(t["committed"] % ("%s (%d)" % (_short(files), len(files))))
+        skills = [f for f in files if f.startswith(".claude/skills/")]  # one entry, not six names
+        shown = [f for f in files if f not in skills] + ([".claude/skills/ (%d)" % len(skills)] if skills else [])
+        out.append(t["committed"] % ("%s (%d)" % (_short(shown), len(files))))
     else:
         out.append(t["nothing"])
     left = [ln[:2].strip() + " " + ln[3:] for ln in _git(root, "status", "--porcelain", "--", ".").stdout.splitlines()]

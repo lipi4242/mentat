@@ -59,8 +59,8 @@ class DbWrite(KintBase):
 
     def setUp(self):
         super().setUp()
-        (self.root / "fix.sql").write_text("-- javítás\nDELETE FROM leads WHERE id = 7;\n")
-        (self.root / "read.sql").write_text("SELECT * FROM leads;\n")
+        (self.root / "fix.sql").write_text("-- javítás\nDELETE FROM leads WHERE id = 7;\n", encoding="utf-8")
+        (self.root / "read.sql").write_text("SELECT * FROM leads;\n", encoding="utf-8")
 
     def test_writes_and_undecidable_sql_are_gated(self):
         for cmd in GATED:

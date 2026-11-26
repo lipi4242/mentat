@@ -22,14 +22,14 @@ def _ensure_ignored(stage):
     parent.mkdir(parents=True, exist_ok=True)
     try:
         r = subprocess.run(["git", "-C", str(parent), "rev-parse", "--is-inside-work-tree"],
-                           capture_output=True, text=True, env=dict(os.environ, GIT_NO_LAZY_FETCH="1"))
+                           capture_output=True, text=True, env=dict(os.environ, GIT_NO_LAZY_FETCH="1"), encoding="utf-8", errors="replace")
         if r.returncode != 0:
             return
         ign = subprocess.run(["git", "-C", str(parent), "check-ignore", "-q", str(stage)], env=dict(os.environ, GIT_NO_LAZY_FETCH="1"))
     except OSError:  # git missing: treat as not in a git tree
         return
     if ign.returncode != 0:
-        (parent / ".gitignore").write_text("*\n")
+        (parent / ".gitignore").write_bytes("*\n".encode("utf-8"))
 
 
 def safe_name(name, used=()):
@@ -78,9 +78,9 @@ def stage(src_dir, stage_dir, globs=()):
             log.append({"file": name, "ok": "gyanus-utasitas"})
             continue
         clean, hits = szuro.redact(text)
-        (out / name).write_text(clean, encoding="utf-8")
+        (out / name).write_bytes(clean.encode("utf-8"))
         log.append({"file": name, "kitakarva": hits})
-    (stage_dir / LOG).write_text(json.dumps(log, ensure_ascii=False, indent=1))
+    (stage_dir / LOG).write_bytes(json.dumps(log, ensure_ascii=False, indent=1).encode("utf-8"))
 
 
 def _description(path):
@@ -90,7 +90,7 @@ def _description(path):
 
 def lista(stage_dir):
     stage_dir = pathlib.Path(stage_dir)
-    log = json.loads((stage_dir / LOG).read_text())
+    log = json.loads((stage_dir / LOG).read_text(encoding="utf-8"))
     lines, hashes, skipped = [], {}, []
     for e in log:
         if "ok" in e:
@@ -101,7 +101,7 @@ def lista(stage_dir):
         hashes[e["file"]] = full
         k = ", ".join("%s×%d" % kv for kv in sorted(e["kitakarva"].items())) or "-"
         lines.append("[ ] %s %s — %s (kitakarva: %s)" % (e["file"], full[:8], _description(p), k))
-    (stage_dir / APPROVAL).write_text(json.dumps(hashes, indent=1))
+    (stage_dir / APPROVAL).write_bytes(json.dumps(hashes, indent=1).encode("utf-8"))
     if skipped:
         lines += ["", "Kihagyva:"] + skipped
     return "\n".join(lines)
@@ -110,7 +110,7 @@ def lista(stage_dir):
 def alkalmaz(stage_dir, approved, dest_dir):
     stage_dir = pathlib.Path(stage_dir)
     ap = stage_dir / APPROVAL
-    listed = json.loads(ap.read_text()) if ap.exists() else {}
+    listed = json.loads(ap.read_text(encoding="utf-8")) if ap.exists() else {}
     for n in approved:
         p = stage_dir / "memoria" / n
         if n != pathlib.Path(n).name or n not in listed or not p.is_file():

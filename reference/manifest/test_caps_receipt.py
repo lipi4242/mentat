@@ -21,7 +21,7 @@ class Receipt(CapsBase):
 
     def test_find_writes_the_receipt_with_index_candidates_and_recommendation(self):
         out, path = self.receipt("minden reggel írd ki, ki nem fizetett")
-        doc = json.loads(path.read_text())
+        doc = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual(doc["query"], "minden reggel írd ki, ki nem fizetett")
         self.assertRegex(doc["index"]["hash"], r"^[0-9a-f]{16,}$")
         self.assertTrue(doc["index"]["version"])
@@ -33,7 +33,7 @@ class Receipt(CapsBase):
         _, path = self.receipt("minden reggel írd ki, ki nem fizetett")
         r = self.decide(path, "enable", "--candidate", "engine.cases")
         self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
-        doc = json.loads(path.read_text())
+        doc = json.loads(path.read_text(encoding="utf-8"))
         self.assertEqual((doc["decision"]["decision"], doc["decision"]["candidate"]), ("enable", "engine.cases"))
         self.assertEqual(self.decide(path, "use", "--candidate", "engine.cases").returncode, 1)
 
@@ -49,7 +49,7 @@ class Receipt(CapsBase):
         self.assertEqual(r.returncode, 1)
         r = self.decide(path, "new", "--candidate", "engine.cases", "--why", WHY)
         self.assertEqual(r.returncode, 0, r.stdout)
-        self.assertEqual(json.loads(path.read_text())["decision"]["why"], WHY)
+        self.assertEqual(json.loads(path.read_text(encoding="utf-8"))["decision"]["why"], WHY)
 
     def test_inconclusive_receipt_authorizes_nothing_without_the_users_yes(self):
         _, path = self.receipt("fordítsd le ezt a verset szonettbe")

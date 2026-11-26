@@ -1,0 +1,28 @@
+{
+  "owner": "Példa Ede",
+  "manager": "demo-agent",
+  "agents": {
+    "demo-agent": {
+      "main_role": "flottamenedzser",
+      "extra_roles": ["asszisztens"],
+      "responsibility": "A példaflotta felügyelete és a tulajdonos napi ügyeinek intézése.",
+      "reports_to": "human:Példa Ede",
+      "talks_to": [{"agent": "demo-helper", "about": "feladatok kiosztása"}],
+      "repos": [{"repo": "example/demo-agent", "mode": "owns"},
+                {"repo": "example/demo-helper", "mode": "contributes"}],
+      "home": {"repo": "example/demo-agent"},
+      "lang": "hu"
+    },
+    "demo-helper": {
+      "main_role": "custom",
+      "custom_role": "segéd",
+      "extra_roles": [{"custom": "jegyzetelő"}],
+      "responsibility": "Segédfeladatok a demo-agentnek.",
+      "reports_to": "demo-agent",
+      "talks_to": [{"agent": "demo-agent", "about": "kész feladatok jelentése"}],
+      "repos": [{"repo": "example/demo-helper", "mode": "owns"}],
+      "home": {"repo": "example/demo-helper", "path": "brain"},
+      "lang": "en"
+    }
+  }
+}

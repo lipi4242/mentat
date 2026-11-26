@@ -60,8 +60,7 @@ def run(a):
     notes = [n for n in (_clone(repo, cfg_path, s) for s in sources
                          if s.get("kind") == "repo" and not s.get("state")) if n]
     lel = leltar.collect(cfg, str(repo))
-    (biz / "leltar.json").write_text(json.dumps(lel, indent=1, ensure_ascii=False, sort_keys=True) + "\n",
-                                     encoding="utf-8")
+    (biz / "leltar.json").write_bytes((json.dumps(lel, indent=1, ensure_ascii=False, sort_keys=True) + "\n").encode("utf-8"))
     report = notes + osszefoglalo.summary(lel)
     state = {s.get("name"): s.get("state") for s in lel.get("sources") or []}
     for s in sources:  # the INVENTORY state decides, not the config

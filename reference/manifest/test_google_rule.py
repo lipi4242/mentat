@@ -47,14 +47,14 @@ class GoogleRule(unittest.TestCase):
             self.assertTrue(need <= have, (lang, need - have))
 
     def test_the_catalog_says_shipped_and_probes_the_installed_tools(self):
-        entries = [e for f in sorted((HERE / "capabilities").glob("*.json")) for e in json.loads(f.read_text())]
+        entries = [e for f in sorted((HERE / "capabilities").glob("*.json")) for e in json.loads(f.read_text(encoding="utf-8"))]
         google = [e for e in entries if e["category"] == "google"]
         self.assertTrue(google and all(e["lifecycle"] == "active" for e in google))
         root = pathlib.Path(tempfile.mkdtemp())
         self.assertEqual(Prober(root, entries).state("google.calendar")["availability"], "off")
         (root / ".mentat" / "bin").mkdir(parents=True)
         for tool in ("mentat_google.py", "mentat_google_auth.py", "mentat_contract.py"):
-            (root / ".mentat" / "bin" / tool).write_text("")
+            (root / ".mentat" / "bin" / tool).write_text("", encoding="utf-8")
         self.assertEqual(Prober(root, entries).state("google.calendar")["availability"], "on")
 
     def test_the_index_row(self):

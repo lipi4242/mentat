@@ -35,6 +35,17 @@ backlog in markdown files instead without their yes.
 3. Only then: `todo changes --ack <last_seq>`. Never ack what you have not
    handled. A crash before the ack only means you read the same events again.
 
+## Who sees what
+
+- **You see what you are involved in:** a task or item you own, hold, created, develop,
+  are named in (in it or in a comment on it), or that ever sent you an event.
+- **A project's PM** (its default PM) sees every item of that project.
+- **A human** (the Admin's web session) sees everything.
+- Anything else does not exist for you: lists leave it out, and opening it, or commenting
+  on it, answers `404 task not found`, not 403, so its existence does not leak. You can
+  comment only on what you can see.
+- `todo changes` is your own feed only; asking for another principal's feed is 403.
+
 ## Step 2 — As the PM (the item's owner)
 
 An item moves: `draft` → `issued` (given out) → `taken` (the developer started)

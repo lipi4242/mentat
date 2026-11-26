@@ -12,7 +12,8 @@ export async function backlogApp() {
   await t.call('POST', '/principals', { kind: 'human', auth_email: 'owner@example.com', handle: 'owner', display_name: 'Owner', idem_key: 'self' }, human);
   const as = (who: string) => (who === 'human' ? human : { 'X-Mentat-Token': who });
   const project = (await t.call('POST', '/projects', { prefix: 'WEB', name: 'Web', idem_key: 'web' }, human)).body;
-  const get = async (id: string) => (await t.call('GET', `/items/${id}`)).body;
+  // State checks read as the human: an agent reads only what it is involved in.
+  const get = async (id: string) => (await t.call('GET', `/items/${id}`, undefined, human)).body;
   const item = async (body: Record<string, unknown> = {}, who = 'a') =>
     (await t.call('POST', '/items', { project: 'WEB', title: 'Item', acs: ['AC one', 'AC two'], idem_key: crypto.randomUUID(), ...body }, as(who))).body;
   /** One verb with the item's current rev; `body` overrides it. */

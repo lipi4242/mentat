@@ -19,7 +19,7 @@ class Names(unittest.TestCase):
         self.src, self.stage = self.tmp / "src", self.tmp / "stage"
         self.src.mkdir()
         for n in ("a@example.com.md", "b@example.org.md", "sima.md"):
-            (self.src / n).write_text("---\ndescription: d\n---\nx\n")
+            (self.src / n).write_text("---\ndescription: d\n---\nx\n", encoding="utf-8")
 
     def test_unique_shell_safe_placeholders(self):
         memoria.stage(self.src, self.stage)
@@ -29,7 +29,7 @@ class Names(unittest.TestCase):
         for n in staged:
             self.assertRegex(n, SAFE)
             self.assertNotIn("@", n)
-        log = json.loads((self.stage / memoria.LOG).read_text())
+        log = json.loads((self.stage / memoria.LOG).read_text(encoding="utf-8"))
         self.assertEqual(sorted(e["file"] for e in log), staged)
         out = memoria.lista(self.stage)
         self.assertNotIn("<", out)

@@ -21,8 +21,8 @@ TOML = 'name = "lista"\n[[d1_databases]]\nbinding = "DB"\n[[kv_namespaces]]\nbin
 class Need(unittest.TestCase):
     def setUp(self):
         self.dir = pathlib.Path(tempfile.mkdtemp())
-        (self.dir / "wrangler.toml").write_text(TOML)
-        (self.dir / ".env").write_text("CLOUDFLARE_API_TOKEN=t-good\n")
+        (self.dir / "wrangler.toml").write_text(TOML, encoding="utf-8")
+        (self.dir / ".env").write_text("CLOUDFLARE_API_TOKEN=t-good\n", encoding="utf-8")
         os.chmod(self.dir / ".env", 0o600)
 
     def env(self, fake, path=None):
@@ -39,7 +39,7 @@ class Need(unittest.TestCase):
 
     def test_every_missing_permission_of_this_project_is_named_with_the_step(self):
         r = subprocess.run([sys.executable, str(WEB / "mentat_cf_token.py"), "--check", "--for", "wrangler.toml"],
-                           capture_output=True, text=True, cwd=self.dir, env=self.env(self.fake(("workers", "access"))))
+                           capture_output=True, text=True, cwd=self.dir, env=self.env(self.fake(("workers", "access"))), encoding="utf-8", errors="replace")
         self.assertEqual(r.returncode, 2, r.stdout)
         self.assertIn("D1", r.stdout)
         self.assertIn("Workers KV Storage", r.stdout)
@@ -47,28 +47,28 @@ class Need(unittest.TestCase):
         self.assertIn("Update token", r.stdout)
         ok = subprocess.run([sys.executable, str(WEB / "mentat_cf_token.py"), "--check", "--for", "wrangler.toml"],
                             capture_output=True, text=True, cwd=self.dir,
-                            env=self.env(self.fake(("workers", "access", "d1", "kv"))))
+                            env=self.env(self.fake(("workers", "access", "d1", "kv"))), encoding="utf-8", errors="replace")
         self.assertEqual(ok.returncode, 0, ok.stdout)
 
     def test_a_plain_check_judges_the_project_here_not_a_fixed_list(self):  # a false RED before
-        (self.dir / "wrangler.toml").write_text('name = "x"\n[[kv_namespaces]]\nbinding = "KV"\nid = "y"\n')
+        (self.dir / "wrangler.toml").write_text('name = "x"\n[[kv_namespaces]]\nbinding = "KV"\nid = "y"\n', encoding="utf-8")
         r = subprocess.run([sys.executable, str(WEB / "mentat_cf_token.py"), "--check"], capture_output=True,
-                           text=True, cwd=self.dir, env=self.env(self.fake(("workers", "access", "kv"))))
+                           text=True, cwd=self.dir, env=self.env(self.fake(("workers", "access", "kv"))), encoding="utf-8", errors="replace")
         self.assertEqual(r.returncode, 0, r.stdout)
 
     def test_deploy_stops_before_wrangler_runs_when_the_token_is_short(self):
         bin_dir = pathlib.Path(tempfile.mkdtemp())
         marker = self.dir / "wrangler-ran"
-        (bin_dir / "wrangler").write_text("#!/bin/sh\ntouch %s\necho https://lista.acc.workers.dev\n" % marker)
+        (bin_dir / "wrangler").write_text("#!/bin/sh\ntouch %s\necho https://lista.acc.workers.dev\n" % marker, encoding="utf-8")
         os.chmod(bin_dir / "wrangler", 0o755)
         args = [sys.executable, str(HERE / "mentat_web.py"), "deploy", "--approved", "igen", "--", "wrangler", "deploy"]
         r = subprocess.run(args, capture_output=True, text=True, cwd=self.dir,
-                           env=self.env(self.fake(("workers", "access")), str(bin_dir)))
+                           env=self.env(self.fake(("workers", "access")), str(bin_dir)), encoding="utf-8", errors="replace")
         self.assertEqual(r.returncode, 2, r.stdout)
         self.assertIn("NOT DEPLOYED", r.stdout)
         self.assertFalse(marker.exists(), "wrangler must not run with a short token")
         r = subprocess.run(args, capture_output=True, text=True, cwd=self.dir,
-                           env=self.env(self.fake(("workers", "access", "d1", "kv")), str(bin_dir)))
+                           env=self.env(self.fake(("workers", "access", "d1", "kv")), str(bin_dir)), encoding="utf-8", errors="replace")
         self.assertIn("LIVE https://lista.acc.workers.dev", r.stdout)
         self.assertIn("mentat_done.py --protected https://lista.acc.workers.dev", r.stdout)
 
@@ -79,11 +79,11 @@ class BaseUrl(unittest.TestCase):
 
     def run_check(self, env_extra):
         d = pathlib.Path(tempfile.mkdtemp())
-        (d / ".env").write_text("CLOUDFLARE_API_TOKEN=t-good\n")
+        (d / ".env").write_text("CLOUDFLARE_API_TOKEN=t-good\n", encoding="utf-8")
         env = {k: v for k, v in os.environ.items() if not k.startswith("CLOUDFLARE_")}
         env.update(env_extra)
         return subprocess.run([sys.executable, str(WEB / "mentat_cf_token.py"), "--check"],
-                              capture_output=True, text=True, cwd=d, env=env, timeout=60)
+                              capture_output=True, text=True, cwd=d, env=env, timeout=60, encoding="utf-8", errors="replace")
 
     def test_the_standard_variable_is_honoured_and_wins(self):
         f = Fake()

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""bekotes CLI: elokeszit, leltar [--osszefoglalo], klon, memoria stage|lista|alkalmaz, szerepek, blokk, check, olvas grep|show.
+"""bekotes CLI: elokeszit, leltar [--osszefoglalo], klon, memoria stage|lista|alkalmaz, szerepek, onkep, blokk, check, olvas grep|show.
 
 Runs from the reference tree or vendored in .mentat/bin/bekotes/ (with the
 manifest modules next to it; see BEKOTES.md step 0).
@@ -8,6 +8,8 @@ import argparse
 import json
 import pathlib
 import sys
+for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows: a pipe is the ANSI code page, not UTF-8
+    getattr(_s, "reconfigure", lambda **k: None)(encoding="utf-8", errors="replace")
 
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.append(str(HERE.parent / "manifest"))  # reference tree; vendored copies win
@@ -24,6 +26,7 @@ import mentat_manifest as mm  # noqa: E402
 import olvas  # noqa: E402
 import osszefoglalo  # noqa: E402
 import szerepek  # noqa: E402
+import szerep_onkep_frissit  # noqa: E402
 
 
 def cmd_leltar(a):
@@ -39,8 +42,7 @@ def cmd_leltar(a):
     cfg = json.loads(pathlib.Path(a.config).read_text(encoding="utf-8"))
     hely.require_no_dotdot(cfg)
     d = leltar.collect(cfg, a.repo)
-    pathlib.Path(a.out).write_text(
-        json.dumps(d, indent=1, ensure_ascii=False, sort_keys=True) + "\n", encoding="utf-8")
+    pathlib.Path(a.out).write_bytes((json.dumps(d, indent=1, ensure_ascii=False, sort_keys=True) + "\n").encode("utf-8"))
 
 
 def cmd_stage(a):
@@ -104,6 +106,10 @@ def parser():
     for p in (og, osh):
         p.add_argument("--repo", default=".")
         p.add_argument("--business")
+    ok = sub.add_parser("onkep", help="what an upgrade does with each role self-image block")
+    ok.add_argument("--repo", default=".")
+    ok.add_argument("--lang", choices=("hu", "en"), help="default: mentat.json agent.language")
+    ok.add_argument("--alkalmaz", action="store_true", help="carry out csere and beir; never touch a changed block")
     for name in ("szerepek", "blokk", "check"):
         p = sz if name == "szerepek" else sub.add_parser(name)
         p.add_argument("--repo", default=".")
@@ -116,9 +122,9 @@ def main(argv=None):
     try:
         if a.cmd == "leltar":
             cmd_leltar(a)
-        elif a.cmd in ("szerepek", "blokk", "check", "olvas", "klon", "elokeszit"):
+        elif a.cmd in ("szerepek", "blokk", "check", "olvas", "klon", "elokeszit", "onkep"):
             mods = {"szerepek": szerepek, "blokk": blokk, "check": check, "olvas": olvas, "klon": klon,
-                    "elokeszit": elokeszit}
+                    "elokeszit": elokeszit, "onkep": szerep_onkep_frissit}
             return mods[a.cmd].run(a)
         elif a.sub == "stage":
             cmd_stage(a)

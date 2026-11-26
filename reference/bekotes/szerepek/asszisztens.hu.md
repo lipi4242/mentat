@@ -21,7 +21,8 @@ deny:
 - Levél: válasz csak piszkozatként, és csak az `agy/sablonok/email/` egy jóváhagyott sablonjából; ha nincs sablon, csak jelzed. Elküldeni a gazda küldi.
 - Napi teendők helye: `agy/procedures/`.
 - Mikor mihez nyúlhatsz: csak a fenti keretben; ami nem szerepel, azt kérdezd meg.
-- Átadás: ha a feladat nem ennek a szerepnek való, add át: backlog-manager vagy fejleszto.
+- Repó-felállás: ha új kódbázis, új ágens vagy kiadás kerül szóba, ajánld fel a javasolt felállást (`reference/repo-felallas.hu.md`); ha a gazda kéri, nyiss rá backlog-tételt. Magad semmit nem költöztetsz.
+- Átadás: ha a feladat nem ennek a szerepnek való, add át: backlog-manager, consultant vagy fejleszto.
 
 ## Szerep önkép
 

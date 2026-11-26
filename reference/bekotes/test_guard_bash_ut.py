@@ -25,7 +25,7 @@ class GuardBashPath(GuardBase):
         cfg = self.root / "agy" / "business" / "zoldag" / "bekotes.json"
         cfg.parent.mkdir(parents=True)
         cfg.write_text(json.dumps({"schema": 1, "sources": [
-            {"name": "bank", "kind": "live", "path": "~/business/bank/befizetesek.csv"}]}))
+            {"name": "bank", "kind": "live", "path": "~/business/bank/befizetesek.csv"}]}), encoding="utf-8")
         self.assertEqual(self.decide("Bash", {"command": "cat ~/business/bank/befizetesek.csv"},
                                      "asszisztens"), "allow")
         for cmd in ("ls README.md", "git log --oneline -3", "echo bankkartya", "cat munka/banking.md"):

@@ -61,6 +61,20 @@ inside it. Individual **entities** are the files:
 demands them: if you keep talking about something the brain has no shelf for, the assistant
 proposes a new one. It won't invent shelves you never needed.
 
+Those new shelves are yours: a wine merchant gets a `wine` type, a cook a `recipe` type, each with
+its own fields (vintage, colour, cooking time) and its own folder. The assistant asks you once, then
+creates the type with one command; the definition is kept in the brain, in `types/`, next to your
+notes. A folder you or the assistant started by hand is **adopted**: the fields are read from the
+notes, and the notes themselves are left as they are. After that, search, deadlines and renaming
+work on the new type the same way as on the built-in ones, and `check` tells you if a note is
+missing a field the type requires.
+
+Types grow with you. After a long brain dump the assistant sorts what you said into the shelves you
+already have, and looks for things that keep coming back without a shelf of their own; when it finds
+one, it asks you once. Shelves can be renamed, merged or split later; the notes and the links between
+them move along, and every such change is kept as a decision, so you can see how the brain's shape
+came about.
+
 ### It can hire specialists
 
 Some work is better done by someone who is not you. A **subagent** is a
@@ -123,7 +137,7 @@ rambling messages are *better* than tidy ones, because the brain saves them whol
 afterwards.
 
 **Proactive mode** is when it acts without you, on a schedule. That needs
-[the engine](https://github.com/lipi4242/mentat/tree/v0.6.1/engine) (see below). Even then you're not
+[the engine](https://github.com/lipi4242/mentat/tree/v0.7.0/engine) (see below). Even then you're not
 locked out: you can open a session alongside and get things done together while it keeps ticking
 in the background.
 
@@ -164,7 +178,7 @@ Everything above gives your assistant a mind. It doesn't give it a pulse.
 Out of the box it's **reactive**: sharp when you talk to it, inert when you don't. It won't notice
 the invoice that arrived this morning, because nothing woke it up to look.
 
-[**The engine**](https://github.com/lipi4242/mentat/tree/v0.6.1/engine) is the other half — a
+[**The engine**](https://github.com/lipi4242/mentat/tree/v0.7.0/engine) is the other half — a
 deterministic tick that fires on a schedule and asks *"is anything worth doing right now?"*, then
 consults the brain you built here to answer.
 

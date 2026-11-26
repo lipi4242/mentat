@@ -17,7 +17,7 @@ from typing import Callable
 
 # Minden modul MOST töltődik be: a checkout a futó processz alatt cserélődik, egy
 # később betöltött modul már az új kódból jönne (vegyes kód egy processzben).
-from fleet import box_agents, box_checkout, box_snapshot
+from fleet import box_agents, box_checkout, box_rules, box_snapshot
 from fleet.box_signals import interruptible
 from fleet.box_ctx import Ctx, Halt, StepFailed, PUBLIC_URL, private
 from fleet.box_report import format_summary, write_receipt
@@ -38,7 +38,7 @@ def _mod(name: str, m) -> Step:
 
 def default_steps() -> list[Step]:
     return [_mod("pillanatkép", box_snapshot), _mod("checkout", box_checkout),
-            _mod("ágensek", box_agents)]
+            _mod("ágensek", box_agents), _mod("szabályok", box_rules)]
     # TODO(docs/migration/boxes.md 6. lépés): plugin-váltás fleet@fleet-leader → fleet@mentat
     #   ágensenként (`fleet plugin install` + idle restart) — külön Step a lista végére.
     # TODO(boxes.md 7. lépés): motor-vendorolás (`engine/sync-to.sh`) — szintén külön Step.
@@ -119,6 +119,7 @@ def cmd_box_upgrade(a) -> int:
     from pathlib import Path
     ctx = Ctx(home=Path.home(), tag=a.to, url=a.repo_url, dry_run=a.dry_run, canary=a.canary,
               only=a.only or [])
+    ctx.state["rules_pr"] = bool(a.rules_pr)
     ctx.last = (a.last or []) + [n for n in _last_from_file(ctx) if n not in (a.last or [])]
 
     def confirm() -> bool:
@@ -143,6 +144,7 @@ def add_parser(sub) -> None:
     x.add_argument("--only", action="append", metavar="ÁGENS", help="csak ezek az ágensek (ismételhető)")
     x.add_argument("--last", action="append", metavar="ÁGENS",
                    help="ezek a végére (ismételhető; a ~/.config/fleet/upgrade-last fájl is)")
+    x.add_argument("--rules-pr", action="store_true", help="az elavult .claude/rules/fleet.md-hez repónként PR (alapból csak a terv sorolja)")
     x.add_argument("--yes", action="store_true", help="kérdés nélkül végrehajt")
     x.add_argument("--repo-url", default=PUBLIC_URL, help=f"a kiadási repó (alap: {PUBLIC_URL})")
     x.add_argument("--json", action="store_true")

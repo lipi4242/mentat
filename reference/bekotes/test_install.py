@@ -30,12 +30,12 @@ class Szerepek(unittest.TestCase):
             r = szerepek(self.root)
             self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
         for n in ("asszisztens", "backlog-manager"):
-            text = (self.root / "agy/szerepek" / (n + ".md")).read_text()
+            text = (self.root / "agy/szerepek" / (n + ".md")).read_text(encoding="utf-8")
             self.assertNotIn("<BUSINESS>", text)
             self.assertNotIn("<FORRASOK>", text)
             self.assertIn("Zöldág Kertészet", text)
-        self.assertEqual((self.root / "agy/szerepek/fejleszto.md").read_text(), "SAJAT\n")
-        s = json.loads((self.root / ".claude/settings.json").read_text())
+        self.assertEqual((self.root / "agy/szerepek/fejleszto.md").read_text(encoding="utf-8"), "SAJAT\n")
+        s = json.loads((self.root / ".claude/settings.json").read_text(encoding="utf-8"))
         self.assertEqual(s["permissions"]["allow"], ["Bash(ls)"])  # the user's rules stay
         self.assertEqual(s["permissions"]["deny"], szerep_hook.NATIVE_DENY)  # added once, not twice
         pre, start = hook_cmds(s, "PreToolUse"), hook_cmds(s, "SessionStart")
@@ -44,30 +44,41 @@ class Szerepek(unittest.TestCase):
         self.assertEqual(s["hooks"]["PreToolUse"][0]["matcher"], "*")
         self.assertEqual(len(start), 1)
         self.assertTrue(start[0].endswith("; " + GUARD + " --session-start"), start)
-        cmd = (self.root / ".claude/commands/szerep.md").read_text()
+        cmd = (self.root / ".claude/commands/szerep.md").read_text(encoding="utf-8")
         self.assertIn("MENTAT_ROLE=$ARGUMENTS python3 .mentat/bin/mentat_cli.py role --json", cmd)
         self.assertIn("Ha `$ARGUMENTS` üres", cmd)
-        self.assertIn("Felelősség", (self.root / "agy/szerepek/asszisztens.md").read_text())  # --lang from mentat.json
-        m = json.loads((self.root / "mentat.json").read_text())
+        self.assertIn("Felelősség", (self.root / "agy/szerepek/asszisztens.md").read_text(encoding="utf-8"))  # --lang from mentat.json
+        m = json.loads((self.root / "mentat.json").read_text(encoding="utf-8"))
         self.assertEqual(m["roles"], {"default": "asszisztens",
                                       "installed": ["asszisztens", "backlog-manager", "fejleszto"]})
-        meta = (self.root / "agy/sablonok/email/_meta.md").read_text()
+        meta = (self.root / "agy/sablonok/email/_meta.md").read_text(encoding="utf-8")
         self.assertIn("nincs jóváhagyott sablon — a szerep csak jelez, nem ír választ", meta)
+
+    def test_consultant_is_offered_and_installs_with_its_self_image(self):
+        r = bk(self.root, "szerepek", "--repo", ".", "--business", "zoldag",
+               "--default", "consultant", "--install", "asszisztens")
+        self.assertEqual(r.returncode, 0, r.stdout + r.stderr)
+        text = (self.root / "agy/szerepek/consultant.md").read_text(encoding="utf-8")
+        self.assertIn("Zöldág Kertészet", text)
+        self.assertIn("## Szerep önkép", text)
+        self.assertIn('"Bash(git push*)"', text)
+        m = json.loads((self.root / "mentat.json").read_text(encoding="utf-8"))
+        self.assertEqual(m["roles"], {"default": "consultant", "installed": ["consultant", "asszisztens"]})
 
     def test_kiado_default_refused_when_release_agent_exists(self):
         p = self.root / BIZ / "leltar.json"
-        p.write_text(json.dumps(dict(json.loads(p.read_text()), kiado_alapnak=False)))
+        p.write_text(json.dumps(dict(json.loads(p.read_text(encoding="utf-8")), kiado_alapnak=False)), encoding="utf-8")
         r = bk(self.root, "szerepek", "--repo", ".", "--lang", "hu", "--business", "zoldag",
                "--default", "kiado")
         self.assertEqual(r.returncode, 1)
         self.assertIn("kiado", r.stderr)
-        self.assertNotIn("roles", json.loads((self.root / "mentat.json").read_text()))
+        self.assertNotIn("roles", json.loads((self.root / "mentat.json").read_text(encoding="utf-8")))
 
     def hook(self, event, payload):
-        s = json.loads((self.root / ".claude/settings.json").read_text())
+        s = json.loads((self.root / ".claude/settings.json").read_text(encoding="utf-8"))
         e = dict(env(self.root), CLAUDE_PROJECT_DIR=str(self.root))
         return subprocess.run(["sh", "-c", hook_cmds(s, event)[0]], input=json.dumps(payload),
-                              capture_output=True, text=True, env=e, cwd=self.root)
+                              capture_output=True, text=True, env=e, cwd=self.root, encoding="utf-8", errors="replace")
 
     def test_settings_hook_runs_vendored_guard(self):
         self.assertEqual(szerepek(self.root).returncode, 0)
@@ -83,7 +94,7 @@ class Szerepek(unittest.TestCase):
         out = json.loads(r.stdout)["hookSpecificOutput"]
         self.assertEqual((r.returncode, out["permissionDecision"]), (0, "deny"))
         self.assertIn(HINT, out["permissionDecisionReason"])
-        fetch = "curl -fsSL https://raw.githubusercontent.com/lipi4242/mentat/v0.6.1/release.json -o y"
+        fetch = "curl -fsSL https://raw.githubusercontent.com/lipi4242/mentat/v0.7.0/release.json -o y"
         r = self.hook("PreToolUse", {"session_id": "s1", "tool_name": "Bash", "tool_input": {"command": fetch}})
         self.assertEqual((r.returncode, r.stdout), (0, ""))
         r = self.hook("SessionStart", {"session_id": "s1"})
@@ -105,7 +116,8 @@ class Blokk(unittest.TestCase):
             outs.append((root / "AGENTS.md").read_bytes())
         self.assertEqual(outs[0], outs[1])
         t = outs[0].decode()
-        self.assertTrue(t.startswith("# Ágens\n\nSaját szöveg.\n"))
+        self.assertTrue(t.startswith("<!-- mentat:managed:start self-image -->\n"))  # the roles step puts it first
+        self.assertIn("<!-- mentat:managed:end self-image -->\n\n# Ágens\n\nSaját szöveg.\n", t)
         self.assertEqual(t.count("<!-- mentat:managed:start bekotes-zoldag -->"), 1)
         self.assertEqual(t.count("<!-- mentat:managed:end bekotes-zoldag -->"), 1)
         for s in ("@agy/szerepek/asszisztens.md", "agy/business/zoldag/", "zoldag-web",

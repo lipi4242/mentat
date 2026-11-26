@@ -2,16 +2,19 @@
 
     create(items, owner_text, ttl_min, approval_id=None) -> id
     check(id, op, name, src, dst)     Refused, ha hiányzik, lejárt, elhasznált, vagy a tétel nincs rajta
+    claim(…)                          az írás ELŐTT: O_EXCL jelölőfájl, így két folyamat közül csak egy mehet át
     consume(…)                        a sikeres művelet után: a tétel elhasználva
 
-Egy tétel: op (move|copy), name, from, to, why. A tulajdonos szó szerinti igenje kötelező: ez
+Egy tétel: op (move|copy|put), name, from, to, why; a put tétel forrása mindig `stdin`. A tulajdonos szó szerinti igenje kötelező: ez
 naplózott önbevallás, nem hitelesítés. Az `owner_msg` (a csatorna-üzenet azonosítója) utólag
 ellenőrizhetővé teszi; nélküle a `fleet secrets audit` önbevallásként jelzi. Lejárat
 legfeljebb 60 perc. Minden tétel egyszer használható; ha mind elfogyott, a fájl `consumed`.
 v1 korlát: a fájlt az ágens is megírhatja (`fleet secrets approve`); v2 = a híd aláírja.
 """
 from __future__ import annotations
+import hashlib
 import json
+import os
 import re
 import secrets
 import time
@@ -22,6 +25,7 @@ from fleet import titok_hely as H
 MAX_TTL_MIN = 60
 ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
 OPS = ("move", "copy")
+ITEM_OPS = OPS + ("put",)  # put: az érték a `fleet secrets put` stdin-jéről jön
 
 
 class Refused(Exception):
@@ -37,9 +41,11 @@ def _path(approval_id: str, home: Path | None) -> Path:
 def parse_item(text: str) -> dict:
     """`OP:NÉV:HONNAN:HOVA:MIÉRT` — a miért tartalmazhat kettőspontot."""
     parts = text.split(":", 4)
-    if len(parts) != 5 or parts[0] not in OPS or not all(p.strip() for p in parts):
-        raise Refused(f"a tétel alakja: {'|'.join(OPS)}:NÉV:HONNAN:HOVA:MIÉRT (mind kitöltve)")
+    if len(parts) != 5 or parts[0] not in ITEM_OPS or not all(p.strip() for p in parts):
+        raise Refused(f"a tétel alakja: {'|'.join(ITEM_OPS)}:NÉV:HONNAN:HOVA:MIÉRT (mind kitöltve)")
     op, name, src, dst, why = (p.strip() for p in parts)
+    if (op == "put") != (src == "stdin"):
+        raise Refused("a put tétel forrása `stdin` (put:NÉV:stdin:HOVA:MIÉRT), más tételé nem az")
     return {"op": op, "name": name, "from": src, "to": dst, "why": why, "consumed": False}
 
 
@@ -76,6 +82,20 @@ def self_declared(home: Path | None = None) -> list[str]:
     return out
 
 
+def _marker(approval_id: str, op: str, name: str, src: str, dst: str, home: Path | None) -> Path:
+    key = hashlib.sha256("\0".join((op, name, src, dst)).encode()).hexdigest()[:12]
+    return _path(approval_id, home).with_suffix(f".{key}.used")
+
+
+def claim(approval_id: str, op: str, name: str, src: str, dst: str, home: Path | None = None) -> None:
+    """Atomikus, egyszeri lefoglalás az írás előtt; a második hívó Refused-ot kap (check→írás verseny)."""
+    try:
+        os.close(os.open(_marker(approval_id, op, name, src, dst, home),
+                         os.O_CREAT | os.O_EXCL | os.O_WRONLY | getattr(os, "O_NOFOLLOW", 0), 0o600))
+    except FileExistsError:
+        raise Refused(f"ez a tétel már elhasználva: {op} {name}") from None
+
+
 def check(approval_id: str, op: str, name: str, src: str, dst: str, home: Path | None = None,
           now: float | None = None) -> dict:
     p = _path(approval_id, home)
@@ -93,7 +113,7 @@ def check(approval_id: str, op: str, name: str, src: str, dst: str, home: Path |
     item = next((i for i in doc.get("items", []) if all(i.get(k) == v for k, v in want.items())), None)
     if item is None:
         raise Refused(f"ez a tétel ({op} {name}: {src} → {dst}) nincs a jóváhagyáson: {approval_id}")
-    if item.get("consumed"):
+    if item.get("consumed") or _marker(approval_id, op, name, src, dst, home).exists():
         raise Refused(f"ez a tétel már elhasználva: {op} {name}")
     return item
 

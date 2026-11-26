@@ -21,6 +21,8 @@ import os
 import pathlib
 import re
 import sys
+for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows: a pipe is the ANSI code page, not UTF-8
+    getattr(_s, "reconfigure", lambda **k: None)(encoding="utf-8", errors="replace")
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import szerep_id as ident  # noqa: E402
@@ -119,7 +121,7 @@ def write(lines, path=elsofel.FILE):
     new = [x for x in lines if x not in old]
     os.makedirs(os.path.dirname(path), mode=0o700, exist_ok=True)
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
-    with os.fdopen(fd, "a") as f:
+    with os.fdopen(fd, "a", encoding="utf-8", newline="\n") as f:
         f.writelines(x + "\n" for x in new)
     return new
 

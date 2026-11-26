@@ -6,8 +6,9 @@ describe('todo mentions and feeds', () => {
   it('polls by handle and inclusive due date, with assignment taking precedence over owner', async () => {
     const { create, call, raw } = await todoApp();
     raw.prepare("UPDATE todo_principal SET handle='my_agent' WHERE id='a'").run();
+    const asB = (set: Record<string, unknown>) => call('POST', '/tasks', { title: 'Task', idem_key: crypto.randomUUID(), ...set }, { 'X-Mentat-Token': 'b' }).then(r => r.body);
     const owned = await create({ due_date: '2026-10-27' });
-    const assigned = await create({ owner_id: 'b', assignee_id: 'a', due_date: '2026-10-26' });
+    const assigned = await asB({ assignee_id: 'a', due_date: '2026-10-26' });
     await create({ assignee_id: 'b', due_date: '2026-10-27' });
     await create({ due_date: '2026-10-28' });
     await create();
@@ -16,18 +17,20 @@ describe('todo mentions and feeds', () => {
     expect((await call('GET', '/tasks?ball=a')).status).toBe(422);
     expect((await call('GET', '/tasks?due_before=2026-02-30')).status).toBe(422);
     const all = await call('GET', '/tasks', undefined, { 'X-Mentat-Token': 'c' });
-    expect(all.body).toHaveLength(5);
-    expect((await call('GET', `/tasks/${owned.id}`, undefined, { 'X-Mentat-Token': 'c' })).status).toBe(200);
+    expect(all.body).toHaveLength(0); // c is in none of them
+    expect((await call('GET', `/tasks/${owned.id}`, undefined, { 'X-Mentat-Token': 'c' })).status).toBe(404);
+    expect((await call('GET', '/tasks', undefined, { 'X-Mentat-Token': 'b' })).body).toHaveLength(2); // b owns one, holds one
   });
   it('filters by owner and assignee handles, combinable with status', async () => {
     const { create, call } = await todoApp();
     const aOnly = await create({ owner_id: 'a' });
     const aToB = await create({ owner_id: 'a', assignee_id: 'b' });
-    const bOwn = await create({ owner_id: 'b' });
+    const bOwn = await ((set: Record<string, unknown>) => call('POST', '/tasks', { title: 'Task', idem_key: crypto.randomUUID(), ...set }, { 'X-Mentat-Token': 'b' }).then(r => r.body))({});
     const ids = async (qs: string) => (await call('GET', `/tasks?${qs}`)).body.map((r: any) => r.id).sort();
     expect(await ids('owner=a')).toEqual([aOnly.id, aToB.id].sort());
     expect(await ids('assignee=b')).toEqual([aToB.id]);
-    expect(await ids('assignee=')).toEqual([aOnly.id, bOwn.id].sort());
+    expect(await ids('assignee=')).toEqual([aOnly.id]); // b's own task is not a's to see
+    expect(bOwn.owner_id).toBe('b');
     expect(await ids('owner=a&assignee=b')).toEqual([aToB.id]);
     await call('POST', `/tasks/${aOnly.id}/complete`, { expected_rev: 1 });
     expect(await ids('owner=a&status=open')).toEqual([aToB.id]);
@@ -49,10 +52,12 @@ describe('todo mentions and feeds', () => {
     await call('PATCH', `/tasks/${task.id}`, { set: { description: 'none', assignee_id: null }, expected_rev: 1 });
     expect(raw.prepare('SELECT * FROM todo_mention').all()).toEqual([]);
     await call('POST', `/tasks/${task.id}/comments`, { body: 'Hello @b', expected_rev: 2 });
-    const feed = (await call('GET', '/changes?for=b&since=0&limit=2')).body;
+    const asB = { 'X-Mentat-Token': 'b' }, asC = { 'X-Mentat-Token': 'c' };
+    const feed = (await call('GET', '/changes?for=b&since=0&limit=2', undefined, asB)).body;
     expect(feed.map((e: any) => e.kind)).toEqual(['created','updated']);
-    expect((await call('GET', `/changes?for=b&since=${feed[1].seq}`)).body.map((e: any) => e.kind)).toEqual(['commented']);
-    expect((await call('GET', '/changes?for=c')).body).toHaveLength(2);
+    expect((await call('GET', `/changes?for=b&since=${feed[1].seq}`, undefined, asB)).body.map((e: any) => e.kind)).toEqual(['commented']);
+    expect((await call('GET', '/changes?for=c', undefined, asC)).body).toHaveLength(2);
+    expect((await call('GET', '/changes?for=c')).status).toBe(403); // a cannot read c's feed
     expect((await call('GET', `/tasks/${task.id}`)).body.comments[0]).toMatchObject({ body: 'Hello @b', display_name: 'A' });
   });
   it.each(['since=-1','since=1.5','limit=501','limit=0','for=unknown'])('rejects bad cursor/filter %s', async q => {

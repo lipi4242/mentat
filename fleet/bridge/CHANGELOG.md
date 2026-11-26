@@ -1,5 +1,27 @@
 # Changelog
 
+## 2.3.0 — 2026-11-21 — /help és engedélykérő ablak Telegramon
+
+- **`/help` és „súgó” a híd válaszaként.** A `/help`, a `/help@bot`, a „súgó”/„sugo” (egy előtte
+  álló `@botnév`-vel is, opcionálisan ` status` vagy ` todo` paraméterrel) üzenetre a híd az ágens
+  repójában lefuttatja a `.mentat/bin/mentat_help.py`-t, és a kimenetét válaszként küldi a chatbe
+  (`reply_to_message_id`). A pane-be ilyenkor nem megy semmi, a választ nem modell fogalmazza
+  (`lib/help.mjs`). A paraméter fix listából jön, szabad szöveg nem jut a hívásba; shell nélkül,
+  5 s időkorláttal, a kimenet 4000 karakterre vágva. A szövegben a `/mentat` parancsnév `/help`-re
+  cserélődik, útvonal és URL változatlan. Ha nincs eszköz, hibázik, lejár az idő, üres a kimenet
+  vagy a küldés elbukik, az üzenet a régi úton a pane-be megy.
+- **Engedélykérő ablak: az ok a riasztásban, válasz `/igen` / `/nem`-mel.** A `lib/pane-dialog.mjs`
+  kiolvassa a pane-ben álló jóváhagyó ablakot (hook-sor, `[plugin:…]` jelölő, az első magyarázó
+  mondat, a kérdés, a számozott opciók, ujjlenyomat); keretes ablaknál csak a címet, a parancs
+  törzsét nem. Ha ugyanaz az ablak 60 s óta áll, EGY riasztás megy (ok, kérdés, opciók,
+  `/igen` / `/nem`), `BRIDGE_DIALOG_REALERT_MIN` (alap: 10) perc után még egy. Magától soha nem
+  válaszol. Az `/igen` / `/nem` [kód] csak a `BRIDGE_DIALOG_ANSWER_IDS` (alap: az allowlist)
+  küldőjétől és csak akkor hat, ha MOST is a riasztott ablak áll; ekkor az opció SZÁMA megy ki,
+  Enter nélkül, naplózva (`kind=dialog`), visszaigazolással.
+- **A kapuk nem változtak:** mindkét ág a küldő-allowlist, a mention-kapu és a láthatatlan-Unicode
+  szűrő után jön. Új, nem kötelező beállítások: `BRIDGE_HELP_REPO`, `BRIDGE_DIALOG_REALERT_MIN`,
+  `BRIDGE_DIALOG_ANSWER_IDS` (`docs/config.md`).
+
 ## 2.2.0 — 2026-11-08 — todo-ébresztés
 
 - **A híd a todót is figyeli.** Ha a boxon van todo-beállítás (`~/.config/todo`), a híd 20 s-onként

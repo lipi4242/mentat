@@ -16,7 +16,7 @@ def token(root, fake, expiry=FUTURE, value="a-good"):
     d.mkdir(parents=True, exist_ok=True)
     (d / "token.json").write_text(json.dumps({
         "token": value, "refresh_token": "r-1", "token_uri": fake.base + "/token",
-        "client_id": "cid", "client_secret": "csecret", "expiry": expiry}))
+        "client_id": "cid", "client_secret": "csecret", "expiry": expiry}), encoding="utf-8")
     return d / "token.json"
 
 
@@ -32,4 +32,4 @@ def run(root, fake, *args, tool="mentat_google.py", extra_env=None):
     env = dict(os.environ, HOME=tempfile.mkdtemp(), MENTAT_GOOGLE_API=fake.base if fake else "http://127.0.0.1:9")
     env.update(extra_env or {})
     return subprocess.run([sys.executable, str(HERE / tool), "--repo", str(root), *args],
-                          capture_output=True, text=True, env=env)
+                          capture_output=True, text=True, env=env, encoding="utf-8", errors="replace")

@@ -6,7 +6,8 @@ import { keys, object, Problem, textField, type Task, type TodoEnv } from './typ
 import { appendPosition } from './tree';
 import { mentions, mentionStatements } from './mentions';
 import { checkParent, isHuman, refuseItem } from './kinds';
-import { caseDetail, caseFields, caseInsert, caseUpdate } from './case-fields';
+import { caseDetail, caseFields, caseInsert, caseUpdate, confirmationAfterEdit } from './case-fields';
+import { requireOwner, requireOwnOwner, requireWriter } from './access';
 const RECURRING_CASE = 'a case cannot repeat; recurring obligations belong to the cases plugin';
 export function registerWrite(app: Hono<TodoEnv>) {
   app.post('/tasks', async c => {
@@ -24,10 +25,12 @@ export function registerWrite(app: Hono<TodoEnv>) {
     const extension = kind === 'case' ? caseFields(caseBody ?? {}) : null;
     const id = newId(), at = now(), parent = (set.parent_id ?? null) as string | null;
     await checkParent(db, kind, parent);
+    if (parent !== null) await requireWriter(c, (await getTask(db, parent))!); // a child changes its parent's checklist
     const values = { status: 'open', tz: 'Europe/Budapest', repeat_from: 'schedule', owner_id: actor,
       parent_id: parent, position: set.position ?? await appendPosition(db, parent), ...set,
       id, kind, created_by: actor, updated_by: actor, created_at: at, updated_at: at };
     await validateTask(db, values);
+    requireOwnOwner(c, set.owner_id);
     const ids = await mentions(db, String(set.description ?? ''));
     const stmts = [db.prepare(`INSERT INTO todo_task (${Object.keys(values).join(',')}) VALUES (${Object.keys(values).map(() => '?').join(',')})`).bind(...Object.values(values)),
       ...(extension ? [caseInsert(db, id, extension, actor, isHuman(c))] : []),
@@ -43,6 +46,8 @@ export function registerWrite(app: Hono<TodoEnv>) {
     const body = object(await c.req.json()); keys(body, ['set','case','expected_rev']);
     const row = await current(c, body); if (row instanceof Response) return row;
     refuseItem(row, 'PATCH /tasks');
+    await requireWriter(c, row);
+    if (body.set !== undefined && ['owner_id', 'assignee_id'].some(k => k in object(body.set))) requireOwner(c, row);
     if (body.case !== undefined && row.kind !== 'case') throw new Problem('case fields require a case');
     const extension = body.case === undefined ? {} : caseFields(body.case);
     const set = body.set === undefined && body.case !== undefined ? {} : fields(body.set);
@@ -55,6 +60,7 @@ export function registerWrite(app: Hono<TodoEnv>) {
       diff: Object.keys(extension).length ? { ...set, case: extension } : set,
       view: (db, id) => getTask(db, id).then(t => t && caseDetail(db, t)),
       related: op => [...(changed ? mentionStatements(c.env.DB, 'task', row.id, ids, op) : []),
-        ...(Object.keys(extension).length ? [caseUpdate(c.env.DB, row.id, extension, op)] : [])] });
+        ...(Object.keys(extension).length ? [caseUpdate(c.env.DB, row.id, extension, op)] : []),
+        ...(row.kind === 'case' ? confirmationAfterEdit(c, row.id, set, extension, op) : [])] });
   });
 }

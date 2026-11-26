@@ -5,8 +5,9 @@ alparancs sem ír ki.
                                    (11-07; --install-hook: igen). Ha a kapu már él, az új leltárral is
                                    lefut az essentials-próba; piros ágensnél a régi leltár marad (--force).
                                    Az összeolvasztás-módot nem kapcsolja (csak plan-merge / merge-mode on)
-    approve --item OP:NÉV:HONNAN:HOVA:MIÉRT … --owner-text "<a tulajdonos szó szerinti igenje>"
+    approve --item OP:NÉV:HONNAN:HOVA:MIÉRT (put: put:NÉV:stdin:HOVA:MIÉRT) … --owner-text "<a tulajdonos szó szerinti igenje>"
     move|copy --name K --from X --to Y --approval ID
+    put --name K --to Y --approval ID   az érték CSAK stdin-ről (`<kiadó> | ssh box 'fleet secrets put …'`)
     audit [--repo DIR …]           kiszivárgott-e leltárban lévő érték (átiratok, repó, git-történet)
     hook install [--force]|status  a titok-kapu telepítése (essentials-próba + kanári előtte) / ellenőrzése
     merge-mode on|off|status       az ágens-határ összeolvasztás-módja (hatar_mod.py)
@@ -92,10 +93,13 @@ def cmd_move(a) -> int:
     except J.Refused as e:
         print(f"fleet secrets: {e}", file=sys.stderr)
         return 2
+    except M.ReceiptFailed as e:
+        print(f"fleet secrets: {e}", file=sys.stderr)
+        return 1
     except OSError as e:
         print(f"fleet secrets: fájlhiba ({type(e).__name__}); semmi nem mozdult a nyugta szerint", file=sys.stderr)
         return 1
-    print(f"{r['op']} {r['name']}: {r['from']} → {r['to']} (hash8 {r['hash8']}, nyugta: ~/.mentat/titkok/nyugtak.jsonl)")
+    print(f"{r['op']} {r['name']}: {r['from']} → {r['to']} (hmac {r['hmac'][:16]}, nyugta: ~/.mentat/titkok/nyugtak.jsonl)")
     return 0
 
 
@@ -160,6 +164,8 @@ def add_parser(sub) -> None:
         x.add_argument("--to", dest="dst", required=True, metavar="ÁGENS|ÚT")
         x.add_argument("--approval", required=True)
         x.set_defaults(fn=cmd_move)
+    from fleet import titok_put
+    titok_put.add_parser(ss)
     x = ss.add_parser("audit", help="leltárban lévő érték az átiratokban / a repóban / git-történetben")
     x.add_argument("--repo", action="append")
     x.add_argument("--json", action="store_true")

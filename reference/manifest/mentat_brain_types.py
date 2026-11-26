@@ -51,6 +51,9 @@ def local_today(root=".", now=None):
     try:
         return now.astimezone(zoneinfo.ZoneInfo(name)).date()
     except (zoneinfo.ZoneInfoNotFoundError, ValueError):
+        if not zoneinfo.available_timezones():  # Windows Python ships no time-zone database
+            raise SystemExit("STOP this Python has no time-zone database (Windows): "
+                             "python -m pip install tzdata")
         raise SystemExit("STOP unknown timezone %r (an IANA name like Europe/Budapest; "
                          "fix components.engine.timezone in mentat.json)" % name)
 

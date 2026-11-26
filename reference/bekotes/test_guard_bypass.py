@@ -13,9 +13,9 @@ class GuardBypass(GuardBase):
         self.assertEqual(self.decide("Bash", {"command": "git push origin main"}, cwd="/tmp"), "deny")
 
     def test_write_is_covered_by_edit_rules(self):
-        doc = json.loads((self.root / "mentat.json").read_text())
+        doc = json.loads((self.root / "mentat.json").read_text(encoding="utf-8"))
         doc["roles"]["installed"].append("kiado")
-        (self.root / "mentat.json").write_text(json.dumps(doc))
+        (self.root / "mentat.json").write_text(json.dumps(doc), encoding="utf-8")
         self.assertEqual(self.decide("Write", {"file_path": "agy/x.md"}, "kiado", "k"), "deny")
         self.assertEqual(self.decide("MultiEdit", {"file_path": "agy/x.md"}, "kiado", "k"), "deny")
         self.assertEqual(self.decide("NotebookEdit", {"notebook_path": "agy/x.ipynb"}, "kiado", "k"), "deny")
@@ -42,15 +42,15 @@ class GuardBypass(GuardBase):
     def test_pinned_role_must_still_be_installed(self):
         pin = self.root / ".mentat" / "szerep"
         pin.mkdir(parents=True)
-        (pin / "p").write_text("kiado\n")  # kiado is not installed in ROLES
+        (pin / "p").write_text("kiado\n", encoding="utf-8")  # kiado is not installed in ROLES
         self.assertEqual(self.decide("Read", {"file_path": "a"}, sid="p"), "deny")
 
     def test_invalid_stdin_denies(self):
-        r = subprocess.run([sys.executable, str(GUARD)], input="{nope", capture_output=True, text=True)
+        r = subprocess.run([sys.executable, str(GUARD)], input="{nope", capture_output=True, text=True, encoding="utf-8", errors="replace")
         self.assertEqual(json.loads(r.stdout)["hookSpecificOutput"]["permissionDecision"], "deny")
 
     def test_session_start_bad_manifest_says_deny(self):
-        (self.root / "mentat.json").write_text("{broken")
+        (self.root / "mentat.json").write_text("{broken", encoding="utf-8")
         r = self.run_guard({}, None, ["--session-start"])
         self.assertIn("tilt", json.loads(r.stdout)["hookSpecificOutput"]["additionalContext"])
 

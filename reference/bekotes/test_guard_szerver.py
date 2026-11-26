@@ -98,16 +98,16 @@ class Szerver(KintBase):
         super().setUp()
         scripts = {"dev": "vite", "start": "next start", "dev:web": "vite --port 5173",
                    "build": "vite build", "lint": "eslint ."}
-        (self.root / "package.json").write_text(json.dumps({"scripts": scripts}))
+        (self.root / "package.json").write_text(json.dumps({"scripts": scripts}), encoding="utf-8")
         for sub, s in (("web", {"dev": "npm run serve", "serve": "python3 -m http.server"}),
                        ("cli", {"start": "node index.js"})):
             (self.root / sub).mkdir()
-            (self.root / sub / "package.json").write_text(json.dumps({"scripts": s}))
+            (self.root / sub / "package.json").write_text(json.dumps({"scripts": s}), encoding="utf-8")
         files = {"server.js": "require('http').createServer(h).listen(3000)\n", "build.js": "console.log(1)\n",
                  "app.py": "srv = HTTPServer(('', 8000), H)\nsrv.serve_forever()\n", "report.py": "print(1)\n",
                  "app.log": "x\n", "README.md": "x\n"}
         for name, text in files.items():
-            (self.root / name).write_text(text)
+            (self.root / name).write_text(text, encoding="utf-8")
 
     def why(self, cmd, **extra):
         r = self.run_guard(self.payload("Bash", dict({"command": cmd}, **extra)), None)

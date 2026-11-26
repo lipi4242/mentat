@@ -29,7 +29,7 @@ SOURCE_EXPR = re.compile(r"git\s+(-C\s+\S+\s+)?config\s+(--get\s+|--global\s+)*u
 
 def _run(cmd):
     try:
-        return subprocess.run(cmd, capture_output=True, text=True, timeout=5).stdout.strip()
+        return subprocess.run(cmd, capture_output=True, text=True, timeout=5, encoding="utf-8", errors="replace").stdout.strip()
     except (OSError, subprocess.SubprocessError):
         return ""
 

@@ -15,10 +15,10 @@ class DotDot(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.root, True)
         done(self.root)
         cfg = self.root / BIZ / "bekotes.json"
-        d = json.loads(cfg.read_text())
+        d = json.loads(cfg.read_text(encoding="utf-8"))
         d["sources"][0]["from"] = "../../../business/remote/x.git"
         d["sources"].append({"name": "kint", "kind": "live", "path": "../kint.txt"})
-        cfg.write_text(json.dumps(d, ensure_ascii=False))
+        cfg.write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
 
     def test_every_command_fails_on_dotdot(self):
         r = bk(self.root, "leltar", "--config", BIZ + "/bekotes.json", "--out", BIZ + "/leltar.json")
@@ -40,9 +40,9 @@ class NamedSourceFiltered(unittest.TestCase):
         self.addCleanup(shutil.rmtree, root, True)
         write(root, ".home/bank/befizetesek.csv", "datum;kitol;ip\n2026-10-01;anna@example.com;%s\n" % IP)
         cfg = root / BIZ / "bekotes.json"
-        d = json.loads(cfg.read_text())
+        d = json.loads(cfg.read_text(encoding="utf-8"))
         d["sources"].append({"name": "bank", "kind": "live", "path": "~/bank/befizetesek.csv"})
-        cfg.write_text(json.dumps(d, ensure_ascii=False))
+        cfg.write_text(json.dumps(d, ensure_ascii=False), encoding="utf-8")
         r = bk(root, "elokeszit", "--business", "zoldag")
         self.assertIn("bank (live): elérhető", r.stdout)
         for out in (bk(root, "olvas", "show", "bank:befizetesek.csv").stdout,

@@ -9,6 +9,7 @@ import type { Env } from '../types';
 import { adminEmails } from '../types';
 import { authUser, authSession, authAccount, authVerification, authRateLimit } from '../db/auth-schema';
 import { sendOtpEmail } from './email';
+import { otpLockHooks } from './otp-lock';
 
 const OTP_LENGTH = 6;
 const OTP_EXPIRY_SECONDS = 300;
@@ -44,6 +45,20 @@ function buildAuthOptions(env: Env) {
       updateAge: 60 * 60 * 24, // sliding, refreshed daily
     },
     trustedOrigins: allowedBrowserOrigins(env),
+    // Only the code sign-in is used. The other e-mail code endpoints are a second guessing path
+    // (check-verification-otp also answers differently for a known and an unknown address), so
+    // they answer 404 for every address.
+    disabledPaths: [
+      '/email-otp/check-verification-otp',
+      '/email-otp/verify-email',
+      '/email-otp/request-password-reset',
+      '/email-otp/reset-password',
+      '/forget-password/email-otp',
+      '/email-otp/request-email-change',
+      '/email-otp/change-email',
+    ],
+    // Per-address lock across IPs and codes, and no user row outside ADMIN_EMAILS (otp-lock.ts).
+    hooks: otpLockHooks(env),
     rateLimit: {
       enabled: true,
       storage: 'database' as const,

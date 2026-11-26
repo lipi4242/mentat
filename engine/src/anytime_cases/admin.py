@@ -3,7 +3,7 @@ header `X-Mentat-Token`, read-only:
 
     GET /api/cases/due?until=YYYY-MM-DD  every open occurrence due by `until`,
         one item per date {case_id, title, status, description, next_action,
-        recurrence, brain_ref, due_at, closable} — the admin computes
+        recurrence, brain_ref, created_by, due_at, closable} — the admin computes
         the series, so the pack does not recompute it from a copy
     GET /api/cases?status=waiting        the waiting cases (also the undated ones)
 

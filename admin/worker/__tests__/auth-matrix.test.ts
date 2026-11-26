@@ -100,7 +100,7 @@ describe('todo principal mapping on top of the shared guard', () => {
 
   it('a token acts only as its own principal: body fields cannot switch identity', async () => {
     const { call, create } = await todoApp();
-    const task = await create();
+    const task = await create({ assignee_id: 'b' }); // b can see it, so b may comment
     const spoof = await call('POST', `/tasks/${task.id}/comments`, { body: 'hi', expected_rev: 1, created_by: 'a' }, { 'X-Mentat-Token': 'b' });
     expect(spoof.status).toBe(422);
     await call('POST', `/tasks/${task.id}/comments`, { body: 'hi', expected_rev: 1 }, { 'X-Mentat-Token': 'b' });

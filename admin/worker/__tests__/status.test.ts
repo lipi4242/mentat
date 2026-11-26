@@ -49,6 +49,26 @@ describe('formatStatus', () => {
   });
 });
 
+describe('formatStatus on macOS (launchd)', () => {
+  const mac = { ...facts, manager: 'launchd', unit: 'running', runs: 3, node: '/opt/homebrew/bin/node', nodeOk: true };
+
+  it('names the launchd agent and how often launchd has started it', () => {
+    const out = formatStatus(mac);
+    expect(out).toContain('service:    launchd agent com.mentat.admin running, port 8787, started 3× (KeepAlive restarts it)');
+    expect(out).not.toContain('systemctl');
+  });
+
+  it('says plainly when the node in the plist is gone', () => {
+    const out = formatStatus({ ...mac, unit: 'not loaded', nodeOk: false, health: false });
+    expect(out).toContain('node /opt/homebrew/bin/node is gone (node upgraded or moved?) — rerun connect --local');
+    expect(out).toMatch(/health:\s+DOWN — see ~\/Library\/Logs\/mentat-admin.log/);
+  });
+
+  it('no plist → how to install it', () => {
+    expect(formatStatus({ ...facts, manager: 'launchd', unit: 'none' })).toContain('not installed (no launchd agent) — npm run connect -- --local');
+  });
+});
+
 describe('pendingMigrations', () => {
   it('is the files the database has not applied, in order', () => {
     expect(pendingMigrations(['0002_b.sql', '0001_a.sql', '0900_c.sql'], ['0001_a.sql'])).toEqual(['0002_b.sql', '0900_c.sql']);

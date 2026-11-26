@@ -79,7 +79,7 @@ def save(root):
     path = os.path.join(str(root), CACHE)
     os.makedirs(os.path.dirname(path), exist_ok=True)
     fd = os.open(path + ".tmp", os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w") as f:
+    with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as f:
         json.dump({"ids": ids.values, "gh_logins": [login] if login else []}, f)
     os.replace(path + ".tmp", path)
 

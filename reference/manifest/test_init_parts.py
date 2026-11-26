@@ -20,7 +20,7 @@ import mentat_init_parts as mp  # noqa: E402
 
 def init_parts(root, lang="en"):
     return subprocess.run([sys.executable, "-I", str(HERE / "mentat_init.py"), "--parts", "--repo", str(root),
-                           "--lang", lang], capture_output=True, text=True, timeout=60)
+                           "--lang", lang], capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace")
 
 
 class Parts(unittest.TestCase):
@@ -28,19 +28,19 @@ class Parts(unittest.TestCase):
         self.root = pathlib.Path(tempfile.mkdtemp())
 
     def brain(self):
-        (self.root / "AGENTS.md").write_text("<!-- mentat:managed:start reference-manual -->\nx\n")
+        (self.root / "AGENTS.md").write_text("<!-- mentat:managed:start reference-manual -->\nx\n", encoding="utf-8")
         (self.root / ".claude").mkdir()
-        (self.root / ".claude" / "settings.json").write_text('{"hooks": "python3 .mentat/bin/bekotes/szerep_guard.py"}')
+        (self.root / ".claude" / "settings.json").write_text('{"hooks": "python3 .mentat/bin/bekotes/szerep_guard.py"}', encoding="utf-8")
         (self.root / ".mentat" / "bin" / "bekotes").mkdir(parents=True)
-        (self.root / ".mentat" / "bin" / "bekotes" / "szerep_guard.py").write_text("")
+        (self.root / ".mentat" / "bin" / "bekotes" / "szerep_guard.py").write_text("", encoding="utf-8")
         comp = {"brain": {"root": "brain"}}
-        (self.root / "mentat.json").write_text(json.dumps({"schema": 1, "components": comp}))
+        (self.root / "mentat.json").write_text(json.dumps({"schema": 1, "components": comp}), encoding="utf-8")
 
     def test_an_empty_folder_misses_every_part_and_gets_the_rule(self):
         r = init_parts(self.root)
         self.assertEqual(r.returncode, 0, r.stderr)
         self.assertIn("PARTS brain MISSING · guard MISSING · engine MISSING", r.stdout)
-        self.assertIn("MISSING brain — to install it: INSTALL.md step 2", r.stdout)
+        self.assertIn("MISSING brain — to install it: FIRST-INSTALL.md step 2", r.stdout)
         self.assertIn("RULE", r.stdout)
         self.assertIn("is not that yes", r.stdout)
         self.assertIn("jónak látod", init_parts(self.root, "hu").stdout)
@@ -54,17 +54,17 @@ class Parts(unittest.TestCase):
     def test_everything_present_has_no_rule(self):
         self.brain()
         (self.root / "anytime_engine").mkdir()
-        (self.root / "anytime_engine" / "tick.py").write_text("")
-        doc = json.loads((self.root / "mentat.json").read_text())
+        (self.root / "anytime_engine" / "tick.py").write_text("", encoding="utf-8")
+        doc = json.loads((self.root / "mentat.json").read_text(encoding="utf-8"))
         doc["components"]["engine"] = {"path": "anytime_engine"}
-        (self.root / "mentat.json").write_text(json.dumps(doc))
+        (self.root / "mentat.json").write_text(json.dumps(doc), encoding="utf-8")
         self.assertEqual(mp.lines(self.root), ["PARTS brain ok · guard ok · engine ok"])
 
     def test_a_declared_engine_whose_files_are_gone_is_missing(self):
         self.brain()
-        doc = json.loads((self.root / "mentat.json").read_text())
+        doc = json.loads((self.root / "mentat.json").read_text(encoding="utf-8"))
         doc["components"]["engine"] = {"path": "anytime_engine"}
-        (self.root / "mentat.json").write_text(json.dumps(doc))
+        (self.root / "mentat.json").write_text(json.dumps(doc), encoding="utf-8")
         self.assertIn("files are gone", "\n".join(mp.lines(self.root)))
 
 

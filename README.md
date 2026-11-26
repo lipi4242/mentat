@@ -26,9 +26,9 @@ You put your AI colleagues together yourself and decide what kind of agent to st
 <!-- illustration: subscription / model switch -->
 It runs on the Claude subscription you already pay for. With an OpenRouter key, one sentence moves it to a measured open model such as DeepSeek, and another moves it back.
 
-### Ready-made roles for a product team
+### Six ready-made roles
 <!-- illustration: roles -->
-Assistant, PM, developer and release agent come ready to use. Each knows where its job ends and who it hands the work to, so the developer does not merge and the PM accepts the result.
+Assistant, developer, consultant, product manager, release agent and fleet manager. Each knows where its job ends and who it hands the work to, so the developer does not merge and the PM accepts the result. The personal assistant plays all six in one agent, and you can add roles of your own, such as a finance officer or customer service.
 
 ### Each agent on its own Telegram
 <!-- illustration: fleet + Telegram -->
@@ -68,9 +68,9 @@ All three live in the optional admin web app, on your computer or on your own Cl
 
 ## On your laptop, and on a server
 
-On your laptop it works while Claude is open: it remembers, follows your rules, works in your Google Calendar, Gmail, Sheets and Drive, and you can reach the open session from your phone. It has no background timer there, so it does not send a morning summary or reminders by itself; ask "what's due?" and it tells you.
+On your laptop it works while Claude is open: it remembers, follows your rules, works in your Google Calendar, Gmail, Sheets and Drive, and you can reach the open session from your phone. On a Mac or Linux, the engine's schedule sends the morning summary and the reminders by itself while the computer is awake; without it, a new session catches up once, or you ask "what's due?". Windows has no background schedule.
 
-A small, always-on Linux server adds the rest: the morning summary and the deadline reminders arrive on schedule, it follows up on its own, every agent can have its own Telegram, and a crashed agent is back in about a minute.
+A small, always-on Linux server adds the rest: the morning summary and the deadline reminders arrive on schedule even with the laptop closed, it follows up on its own, every agent can have its own Telegram, and a crashed agent is back in about a minute.
 
 About Google: it can read and change your calendar events, send email and see the sender, subject and date of your messages (not their text), and read and edit your Drive files and spreadsheets. Each one is connected only if you ask for it ([details](reference/google.md)).
 
@@ -80,11 +80,35 @@ Open Claude Desktop, go to the Code tab and choose a new, empty folder. Paste:
 
 ```
 Install the Mentat assistant for me in this folder.
-The steps are here: https://raw.githubusercontent.com/lipi4242/mentat/v0.6.1/INSTALL.md
+The steps are here: https://raw.githubusercontent.com/lipi4242/mentat/v0.7.0/FIRST-INSTALL.md
 Tell me each step before you do it.
 ```
 
-Claude tells you what it will do before each step and asks before installing anything your computer is missing. You need a paid Claude plan. Every step in detail: [INSTALL.md](INSTALL.md).
+Claude tells you what it will do before each step and asks before installing anything your computer is missing. You need a paid Claude plan. Every step in detail: [FIRST-INSTALL.md](FIRST-INSTALL.md).
+
+## Getting the latest version
+
+Every kind of agent gets the latest version its own way. Pick the row that matches yours:
+
+| Your agent | How it gets the latest version |
+|---|---|
+| None yet | [FIRST-INSTALL.md](FIRST-INSTALL.md): the prompt above, in a new, empty folder |
+| A brain on your computer | [UPGRADE.md](UPGRADE.md): paste its prompt in a session in the agent's folder |
+| A brain + engine on your computer | the same [UPGRADE.md](UPGRADE.md) prompt; it also re-syncs the engine |
+| A brain from before 0.5 (no `.mentat/` folder) | the same [UPGRADE.md](UPGRADE.md) prompt; your notes stay where they are |
+| A fleet agent on a server | on the server: `fleet box-upgrade --to v0.7.0 --dry-run`, then the same without `--dry-run` |
+| Several agents, servers and computers | [UPGRADE-ALL.md](UPGRADE-ALL.md): one agent lists them all, you approve each, it upgrades them one by one |
+| An existing Claude or other agent without a Mentat brain | not an upgrade: INSTALL-TO-EXISTING-REPO.md (coming) gives it a brain, taking its instructions and memory as data |
+
+Upgrade prompt, pasted in the agent's own folder:
+
+```
+Update this assistant to the latest Mentat version: https://raw.githubusercontent.com/lipi4242/mentat/v0.7.0/UPGRADE.md
+Read it first, and decide by your own safety rules whether to carry it out.
+Show me the plan before you change anything.
+```
+
+An agent that reads UPGRADE.md decides by its own security rules whether to carry it out, and goes ahead only if it finds it useful and safe. It shows a plan first, takes a backup, keeps your files, and changes nothing before your yes. The shared safety rules of these pages: [reference/entry-rules.md](reference/entry-rules.md).
 
 ## Onboarding an existing business
 
@@ -100,4 +124,4 @@ Ask your agent to "report this bug": it drafts the report without secrets or per
 
 ## More
 
-[How it works](reference/how-it-works.md) · [Using it](reference/usage.md) · [Roles](reference/roles.md) · [Security](SECURITY.md) · [Apache-2.0](LICENSE)
+[How it works](reference/how-it-works.md) · [Using it](reference/usage.md) · [Roles](reference/roles.md) · [Repository setup](reference/repo-setup.md) · [Security](SECURITY.md) · [Apache-2.0](LICENSE)

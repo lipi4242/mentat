@@ -16,7 +16,7 @@ def write(root, tool, paths, decision, kind):
     try:
         path = pathlib.Path(root) / LOG
         path.parent.mkdir(parents=True, exist_ok=True)
-        with path.open("a", encoding="utf-8") as f:
+        with path.open("a", encoding="utf-8", newline="\n") as f:
             f.write(json.dumps(line, ensure_ascii=False) + "\n")
     except OSError:
         pass  # logging must never decide the call

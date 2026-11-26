@@ -21,7 +21,7 @@ class OldBrainCheck(unittest.TestCase):
                         GIT_CONFIG_GLOBAL=os.path.join(home, "gitconfig"))
         self.run_tool("--base", "https://example.com/kit/v9.9.9/")
         agents = self.root / "AGENTS.md"
-        agents.write_text(re.sub(r"<[^<>\n]*TBD>", "Anna", agents.read_text()))
+        agents.write_text(re.sub(r"<[^<>\n]*TBD>", "Anna", agents.read_text(encoding="utf-8")), encoding="utf-8")
         self.run_tool("--name", "Thufir", "--version", "0.2.0")
         for k, v in (("user.name", "Anna"), ("user.email", "anna@example.com")):
             subprocess.run(["git", "-C", str(self.root), "config", k, v], env=self.env)
@@ -29,12 +29,12 @@ class OldBrainCheck(unittest.TestCase):
 
     def run_tool(self, *args):
         return subprocess.run([sys.executable, str(TOOL), "--lang", "hu", "--repo", str(self.root),
-                               *args], capture_output=True, text=True, env=self.env)
+                               *args], capture_output=True, text=True, env=self.env, encoding="utf-8", errors="replace")
 
     def drop_intake(self):
         agents = self.root / "AGENTS.md"
-        text = agents.read_text()
-        agents.write_text(text[:text.index("\n<!-- mentat:managed:start intake -->")] + "\n")
+        text = agents.read_text(encoding="utf-8")
+        agents.write_text(text[:text.index("\n<!-- mentat:managed:start intake -->")] + "\n", encoding="utf-8")
 
     def test_fresh_brain_is_ok_without_warning(self):
         r = self.run_tool("--check")
@@ -53,11 +53,11 @@ class OldBrainCheck(unittest.TestCase):
         r = self.run_tool("--check")
         self.assertEqual(r.returncode, 0, r.stdout)
         self.assertNotIn("WARN", r.stdout)
-        self.assertEqual((self.root / "AGENTS.md").read_text().count("managed:start intake"), 1)
+        self.assertEqual((self.root / "AGENTS.md").read_text(encoding="utf-8").count("managed:start intake"), 1)
 
     def test_a_broken_core_block_still_fails(self):
         agents = self.root / "AGENTS.md"
-        agents.write_text(agents.read_text().replace("managed:start claims -->", "x -->"))
+        agents.write_text(agents.read_text(encoding="utf-8").replace("managed:start claims -->", "x -->"), encoding="utf-8")
         r = self.run_tool("--check")
         self.assertEqual(r.returncode, 1)
         self.assertIn("MISSING managed block claims", r.stdout)

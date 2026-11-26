@@ -15,7 +15,7 @@ import re
 import sys
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
-from szerep_bash import analyse  # noqa: E402
+from szerep_bash import NT, analyse, win_path  # noqa: E402
 from szerep_engedely import load  # noqa: E402
 from szerep_pin import brain_root  # noqa: E402
 from szerep_tiltott import sources  # noqa: E402
@@ -28,10 +28,15 @@ CODE_DIRS = ("plugins", "skills", "commands", "agents")  # product code, not mem
 WRITERS = ("Write", "Edit", "MultiEdit", "NotebookEdit")
 
 
+def _fs(p):
+    """The path with "/" separators on every OS (Windows: C:/Users/x), ~ expanded."""
+    return win_path(os.path.expanduser(win_path(str(p), NT)), NT)
+
+
 def forms(p):
     """Written and resolved form, case kept: what an ALLOW matches (Codex: no lowercase identity)."""
-    p = os.path.expanduser(str(p))
-    return {os.path.normpath(p), os.path.realpath(p)}
+    p = _fs(p)
+    return {win_path(os.path.normpath(p), NT), win_path(os.path.realpath(p), NT)}
 
 
 def under(f, base):
@@ -40,16 +45,22 @@ def under(f, base):
 
 def real(p):
     """Resolved and lowercased: what a DENY matches (conservative on case-insensitive disks)."""
-    return os.path.realpath(os.path.expanduser(str(p))).lower()
+    return win_path(os.path.realpath(_fs(p)), NT).lower()
 
 
 def exact(p):
-    return os.path.realpath(os.path.expanduser(str(p)))
+    return win_path(os.path.realpath(_fs(p)), NT)
+
+
+def _homes():
+    """The folders that hold users' homes; Windows: <system drive>/users."""
+    return HOMES + ((os.environ.get("SystemDrive") or "C:").lower() + "/users",) if NT else HOMES
 
 
 def _zone():
-    out = set(HOMES) | set(SHARED)
-    for v in (os.environ.get("HOME"), os.environ.get("CLAUDE_CONFIG_DIR")):
+    out = set(_homes()) | set(SHARED)
+    for v in (os.environ.get("HOME"), os.environ.get("USERPROFILE") if NT else None,
+              os.environ.get("CLAUDE_CONFIG_DIR")):
         if v:
             out |= {f.lower() for f in forms(v)}
     return out
@@ -80,14 +91,14 @@ def base_allowed(root):
 
 def paths(tool, inp, cwd):
     """[(path, "olvas" | "ir")] the call touches, absolute."""
-    join = lambda p: os.path.join(cwd, os.path.expanduser(str(p)))  # noqa: E731
+    join = lambda p: os.path.join(cwd, _fs(p))  # noqa: E731
     if tool == "Bash":
         r, w = analyse(str(inp.get("command", "")), cwd)
         return [(p, "olvas") for p in r] + [(p, "ir") for p in w]
     if tool in ("Grep", "Glob", "LS"):
         out = [join(inp.get("path") or cwd)]
         pat = str(inp.get("pattern", "")) if tool == "Glob" else ""
-        if pat.startswith(("/", "~")):
+        if pat.startswith(("/", "~")) or re.match(r"^[A-Za-z]:[\\/]", pat):
             out.append(join(re.split(r"[*?\[{]", pat)[0] or "/"))
         return [(p, "olvas") for p in out]
     p = inp.get("file_path") or inp.get("notebook_path")
@@ -101,7 +112,7 @@ def _pathlike(v):
         return [s for x in v.values() for s in _pathlike(x)]
     if isinstance(v, list):
         return [s for x in v for s in _pathlike(x)]
-    if isinstance(v, str) and v.startswith(("/", "~", "file://")):
+    if isinstance(v, str) and (v.startswith(("/", "~", "file://")) or re.match(r"^[A-Za-z]:[\\\\/]", v)):
         return [v[7:] if v.startswith("file://") else v]
     return []
 
@@ -109,8 +120,9 @@ def _pathlike(v):
 def is_root(path):
     """A zone root or above it (HOME, /Users/<x>, a config root, /): never a consent (B-1)."""
     f = real(path)
-    homes = {z for z in _zone() if z not in HOMES} | {h + "/" + f.split("/")[2] for h in HOMES
-                                                      if f.count("/") >= 2 and under(f, h)}
+    hs = _homes()
+    homes = {z for z in _zone() if z not in hs} | {h + "/" + f.split("/")[h.count("/") + 1] for h in hs
+                                                   if f.count("/") > h.count("/") and under(f, h)}
     return any(under(z, f) for z in _zone() | homes)
 
 

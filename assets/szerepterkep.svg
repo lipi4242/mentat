@@ -1,16 +1,17 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 700" width="1000" height="700" role="img" aria-labelledby="t d" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 740" width="1000" height="740" role="img" aria-labelledby="t d" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif">
   <title id="t">Mentat szerep-térkép / Mentat role map</title>
-  <desc id="d">A gazda és nyolc ágens-szerep: asszisztens, PM, pénzügyi felelős, biztonsági felelős, flotta-menedzser, fejlesztő, kiadó ágens, termék-champion. A nyilak a munka útját mutatják; a jelvények azt, hogy a szerep asztalon és boxon is játszható. A flotta-menedzser csak boxon. Alul a közös alap: agy, tudástár, eszközök, backlog. / The owner and eight agent roles; arrows show how work flows; badges show desktop and box availability; the fleet manager is box-only; all roles share one brain, knowledge base, tools and backlog.</desc>
+  <desc id="d">A gazda és a hat standard szerep, sorrendben: 1 asszisztens, 2 fejlesztő, 3 consultant, 4 product manager, 5 kiadó ágens, 6 flottamenedzser. A hat szerepet egy keret fogja össze: a személyi asszisztens a hat szerep összege. A nyilak a munka útját mutatják; a jelvények azt, hogy a szerep asztalon és boxon is játszható. A flottamenedzser csak boxon, és flotta nélkül ki van kapcsolva. Alatta a saját szerep (például pénzügyi felelős, ügyfélszolgálat), alul a közös alap: agy, tudástár, eszközök, backlog. / The owner and the six standard roles in order: 1 assistant, 2 developer, 3 consultant, 4 product manager, 5 release agent, 6 fleet manager. A frame around the six is the personal assistant, their sum. Arrows show how work flows; badges show desktop and box availability; the fleet manager is box-only and off without a fleet. Below: custom roles (for example finance officer, customer service), and the shared base: brain, knowledge base, tools, backlog.</desc>
   <style>
     .bg { fill: none; }
     .node { fill: #f6f8fa; stroke: #57606a; stroke-width: 1.5; }
     .human { fill: #fff8c5; stroke: #9a6700; stroke-width: 1.5; }
-    .expert { fill: #f6f8fa; stroke: #57606a; stroke-width: 1.5; stroke-dasharray: 6 4; }
-    .human.expert { stroke-dasharray: 6 4; }
-    .sub.note { fill: #1f2328; font-size: 13px; }
+    .frame { fill: none; stroke: #9a6700; stroke-width: 1.5; stroke-dasharray: 8 5; }
+    .custom { fill: none; stroke: #57606a; stroke-width: 1.5; stroke-dasharray: 6 4; }
     .base { fill: #ddf4ff; stroke: #0969da; stroke-width: 1.5; }
     .label { fill: #1f2328; font-size: 17px; font-weight: 600; text-anchor: middle; }
     .sub { fill: #57606a; font-size: 12px; text-anchor: middle; }
+    .note { fill: #1f2328; font-size: 13px; text-anchor: start; }
+    .note.strong { font-weight: 600; }
     .edge { stroke: #57606a; stroke-width: 1.6; fill: none; }
     .edge.direct { stroke: #9a6700; stroke-dasharray: 5 4; }
     .edge.repair { stroke: #cf222e; stroke-dasharray: 3 4; }
@@ -23,11 +24,12 @@
     .arrow.direct { fill: #9a6700; }
     .arrow.repair { fill: #cf222e; }
     @media (prefers-color-scheme: dark) {
-      .node, .expert { fill: #161b22; stroke: #8b949e; }
+      .node { fill: #161b22; stroke: #8b949e; }
       .human { fill: #2e2a10; stroke: #d29922; }
-      .sub.note { fill: #e6edf3; }
+      .frame { stroke: #d29922; }
+      .custom { stroke: #8b949e; }
       .base { fill: #0c2d4a; stroke: #4493f8; }
-      .label, .elabel { fill: #e6edf3; }
+      .label, .elabel, .note { fill: #e6edf3; }
       .elabel { stroke: #0d1117; }
       .sub { fill: #8b949e; }
       .edge { stroke: #8b949e; }
@@ -55,64 +57,58 @@
       <rect class="pill" x="4" y="0" width="58" height="18" rx="9"/><text class="ptext" x="33" y="13">box</text>
     </g>
   </defs>
-  <rect class="bg" width="1000" height="700"/>
+  <rect class="bg" width="1000" height="740"/>
+
+  <!-- the personal assistant: a frame around the six standard roles -->
+  <rect class="frame" x="25" y="110" width="935" height="490" rx="14"/>
 
   <!-- edges first, so nodes sit on top -->
-  <line class="edge" x1="210" y1="148" x2="418" y2="52" marker-start="url(#a)" marker-end="url(#a)"/>
-  <text class="elabel" x="345" y="100">napi ügyek</text>
-  <line class="edge" x1="500" y1="130" x2="500" y2="72" marker-start="url(#a)" marker-end="url(#a)"/>
-  <text class="elabel" x="548" y="106">döntések</text>
-  <line class="edge" x1="210" y1="176" x2="413" y2="176" marker-end="url(#a)"/>
-  <text class="elabel" x="312" y="168">ötlet, kérés</text>
-  <line class="edge" x1="790" y1="176" x2="587" y2="176" marker-end="url(#a)"/>
-  <text class="elabel" x="688" y="168">nyitott döntések</text>
-  <line class="edge" x1="468" y1="202" x2="322" y2="438" marker-start="url(#a)" marker-end="url(#a)"/>
-  <text class="elabel" x="372" y="300">tétel ⇄ beadás</text>
-  <line class="edge" x1="660" y1="438" x2="540" y2="202" marker-end="url(#a)"/>
-  <text class="elabel" x="640" y="300">devops-javaslat</text>
-  <line class="edge" x1="387" y1="475" x2="613" y2="475" marker-end="url(#a)"/>
-  <text class="elabel" x="500" y="466">PR + teendő</text>
-  <line class="edge" x1="210" y1="330" x2="440" y2="202" marker-end="url(#a)"/>
-  <text class="elabel" x="252" y="282">leletek</text>
-  <line class="edge" x1="160" y1="370" x2="250" y2="438" marker-end="url(#a)"/>
-  <text class="elabel" x="176" y="414">review</text>
-  <line class="edge" x1="560" y1="580" x2="660" y2="512" marker-end="url(#a)"/>
-  <text class="elabel" x="640" y="560">állítás-ellenőrzés</text>
-  <path class="edge direct" d="M787,490 H970 Q985,490 985,475 V60 Q985,45 970,45 H582" marker-end="url(#ad)"/>
+  <line class="edge" x1="420" y1="60" x2="240" y2="148" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text class="elabel" x="318" y="100">napi ügyek</text>
+  <line class="edge" x1="500" y1="72" x2="500" y2="148" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text class="elabel" x="500" y="96">döntések</text>
+  <line class="edge" x1="580" y1="60" x2="760" y2="148" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text class="elabel" x="686" y="100">kérdés ⇄ elemzés</text>
+  <line class="edge" x1="250" y1="190" x2="403" y2="190" marker-end="url(#a)"/>
+  <text class="elabel" x="332" y="182">ötlet, kérés</text>
+  <line class="edge" x1="750" y1="190" x2="597" y2="190" marker-end="url(#a)"/>
+  <text class="elabel" x="668" y="182">javaslat</text>
+  <line class="edge" x1="470" y1="232" x2="290" y2="418" marker-start="url(#a)" marker-end="url(#a)"/>
+  <text class="elabel" x="370" y="322">tétel ⇄ beadás</text>
+  <line class="edge" x1="720" y1="418" x2="540" y2="232" marker-end="url(#a)"/>
+  <text class="elabel" x="640" y="322">devops-javaslat</text>
+  <line class="edge" x1="342" y1="458" x2="656" y2="458" marker-end="url(#a)"/>
+  <text class="elabel" x="500" y="450">PR + teendő</text>
+  <path class="edge direct" d="M852,458 H970 Q985,458 985,443 V61 Q985,46 970,46 H582" marker-end="url(#ad)"/>
   <text class="elabel" x="985" y="250" transform="rotate(90 985 250)">emberi sáv: jóváhagyás</text>
-  <line class="edge repair" x1="850" y1="370" x2="740" y2="438" marker-end="url(#ar)"/>
-  <text class="elabel" x="848" y="414">javítja, ha kiesik</text>
-
-  <!-- the recommended composite main role -->
-  <rect class="human expert" x="40" y="10" width="290" height="66" rx="10"/>
-  <text class="sub note" x="185" y="30">Ajánlott fő szerep: személyi asszisztens</text>
-  <text class="sub note" x="185" y="47">&amp; flottamenedzser = asszisztens + PM +</text>
-  <text class="sub note" x="185" y="64">fejlesztő + kiadó + flotta-menedzser</text>
+  <line class="edge repair" x1="398" y1="540" x2="300" y2="502" marker-end="url(#ar)"/>
+  <line class="edge repair" x1="602" y1="540" x2="710" y2="502" marker-end="url(#ar)"/>
+  <text class="elabel" x="345" y="525">javítja, ha kiesik</text>
 
   <!-- nodes -->
   <rect class="human" x="420" y="20" width="160" height="52" rx="10"/>
-  <text class="label" x="500" y="44">Gazda</text><text class="sub" x="500" y="62">ember</text>
+  <text class="label" x="500" y="44">Gazda</text><text class="sub" x="500" y="62">ember / owner</text>
 
-  <rect class="node" x="40" y="130" width="170" height="72" rx="10"/>
-  <text class="label" x="125" y="157">Asszisztens</text><use href="#both" x="125" y="172"/>
-  <rect class="node" x="415" y="130" width="170" height="72" rx="10"/>
-  <text class="label" x="500" y="157">PM</text><use href="#both" x="500" y="172"/>
-  <rect class="node" x="790" y="130" width="170" height="72" rx="10"/>
-  <text class="label" x="875" y="157">Pénzügyi felelős</text><use href="#both" x="875" y="172"/>
+  <rect class="node" x="60" y="150" width="190" height="80" rx="10"/>
+  <text class="label" x="155" y="175">1 · Asszisztens</text><text class="sub" x="155" y="192">Assistant</text><use href="#both" x="155" y="202"/>
+  <rect class="node" x="150" y="420" width="190" height="80" rx="10"/>
+  <text class="label" x="245" y="445">2 · Fejlesztő</text><text class="sub" x="245" y="462">Developer</text><use href="#both" x="245" y="472"/>
+  <rect class="node" x="750" y="150" width="190" height="80" rx="10"/>
+  <text class="label" x="845" y="175">3 · Consultant</text><text class="sub" x="845" y="192">Consultant</text><use href="#both" x="845" y="202"/>
+  <rect class="node" x="405" y="150" width="190" height="80" rx="10"/>
+  <text class="label" x="500" y="175">4 · Product Manager</text><text class="sub" x="500" y="192">PM</text><use href="#both" x="500" y="202"/>
+  <rect class="node" x="660" y="420" width="190" height="80" rx="10"/>
+  <text class="label" x="755" y="445">5 · Kiadó ágens</text><text class="sub" x="755" y="462">Release agent</text><use href="#both" x="755" y="472"/>
+  <rect class="node" x="400" y="505" width="200" height="80" rx="10"/>
+  <text class="label" x="500" y="530">6 · Flottamenedzser</text><text class="sub" x="500" y="547">Fleet manager · flotta nélkül ki</text><use href="#boxonly" x="500" y="557"/>
 
-  <rect class="expert" x="40" y="298" width="170" height="72" rx="10"/>
-  <text class="label" x="125" y="325">Biztonsági felelős</text><use href="#both" x="125" y="340"/>
-  <rect class="node" x="790" y="298" width="170" height="72" rx="10"/>
-  <text class="label" x="875" y="325">Flotta-menedzser</text><use href="#boxonly" x="875" y="340"/>
+  <text class="note strong" x="45" y="545">Személyi asszisztens =</text>
+  <text class="note" x="45" y="563">a hat szerep egy ágensben</text>
+  <text class="note" x="45" y="581">Personal assistant = all six</text>
 
-  <rect class="node" x="215" y="440" width="170" height="72" rx="10"/>
-  <text class="label" x="300" y="467">Fejlesztő</text><use href="#both" x="300" y="482"/>
-  <rect class="node" x="615" y="440" width="170" height="72" rx="10"/>
-  <text class="label" x="700" y="467">Kiadó ágens</text><use href="#both" x="700" y="482"/>
+  <rect class="custom" x="25" y="615" width="935" height="44" rx="10"/>
+  <text class="label" x="492" y="643">Saját szerep, ha kell: pl. pénzügyi felelős, ügyfélszolgálat · custom roles</text>
 
-  <rect class="expert" x="390" y="560" width="170" height="60" rx="10"/>
-  <text class="label" x="475" y="585">Termék-champion</text><use href="#both" x="475" y="595"/>
-
-  <rect class="base" x="40" y="640" width="920" height="44" rx="10"/>
-  <text class="label" x="500" y="668">Közös alap: Mentat-agy · tudástár · eszközök · backlog és labda</text>
+  <rect class="base" x="25" y="675" width="935" height="44" rx="10"/>
+  <text class="label" x="492" y="703">Közös alap: Mentat-agy · tudástár · eszközök · backlog és labda</text>
 </svg>

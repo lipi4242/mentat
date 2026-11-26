@@ -46,7 +46,10 @@ def _window(w):
         try:
             ZoneInfo(w["tz"])
         except (ZoneInfoNotFoundError, ValueError):
-            errs.append("window.tz is not a known time zone: %r" % w["tz"])
+            import zoneinfo
+            errs.append("this Python has no time-zone database (Windows): python -m pip install tzdata"
+                        if not zoneinfo.available_timezones() else
+                        "window.tz is not a known time zone: %r" % w["tz"])
     return errs
 
 

@@ -94,8 +94,11 @@ Egy box ágensei egy Unix-felhasználón futnak, így bármelyik olvashatja a m�
 | `fleet secrets scan --agent A [--agent B]` | a titokfájlok neve, helye, formátuma és kulcsnevei (repó, `~/.config/<a>/`, `~/.claude-<a>/`, `<repó>/.mentat/`, unit `EnvironmentFile=`), érték nélkül; `~/.mentat/titkok/leltar.json` (0600). A kaput NEM teszi fel, az összeolvasztás-módot nem kapcsolja; ha a kapu él és az új leltár egy ágens alapfunkcióját tiltaná, a régi leltár marad. `--dry-run`: csak a táblázat |
 | `fleet secrets approve --item OP:NÉV:HONNAN:HOVA:MIÉRT --owner-text "…"` | tételes tulajdonosi jóváhagyás, legfeljebb 60 percig, tételenként egyszer |
 | `fleet secrets move\|copy --name K --from X --to Y --approval ID` | egy kulcs átvitele folyamaton belül, 0600, atomikusan, symlink nélkül; nyugta: `~/.mentat/titkok/nyugtak.jsonl` |
+| `fleet secrets put --name K --to Y --approval ID` | egy kulcs értéke KIZÁRÓLAG stdin-ről (soha argv, env, kimenet), tétel: `put:NÉV:stdin:HOVA:MIÉRT`; gépek között: `<kiadó parancs> \| ssh box 'fleet secrets put --name K --to gurney --approval ID'`. Terminálról nem olvas, ≤64 KB, egy sor; ugyanaz az írás és nyugta, mint a move/copy-nál |
 | `fleet secrets audit [--repo DIR]` | került-e leltárban lévő érték átiratba, repóba vagy git-történetbe (csak fájl:sor) |
 | `fleet secrets hook install [--dry-run\|--force]\|status` | a titok-kapu (PreToolUse, csak tilt) a box minden `~/.claude*/settings.json`-jában. Előtte essentials-próba: minden ágens alapfunkciója (Telegram-küldés két alakban, `mentat-todo me/changes`, a `~/.config/<a>/jobs/` szkriptek, `git status/commit/push`, a saját motor- és review-állapot olvasása) a JELÖLT kapun, plusz hogy a hidas ágens unitjában van-e `TELEGRAM_BOT_TOKEN` (név szerint); piros ágensnél nem ír semmit. Utána kanári: egy gyökér, újrapróba, csak aztán a többi |
+
+**Titok értéke soha nem mehet chatbe vagy üzenetbe** (Telegram, SendMessage, PR, jegy). Átadás csak `put` (stdin) vagy `move`/`copy` úton, tételes jóváhagyással; a címzettnek csak a kulcs nevét és helyét írd.
 
 Mi kerül a leltárba: a név (kulcsfájl-minta) vagy a tartalom bizonyítéka (privát kulcs, titok-nevű
 kulcs/mező értékkel) — a fájlmód egyedül soha. A privát, bizonyíték nélküli ismeretlen fájl
@@ -107,7 +110,17 @@ kerülőutat; rekurzív keresésnél a mappát `grep -r --exclude-dir=<mappa>` z
 - **Env:** a unit pane-shellje (`ExecStart … /bin/sh -c`) tölti be az env-fájlokat — tmux alatt az
   `EnvironmentFile=` önmagában nem jut el a claude-ig. Sorrend: hidas ágensnél ELŐBB a híd
   `telegram.env`-je (`bridge.env_file`), aztán a registry `env_files` / `env_file` fájljai (az ágensé
-  írja felül a közös kulcsot), aztán `claude-auth.env` és `.mentat/model.env`. `FLEET_AGENT` mindig.
+  írja felül a közös kulcsot), aztán a registry `extra_env_files` fájljai, aztán `claude-auth.env` és
+  `.mentat/model.env`. `FLEET_AGENT` mindig.
+- **`extra_env_files` (opcionális):** további env-fájlok listája, a `~/.config/<a>/`-n kívülről —
+  például egy projekt saját env-fájlja, hogy a wrangler megkapja a `CLOUDFLARE_API_TOKEN`-t. Egy elem
+  háromféle lehet: `/abszolút/út`, `%h/…` (a felhasználó home-ja, systemd-specifier), vagy minden
+  más a `workdir`-hez relatív (`config/cf.env` → `<workdir>/config/cf.env`). Csak a pane-shell tölti
+  be, megadott sorrendben, őrzötten (`if [ -r P ]; then . P; fi`) — a hiányzó fájl nem állítja meg az
+  indulást. Nem lesz belőle `EnvironmentFile=` sor, és a Telegram-híd unitja sem kapja meg. Engedett
+  karakterek: betű, szám, `/ _ . -`, és `%` csak a `%h/` előtagban; szóköz, idézőjel, `;`, `$`,
+  backtick és `..` tilos — a `fleet validate` és a renderelés is elutasítja. Ha a mező hiányzik vagy
+  üres, a unit bájtra ugyanaz, mint nélküle. Példa: `"extra_env_files": ["%h/projekt/.env"]`.
 - **Küldés:** `node ~/.config/<a>/sub-etha/send.mjs --chat <id> [--reply-to <id>] -- "szöveg"` vagy
   `--text-stdin`; a token a fenti env-ből jön, a telegram.env-et az ágens nem tölti be. Token
   nélkül a send.mjs `missing_token` notice-t ír a kézbesítési naplóba, a doctor ettől piros.

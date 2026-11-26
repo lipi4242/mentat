@@ -15,6 +15,8 @@ import json
 import os
 import re
 import sys
+for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows: a pipe is the ANSI code page, not UTF-8
+    getattr(_s, "reconfigure", lambda **k: None)(encoding="utf-8", errors="replace")
 
 HANDOFF = [re.compile(p, re.I) for p in (
     r"\bopen (a|the|your) terminal\b", r"\b(paste|type|enter|run)\b[^.\n]{0,40}\binto (the|your|a) terminal\b",

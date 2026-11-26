@@ -4,7 +4,10 @@
     python3 mentat_brain.py new case|person|todo|decision|brain-dump|connector "Title" \
         [--due YYYY-MM-DD] [--tags a,b] [--body TEXT|-]     # prints the new file's path
     python3 mentat_brain.py due [--days 7] [--all] [--full]  # overdue + due soon; 8 lines, --full = all
-    python3 mentat_brain.py find WORD [WORD...] [--limit 12]  # file + one line each (+ [due ...])
+    python3 mentat_brain.py new <own type> "Title" [--set field=value]... [--due D]  # the owner's types
+    python3 mentat_brain.py find WORD [WORD...] [--type T] [--limit 12]  # file [type]: one line (+ [due ...])
+    python3 mentat_brain.py type add|edit|adopt|show|list ... ; types  # the owner's own entity types
+    python3 mentat_brain.py check [--type T] [--strict]     # own-type notes against their definition
     python3 mentat_brain.py mv OLD [NEW] [--title T]        # rename + fix links and the _meta index
     python3 mentat_brain.py commit "message"                # git add + commit the brain folder only
     python3 mentat_brain.py where                           # brain / engine / fleet / admin, read-only
@@ -22,10 +25,15 @@ import json
 import pathlib
 import re
 import sys
+for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows: a pipe is the ANSI code page, not UTF-8
+    getattr(_s, "reconfigure", lambda **k: None)(encoding="utf-8", errors="replace")
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
 import mentat_brain_ops as ops  # noqa: E402
 import mentat_brain_read as rd  # noqa: E402
+import mentat_brain_tipus as tp  # noqa: E402
+import mentat_brain_tipus_cmd as tc  # noqa: E402
+import mentat_brain_tipus_note as tn  # noqa: E402
 import mentat_brain_types as bt  # noqa: E402
 
 
@@ -43,6 +51,15 @@ def settings(root, lang):
 
 
 def new(a, root, lang, brain, backend):
+    if a.type not in bt.DIRS:
+        custom = tp.load(root, brain).get(a.type)
+        if not custom:
+            print("STOP unknown type %s (built-in: %s; the owner's: `types`)" % (a.type, ", ".join(sorted(bt.DIRS))))
+            return 2
+        return tn.new(a, root, brain, custom)
+    if a.set:
+        print("STOP --set is for the owner's own types; %s takes --due/--tags/--body" % a.type)
+        return 1
     if a.type == "case" and backend == "admin":
         print("STOP cases live in the admin (cases.backend: admin) - use its `cases` CLI")
         return 2
@@ -62,11 +79,11 @@ def new(a, root, lang, brain, backend):
         body = head + tail
     body = body.replace("{t}", a.title).replace("{d}", day)
     d.mkdir(parents=True, exist_ok=True)
-    path.write_text(bt.frontmatter(a.type, a.title, tags, a.due, day) + body, encoding="utf-8")
+    path.write_bytes((bt.frontmatter(a.type, a.title, tags, a.due, day) + body).encode("utf-8"))
     meta = d / "_meta.md"
     line = "- [%s](%s) - %s%s\n" % (a.title, path.name, a.type, ", %s" % a.due if a.due else "")
     old = meta.read_text(encoding="utf-8") if meta.exists() else "# %s\n" % d.relative_to(root)
-    meta.write_text(old + ("" if old.endswith("\n") else "\n") + line, encoding="utf-8")
+    meta.write_bytes((old + ("" if old.endswith("\n") else "\n") + line).encode("utf-8"))
     print(path.relative_to(root))
     return 0
 
@@ -77,11 +94,12 @@ def main(argv=None):
     p.add_argument("--lang", choices=["hu", "en"])
     sub = p.add_subparsers(dest="cmd", required=True)
     n = sub.add_parser("new")
-    n.add_argument("type", choices=sorted(bt.DIRS))
+    n.add_argument("type", help="a built-in type (%s) or one of `types`" % "|".join(sorted(bt.DIRS)))
     n.add_argument("title")
     n.add_argument("--due")
     n.add_argument("--tags", default="")
     n.add_argument("--body")
+    n.add_argument("--set", action="append", metavar="FIELD=VALUE", help="a field of the owner's own type")
     d = sub.add_parser("due")
     d.add_argument("--days", type=int, default=7)
     d.add_argument("--all", action="store_true", help="also open items without a date")
@@ -89,6 +107,11 @@ def main(argv=None):
     f = sub.add_parser("find")
     f.add_argument("words", nargs="+")
     f.add_argument("--limit", type=int, default=12)
+    f.add_argument("--type", help="only notes of this type (built-in or the owner's)")
+    k = sub.add_parser("check", help="notes of the owner's own types against their definition")
+    k.add_argument("--type")
+    k.add_argument("--strict", action="store_true", help="exit 1 when anything is off")
+    tc.parser(sub)
     v = sub.add_parser("mv", help="rename a note + fix every link and the _meta index")
     v.add_argument("old")
     v.add_argument("new", nargs="?")
@@ -116,7 +139,9 @@ def main(argv=None):
         return new(a, root, lang, brain, backend)
     if a.cmd == "where":
         return ops.where(a, root, brain, lang)
-    return {"due": rd.due, "find": rd.find, "mv": ops.mv, "commit": ops.commit}[a.cmd](a, root, brain)
+    if a.cmd in ("type", "types"):
+        return tc.main(a, root, brain, lang)
+    return {"check": tn.check, "due": rd.due, "find": rd.find, "mv": ops.mv, "commit": ops.commit}[a.cmd](a, root, brain)
 
 
 if __name__ == "__main__":

@@ -17,8 +17,9 @@ import json
 import os
 import re
 
-USER_GATE = re.compile(r"(/\S*identitas-kapu/current/kapu\.py)\s+--hook")
-PLUGIN_GATE = re.compile(r"hooks/identitas/kapu\.py\"?\s+--hook")
+# Windows too: C:\\…\\identitas-kapu\\current\\kapu.py (the file must exist, so no string alone counts)
+USER_GATE = re.compile(r"((?:[A-Za-z]:)?[\\/]\S*identitas-kapu[\\/]current[\\/]kapu\.py)\s+--hook")
+PLUGIN_GATE = re.compile(r"hooks[\\/]identitas[\\/]kapu\.py\"?\s+--hook")
 
 
 def _json(path):

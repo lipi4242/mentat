@@ -19,12 +19,12 @@ HERE = pathlib.Path(__file__).resolve().parent
 
 def done(root, *args):
     return subprocess.run([sys.executable, "-I", str(HERE / "mentat_done.py"), "--repo", str(root), *args],
-                          capture_output=True, text=True, timeout=60)
+                          capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace")
 
 
 def serve(root, *args):
     return subprocess.run([sys.executable, "-I", str(HERE / "mentat_serve.py"), "--repo", str(root), *args],
-                          capture_output=True, text=True, timeout=60)
+                          capture_output=True, text=True, timeout=60, encoding="utf-8", errors="replace")
 
 
 class Done(unittest.TestCase):
@@ -33,7 +33,7 @@ class Done(unittest.TestCase):
         env = dict(os.environ, GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=str(self.root / ".gc"))
         for cmd in (["init", "-q"], ["config", "user.name", "A"], ["config", "user.email", "a@example.com"]):
             subprocess.run(["git", "-C", str(self.root), *cmd], check=True, env=env)
-        (self.root / ".gitignore").write_text(".mentat/\n.gc\n")
+        (self.root / ".gitignore").write_text(".mentat/\n.gc\n", encoding="utf-8")
         subprocess.run(["git", "-C", str(self.root), "add", "-A"], check=True, env=env)
         subprocess.run(["git", "-C", str(self.root), "commit", "-qm", "x"], check=True, env=env)
         self.addCleanup(serve, self.root, "stop", "--all")
@@ -43,17 +43,17 @@ class Done(unittest.TestCase):
         self.assertEqual(r.returncode, 2, r.stdout)
         self.assertIn("DONE-CHECK NOT VERIFIED", r.stdout)
         (self.root / "site").mkdir()
-        (self.root / "site" / "index.html").write_text("ok")
+        (self.root / "site" / "index.html").write_text("ok", encoding="utf-8")
         url = next(ln[4:] for ln in serve(self.root, "start", "lap", "--dir", "site").stdout.splitlines()
                    if ln.startswith("URL "))
         r = done(self.root, "--url", url)
         self.assertEqual(r.returncode, 2, r.stdout)
         self.assertIn("DONE-CHECK LOCAL ONLY", r.stdout)
-        (self.root / "lista.csv").write_text("a\n")
+        (self.root / "lista.csv").write_text("a\n", encoding="utf-8")
         self.assertIn("DONE-CHECK GREEN", done(self.root, "--file", "lista.csv").stdout)
 
     def test_a_missing_or_empty_file_and_a_dead_address_are_red(self):
-        (self.root / "ures.csv").write_text("")
+        (self.root / "ures.csv").write_text("", encoding="utf-8")
         r = done(self.root, "--file", "ures.csv", "--file", "nincs.md", "--url", "http://127.0.0.1:1/")
         self.assertEqual(r.returncode, 1)
         self.assertEqual(sum(ln.startswith("RED ") for ln in r.stdout.splitlines()), 3, r.stdout)
@@ -61,8 +61,8 @@ class Done(unittest.TestCase):
 
     def test_a_given_address_that_answers_and_a_real_file_are_ok(self):
         (self.root / "site").mkdir()
-        (self.root / "site" / "index.html").write_text("ok")
-        (self.root / "lista.csv").write_text("a,b\n")
+        (self.root / "site" / "index.html").write_text("ok", encoding="utf-8")
+        (self.root / "lista.csv").write_text("a,b\n", encoding="utf-8")
         url = next(ln[4:] for ln in serve(self.root, "start", "lap", "--dir", "site").stdout.splitlines()
                    if ln.startswith("URL "))
         r = done(self.root, "--url", url, "--file", "lista.csv")
@@ -71,7 +71,7 @@ class Done(unittest.TestCase):
         self.assertIn("WARN still running: lap", r.stdout)  # the USER hears it is running and until when
 
     def test_unsaved_work_is_named(self):
-        (self.root / "jegyzet.md").write_text("x")
+        (self.root / "jegyzet.md").write_text("x", encoding="utf-8")
         r = done(self.root)
         self.assertIn("WARN not committed: 1", r.stdout)
 
@@ -81,7 +81,7 @@ class Done(unittest.TestCase):
         self.assertIn("has not run here", r.stdout)
         tick = self.root / "data" / "state" / "last-tick.json"
         tick.parent.mkdir(parents=True)
-        tick.write_text(json.dumps({}))
+        tick.write_text(json.dumps({}), encoding="utf-8")
         old = time.time() - 3 * 86400
         os.utime(tick, (old, old))
         self.assertIn("RED the last scheduled tick", done(self.root, "--scheduled").stdout)
@@ -94,12 +94,12 @@ class Done(unittest.TestCase):
     def tick(self, actions=1, errors=(), age=0):
         st = self.root / "data" / "state"
         st.mkdir(parents=True, exist_ok=True)
-        (st / "last-tick.json").write_text(json.dumps({"trigger": "hourly", "actions": actions}))
-        (st / "last-summary.json").write_text(json.dumps({"planned": [], "skipped": {}, "errors": list(errors)}))
+        (st / "last-tick.json").write_text(json.dumps({"trigger": "hourly", "actions": actions}), encoding="utf-8")
+        (st / "last-summary.json").write_text(json.dumps({"planned": [], "skipped": {}, "errors": list(errors)}), encoding="utf-8")
         when = time.time() - age
         os.utime(st / "last-tick.json", (when, when))
         comp = {"engine": {"path": "anytime_engine", "delivery": {"channel": "file"}}}
-        (self.root / "mentat.json").write_text(json.dumps({"schema": 1, "components": comp}))
+        (self.root / "mentat.json").write_text(json.dumps({"schema": 1, "components": comp}), encoding="utf-8")
 
     def test_a_tick_that_planned_work_but_wrote_no_output_is_red(self):  # the job's output, not the timer
         self.tick(actions=2)
@@ -108,7 +108,7 @@ class Done(unittest.TestCase):
         self.assertIn("no output", r.stdout)
         out = self.root / "data" / "outbox" / "2026-10-25.md"
         out.parent.mkdir(parents=True)
-        out.write_text("Ma esedékes: 1\n")
+        out.write_text("Ma esedékes: 1\n", encoding="utf-8")
         r = done(self.root, "--scheduled")
         self.assertEqual(r.returncode, 0, r.stdout)
         self.assertIn("OK the scheduled output", r.stdout)
@@ -122,7 +122,7 @@ class Done(unittest.TestCase):
     def test_an_own_jobs_output_must_be_newer_than_the_last_tick(self):
         self.tick(actions=0)
         rep = self.root / "riport.md"
-        rep.write_text("x")
+        rep.write_text("x", encoding="utf-8")
         old = time.time() - 5 * 3600
         os.utime(rep, (old, old))
         self.assertIn("RED output riport.md", done(self.root, "--scheduled", "--output", "riport.md").stdout)
@@ -132,7 +132,7 @@ class Done(unittest.TestCase):
 
     def commit_file(self, rel, text):
         (self.root / rel).parent.mkdir(parents=True, exist_ok=True)
-        (self.root / rel).write_text(text)
+        (self.root / rel).write_text(text, encoding="utf-8")
         env = dict(os.environ, GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=str(self.root / ".gc"))
         subprocess.run(["git", "-C", str(self.root), "add", "-f", rel], check=True, env=env)
         subprocess.run(["git", "-C", str(self.root), "commit", "-qm", rel], check=True, env=env)
@@ -182,22 +182,22 @@ class Done(unittest.TestCase):
         self.tick(actions=1)
         out = self.root / "data" / "outbox" / "2026-10-25.md"
         out.parent.mkdir(parents=True)
-        out.write_text("Ma esedékes: 2 ügy\n")
+        out.write_text("Ma esedékes: 2 ügy\n", encoding="utf-8")
         r = done(self.root, "--scheduled", "--expect", "Hívd fel:")
         self.assertEqual(r.returncode, 1, r.stdout)
         self.assertIn("lacks what the job promised: 'Hívd fel:'", r.stdout)
-        out.write_text("Ma esedékes: 2 ügy\nHívd fel: Kovács Anna\n")
+        out.write_text("Ma esedékes: 2 ügy\nHívd fel: Kovács Anna\n", encoding="utf-8")
         self.assertEqual(done(self.root, "--scheduled", "--expect", "Hívd fel:").returncode, 0)
 
 
     def test_the_jobs_stored_promise_is_checked_without_being_passed(self):  # engine setup --expect
         self.tick(actions=1)
-        doc = json.loads((self.root / "mentat.json").read_text())
+        doc = json.loads((self.root / "mentat.json").read_text(encoding="utf-8"))
         doc["components"]["engine"]["delivery"]["expect"] = ["Hívd fel:"]
-        (self.root / "mentat.json").write_text(json.dumps(doc))
+        (self.root / "mentat.json").write_text(json.dumps(doc), encoding="utf-8")
         out = self.root / "data" / "outbox" / "2026-10-25.md"
         out.parent.mkdir(parents=True)
-        out.write_text("Ma esedékes: 2 ügy\n")
+        out.write_text("Ma esedékes: 2 ügy\n", encoding="utf-8")
         r = done(self.root, "--scheduled")
         self.assertEqual(r.returncode, 1, r.stdout)
         self.assertIn("lacks what the job promised: 'Hívd fel:'", r.stdout)
@@ -207,7 +207,7 @@ class Done(unittest.TestCase):
         self.tick(actions=1, age=3 * 86400)  # the timer stopped three days ago
         out = self.root / "data" / "outbox" / "2026-10-25.md"
         out.parent.mkdir(parents=True)
-        out.write_text("Ma esedékes: 1\n")  # a manual run just now
+        out.write_text("Ma esedékes: 1\n", encoding="utf-8")  # a manual run just now
         r = done(self.root, "--scheduled")
         self.assertEqual(r.returncode, 1)
         self.assertIn("fix it now", r.stdout)

@@ -6,7 +6,7 @@
     python3 mentat_scaffold.py --lang hu --commit                 # first commit, secrets refused
     python3 mentat_scaffold.py --lang hu --check                  # verify only; exit 0 = complete
 
-Creates: git repo, AGENTS.md (with TBD placeholders the intro chat fills),
+Creates: git repo, AGENTS.md (the self-image block first, then TBD placeholders the intro chat fills),
 CLAUDE.md loading it, the brain folders with _meta.md, .gitignore entries.
 """
 import argparse
@@ -15,10 +15,15 @@ import pathlib
 import re
 import subprocess
 import sys
+for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows: a pipe is the ANSI code page, not UTF-8
+    getattr(_s, "reconfigure", lambda **k: None)(encoding="utf-8", errors="replace")
 
 HERE = pathlib.Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 from mentat_scaffold_check import IGNORES, check, git, layout, append_blocks  # noqa: E402
+import mentat_self_image  # noqa: E402
+import mentat_statusline_install as statusline  # noqa: E402
+import mentat_skills  # noqa: E402
 
 COMMIT_MSG = {"hu": "chore: az agy beállítása (Mentat)",
               "en": "chore: set up the brain (Mentat)"}
@@ -31,7 +36,7 @@ def ensure_lines(path, lines, log):
     missing = [ln for ln in lines if ln not in text.splitlines()]
     if missing:
         sep = "" if not text or text.endswith("\n") else "\n"
-        path.write_text(text + sep + "".join(ln + "\n" for ln in missing), encoding="utf-8")
+        path.write_bytes((text + sep + "".join(ln + "\n" for ln in missing)).encode("utf-8"))
         log.append("added   %s to %s" % (", ".join(missing), path.name))
 
 
@@ -51,17 +56,21 @@ def scaffold(root, lang, base):
         tpl = (HERE / ("scaffold-agents.%s.md" % lang)).read_text(encoding="utf-8")
         base = base if base.endswith("/") else base + "/"
         text = tpl.replace("{BASE}", base).replace("{LANG}", lang)
-        (root / "AGENTS.md").write_text(text, encoding="utf-8")
+        (root / "AGENTS.md").write_bytes(text.encode("utf-8"))
         log.append("created AGENTS.md")
+    if mentat_self_image.write(root, lang):
+        log.append("wrote   AGENTS.md self-image (first block)")
     ensure_lines(root / "CLAUDE.md", ["@AGENTS.md"], log)
     for rel, text in layout(lang)["dirs"].items():
         meta = root / rel / "_meta.md"
         if not meta.exists():
             meta.parent.mkdir(parents=True, exist_ok=True)
-            meta.write_text("# %s\n\n%s\n" % (rel, text), encoding="utf-8")
+            meta.write_bytes(("# %s\n\n%s\n" % (rel, text)).encode("utf-8"))
             log.append("created %s/_meta.md" % rel)
     ensure_lines(root / ".gitignore", IGNORES, log)
     hook_guard(root, log)
+    log += statusline.scaffold_lines(root)  # a statusLine the USER already has stays (recorded)
+    log += mentat_skills.install(root, lang)  # local, native skills; an edited one is kept
     return log
 
 
@@ -85,7 +94,7 @@ def version(arg):
         return arg
     for cand in (HERE / "release.json", HERE.parent.parent / "release.json"):
         if cand.exists():
-            return json.loads(cand.read_text())["version"]
+            return json.loads(cand.read_text(encoding="utf-8"))["version"]
     raise SystemExit("error: no release.json next to this tool - pass --version X.Y.Z")
 
 
@@ -98,8 +107,9 @@ def init_brain(root, lang, name, ver):
 
 def own_files(root, lang):
     """The files this tool writes; the USER's other changes are never swept into its commit."""
-    rels = ["AGENTS.md", "CLAUDE.md", ".gitignore", "mentat.json", ".claude/settings.json"]
-    rels += ["%s/_meta.md" % d for d in layout(lang)["dirs"]]
+    rels = ["AGENTS.md", "CLAUDE.md", ".gitignore", "mentat.json", ".claude/settings.json", ".claude/commands/whoami.md",
+            ".claude/commands/mentat.md"]
+    rels += ["%s/_meta.md" % d for d in layout(lang)["dirs"]] + [mentat_skills.rel(n).as_posix() for n in mentat_skills.SKILLS]
     return [r for r in rels if (root / r).exists()]
 
 
@@ -149,6 +159,8 @@ def main(argv=None):
     print("\n".join(scaffold(root, a.lang, a.base)))
     if a.name and init_brain(root, a.lang, a.name, version(a.version)) != 0:
         return 1
+    if a.name:
+        mentat_self_image.write(root, a.lang)  # the name is in mentat.json now
     return commit(root, a.lang) if a.commit else 0
 
 

@@ -6,7 +6,7 @@ env-kulcs: a cél env-fájl `KULCS=` sora cserélődik vagy bekerül, a többi s
 (json, pem, ismeretlen): `--name '*'`, a forrásfájl neve marad. move: a forrásból kikerül — de
 csak dormant donorból: amíg a donor visszaállítható (retire, zár), copy kell, különben a
 visszaállított donor kulcs nélkül indulna.
-Nyugta: ~/.mentat/titkok/nyugtak.jsonl (név, honnan, hova, hash8, jóváhagyás, idő) — érték nélkül.
+Nyugta: ~/.mentat/titkok/nyugtak.jsonl (név, honnan, hova, HMAC-lenyomat, jóváhagyás, idő) — érték nélkül.
 """
 from __future__ import annotations
 import json
@@ -16,6 +16,7 @@ import time
 from pathlib import Path
 
 from fleet import titok_formatum as F, titok_hely as H, titok_jovahagy as J
+from fleet.titok_iras import ReceiptFailed, check_env_value, record, write_secret  # noqa: F401 (a put és a cli innen is éri)
 from fleet.titok_jovahagy import Refused
 
 WHOLE = "*"
@@ -60,17 +61,14 @@ def dest_file(spec: str, src: Path, name: str, home: Path) -> Path:
     return Path(envs[0]["path"]) if envs else home / ".config" / spec / f"{spec}.env"
 
 
-def _lines_without(path: Path, name: str) -> list[str]:
-    if not path.exists():
-        return []
-    return [ln for ln in path.read_text().splitlines()
+def _lines_without(text: str | None, name: str) -> list[str]:
+    return [ln for ln in (text or "").splitlines()
             if (F.ENV_LINE.match(ln) or [None, None])[1] != name]
 
 
-def _write_env(path: Path, name: str, value: str) -> None:
-    if "\n" in value or "\r" in value:
-        raise Refused(f"a(z) {name} értéke többsoros: env-sorba nem írható, vidd egész fájlként (--name '*')")
-    H.write_atomic(path, "\n".join(_lines_without(path, name) + [f"{name}={value}"]) + "\n")
+def _write_env(path: Path, name: str, value: str, home: Path) -> None:
+    check_env_value(name, value)
+    write_secret(home, path, lambda old: "\n".join(_lines_without(old, name) + [f"{name}={value}"]) + "\n")
 
 
 def owner_agent(spec: str, src: Path, home: Path) -> str | None:
@@ -114,10 +112,12 @@ def run(op: str, name: str, src_spec: str, dst_spec: str, approval: str, home: P
         raise Refused("a forrás és a cél ugyanaz a fájl")
     if dst.is_symlink():
         raise Refused(f"a cél symlink: {dst} — symlinkre nem írok")
+    salt = H.receipt_salt(home)  # írás előtt: a só hibája után semmi nem mozdult
     if name == WHOLE:
         raw = src.read_bytes()
-        H.write_atomic(dst, raw)
-        h8 = F.fp(raw)
+        J.claim(approval, op, name, src_spec, dst_spec, home)
+        write_secret(home, dst, raw)
+        digest = F.mac(raw, salt)
         if op == "move":
             src.unlink()
     else:
@@ -125,13 +125,15 @@ def run(op: str, name: str, src_spec: str, dst_spec: str, approval: str, home: P
         if name not in vals:
             raise Refused(f"a(z) {name} kulcs nincs a forrás env-fájljában ({src.name}); "
                           "json/pem fájlt egészben vigyél (--name '*')")
-        _write_env(dst, name, vals[name])
-        h8 = F.fp(vals[name])
+        check_env_value(name, vals[name])
+        J.claim(approval, op, name, src_spec, dst_spec, home)
+        _write_env(dst, name, vals[name], home)
+        digest = F.mac(vals[name], salt)
         if op == "move":
             mode = src.stat().st_mode & 0o777
-            H.write_atomic(src, "\n".join(_lines_without(src, name)) + "\n", mode)
+            write_secret(home, src, lambda old: "\n".join(_lines_without(old, name)) + "\n", mode)
     J.consume(approval, op, name, src_spec, dst_spec, home)
     receipt = {"ts": time.strftime("%Y-%m-%dT%H:%M:%S%z"), "op": op, "name": name, "from": src_spec,
-               "to": dst_spec, "src_path": str(src), "dest_path": str(dst), "hash8": h8, "approval": approval}
-    H.append_line(H.receipts_path(home), json.dumps(receipt, ensure_ascii=False))
+               "to": dst_spec, "src_path": str(src), "dest_path": str(dst), "hmac": digest, "approval": approval}
+    record(home, receipt)
     return receipt

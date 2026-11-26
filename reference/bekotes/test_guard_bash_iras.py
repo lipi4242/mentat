@@ -15,8 +15,8 @@ class GuardBashCwd(GuardBase):
     def setUp(self):
         super().setUp()
         (self.root / "munka" / "bank").mkdir(parents=True)
-        (self.root / "munka" / "bank" / "x.csv").write_text("1\n")
-        (self.root / "munka" / "a.txt").write_text("a\n")
+        (self.root / "munka" / "bank" / "x.csv").write_text("1\n", encoding="utf-8")
+        (self.root / "munka" / "a.txt").write_text("a\n", encoding="utf-8")
 
     def bash(self, cmd, role="fejleszto", cwd=None):
         extra = {"cwd": str(cwd)} if cwd else {}
@@ -49,7 +49,7 @@ class GuardBashWrite(GuardBase):
     def setUp(self):
         super().setUp()
         (self.root / "munka").mkdir()
-        (self.root / "munka" / "a.txt").write_text("a\n")
+        (self.root / "munka" / "a.txt").write_text("a\n", encoding="utf-8")
 
     def test_assistant_cannot_write_the_work_folder_from_bash(self):
         for cmd in ("sed -i 's/a/b/' munka/a.txt", "sed -i.bak -e s/a/b/ munka/a.txt",

@@ -14,14 +14,15 @@ import sys
 from datetime import timedelta
 from typing import Any
 
-from anytime_engine import clock, config
+from anytime_engine import clock, config, trust
 from anytime_engine.assembler import register_provider
 
 from . import marks, occurrence, settings
 from .api import Client, TodoApiError
 
 HEALTH = "anytime_todo.api"
-BUCKETS = ("due", "complete_pending", "interrupted")
+BUCKETS = ("due", "complete_pending", "interrupted", "untrusted")
+UNTRUSTED_KEEP = ("id", "created_by", "due_date", "rev")
 
 
 def retry_hours() -> float:
@@ -30,6 +31,11 @@ def retry_hours() -> float:
 
 def alert_hours() -> float:
     return float(os.environ.get("ANYTIME_TODO_ALERT_HOURS", "6"))
+
+
+def trusted_creators(handle: str, root=None) -> set[str] | None:
+    """Who may create a duty this agent just does (anytime_engine.trust.trusted_list)."""
+    return trust.trusted_list(handle, root)
 
 
 def _backoff_minutes(failures: int) -> int:
@@ -58,7 +64,7 @@ def _error(state, h: dict[str, Any]) -> dict[str, Any]:
             "outage": {"mark": marks.outage_name(day)} if owed else None}
 
 
-def _classify(tasks: list[dict[str, Any]], state) -> dict[str, Any]:
+def _classify(tasks: list[dict[str, Any]], state, trusted: set[str] | None = None) -> dict[str, Any]:
     now_utc = occurrence.utc_now(state)
     done = marks.lookup()
     retry = timedelta(hours=retry_hours())
@@ -73,7 +79,12 @@ def _classify(tasks: list[dict[str, Any]], state) -> dict[str, Any]:
             continue
         steps = done.get((str(t.get("id")), str(t.get("due_date"))), {})
         bucket = occurrence.owed(steps, state.now(), retry)
-        out[bucket or "held"].append(occurrence.item(t))
+        if bucket == "due" and trust.from_stranger(t, trusted):
+            # not on the trusted list: only enough to tell the owner; no title, no description
+            out["untrusted"].append(trust.notice(t, UNTRUSTED_KEEP))
+            continue
+        out[bucket or "held"].append({**occurrence.item(t), "created_by": t.get("created_by")}
+                                     if bucket else occurrence.item(t))
     return out
 
 
@@ -101,7 +112,8 @@ def _compute(state) -> dict[str, Any]:
     state.cache.pop(HEALTH, None)
     state.cache_timestamps.pop(HEALTH, None)
     return {"configured": True, "status": "ok", "handle": s.handle,
-            "as_of": clock.stamp(state.now()), **_classify(tasks, state)}
+            "as_of": clock.stamp(state.now()),
+            **_classify(tasks, state, trusted_creators(s.handle, s.root))}
 
 
 def owed(state) -> bool:

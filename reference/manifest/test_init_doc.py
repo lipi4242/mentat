@@ -19,7 +19,7 @@ def imports(name, seen=None):
     if name in seen or not (HERE / (name + ".py")).is_file():
         return seen
     seen.add(name)
-    for m in re.findall(r"^\s*(?:import|from) (\w+)", (HERE / (name + ".py")).read_text(), re.M):
+    for m in re.findall(r"^\s*(?:import|from) (\w+)", (HERE / (name + ".py")).read_text(encoding="utf-8"), re.M):
         imports(m, seen)
     return seen
 
@@ -32,7 +32,7 @@ def guard_modules():
         if n in seen or not (bk / (n + ".py")).is_file():
             continue
         seen.add(n)
-        todo += re.findall(r"^\s*(?:import|from) (\w+)", (bk / (n + ".py")).read_text(), re.M)
+        todo += re.findall(r"^\s*(?:import|from) (\w+)", (bk / (n + ".py")).read_text(encoding="utf-8"), re.M)
     return {n + ".py" for n in seen}
 
 

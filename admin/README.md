@@ -19,10 +19,10 @@ engine reads for recurring duties.
 
 Needs Node.js 22 or newer and git. No Cloudflare account, no agent. If you already
 have `~/src/mentat` (the engine and the fleet use the same checkout), skip the clone
-and run `git -C ~/src/mentat fetch --tags && git -C ~/src/mentat checkout v0.6.1`.
+and run `git -C ~/src/mentat fetch --tags && git -C ~/src/mentat checkout v0.7.0`.
 
 ```bash
-git clone --depth 1 --branch v0.6.1 https://github.com/lipi4242/mentat ~/src/mentat
+git clone --depth 1 --branch v0.7.0 https://github.com/lipi4242/mentat ~/src/mentat
 cd ~/src/mentat/admin
 npm ci --prefix worker && npm ci --prefix admin     # most of the time
 npm --prefix admin run build                        # the UI the worker serves
@@ -54,13 +54,17 @@ cd ~/src/mentat/admin                               # the checkout from the quic
 node -v 2>/dev/null | grep -qE '^v(2[2-9]|[3-9][0-9])' || { sh worker/scripts/install-node.sh; export PATH="$HOME/.local/bin:$PATH"; }
 npm ci --prefix worker && npm ci --prefix admin
 cd worker
-npm run connect -- --repo ~/agents/my-agent --url http://localhost:8787 --local --plugins cases --email owner@example.com
+npm run connect -- --repo ~/agents/my-agent --url http://localhost:8787 --local --plugins cases,todo --email owner@example.com
 ```
 
 It ends with a short block: done / next / sign in / the list URL of the
 cases. `--check` changes nothing and lists what is missing; a rerun is safe
-(a token the admin still accepts is kept, a current `cases_cli` and AGENTS.md
-block are left alone). Day to day:
+(a token the admin still accepts and whose scopes cover the plugins is kept;
+otherwise a new one replaces it and the old one is revoked once the new one
+answers; a current `cases_cli` and AGENTS.md block are left alone). `--plugins`
+adds to what the repo already uses; with `todo` the agent's principal and its
+handle (`mentat.json` `components.admin.todo_handle`, `--handle` to choose it)
+come with it, so `mentat-todo me` works with no `--as`. Day to day:
 
 | what | command (in `worker/`) |
 |---|---|
@@ -71,13 +75,20 @@ block are left alone). Day to day:
 
 What `connect --local` does: node on the login PATH (`~/.local/bin`);
 `worker/.dev.vars`; builds the UI; migrates the local D1 (backup first);
-installs the systemd user unit `mentat-admin.service` (API + UI on the URL's
-port, at boot via linger); waits for `/api/health`; mints the agent's token;
+installs the service that keeps the admin running after you close the
+terminal (API + UI on the URL's port): on Linux the systemd user unit
+`mentat-admin.service` (at boot via linger), on macOS the launchd agent
+`~/Library/LaunchAgents/com.mentat.admin.plist` (at login, restarted if it
+stops); waits for `/api/health`; mints the agent's token;
 vendors `cases_cli` into `<repo>/.mentat/bin`; writes the managed block
 (`<!-- mentat:admin:start -->`…`end`) at the END of `<repo>/AGENTS.md`; with
-`--migrate-brain` moves the brain's cases into the admin. No systemd (macOS):
-it says so; run `npm run dev:local -- --port 8787` yourself. Logs:
-`journalctl --user -u mentat-admin.service`. The server is on 127.0.0.1 only;
+`--migrate-brain` moves the brain's cases into the admin. `npm run status`
+shows the service, how often it was restarted, and a node path that a node
+upgrade broke (fix: rerun `connect --local`). Logs: Linux
+`journalctl --user -u mentat-admin.service`, macOS
+`~/Library/Logs/mentat-admin.log`. Remove the service (data and tokens stay):
+`npm run connect -- --local --uninstall`. Windows has no service: the admin
+runs only while `npm run dev:local -- --port 8787` runs. The server is on 127.0.0.1 only;
 from another machine use an SSH tunnel (`ssh -L 8787:localhost:8787 <box>`).
 
 The API by hand (curl, a demo token): [docs/local-api-by-hand.md](docs/local-api-by-hand.md).

@@ -1,6 +1,7 @@
 """A titok-eszközök (`fleet secrets`) helyei és az atomikus 0600-írás.
 
-    base()                 ~/.mentat/titkok/ (leltar.json, nyugtak.jsonl, jovahagyas/<id>.json)
+    base()                 ~/.mentat/titkok/ (leltar.json, nyugtak.jsonl, nyugta-so, jovahagyas/<id>.json)
+    receipt_salt()         a nyugta-lenyomat (HMAC) boxonkénti sója: első használatkor készül, 0600
     agent_roots(agent)     ahol egy ágens titkai laknak: repó, ~/.config/<a>/, ~/.claude-<a>/, <repó>/.mentat/
     unit_env_files(agent)  a systemd --user unitok `EnvironmentFile=` sorai, amik az ágenshez tartoznak
     write_atomic(p, data)  0600, ideiglenes fájl + os.replace; symlinkre soha nem ír
@@ -11,6 +12,8 @@ eszköze nem írhatja, csak ez a kód.
 from __future__ import annotations
 import os
 import re
+import secrets
+import stat
 import tempfile
 from pathlib import Path
 
@@ -27,6 +30,46 @@ def inventory_path(home: Path | None = None) -> Path:
 
 def receipts_path(home: Path | None = None) -> Path:
     return base(home) / "nyugtak.jsonl"
+
+
+def receipt_salt_path(home: Path | None = None) -> Path:
+    return base(home) / "nyugta-so"
+
+
+def _read_salt(p: Path) -> bytes:
+    fd = os.open(p, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))  # symlink: ELOOP
+    try:
+        st = os.fstat(fd)
+        if not stat.S_ISREG(st.st_mode) or st.st_mode & 0o077 or st.st_uid != os.getuid():
+            raise OSError(f"a nyugta-só nem saját, 0600-as szabályos fájl: {p}")
+        data = os.read(fd, 4096)
+    finally:
+        os.close(fd)
+    if len(data) < 32:
+        raise OSError(f"a nyugta-só sérült (rövid): {p}")
+    return data
+
+
+def receipt_salt(home: Path | None = None) -> bytes:
+    """A só: ha nincs, 32 véletlen bájt kerül egy ideiglenes 0600-as fájlba, és os.link teszi
+    a helyére (két párhuzamos első használatból egy nyer, félkész sót senki nem olvas).
+    Hibás vagy idegen só: OSError, csendes újragenerálás nincs (az a régi nyugtákat elárvítaná)."""
+    p = receipt_salt_path(home)
+    if os.path.lexists(p):
+        return _read_salt(p)
+    p.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+    fd, tmp = tempfile.mkstemp(dir=p.parent, prefix=".nyugta-so.")
+    try:
+        with os.fdopen(fd, "wb") as f:
+            f.write(secrets.token_bytes(32))
+        os.chmod(tmp, 0o600)
+        try:
+            os.link(tmp, p)
+        except FileExistsError:
+            pass
+    finally:
+        Path(tmp).unlink(missing_ok=True)
+    return _read_salt(p)
 
 
 def approvals_dir(home: Path | None = None) -> Path:

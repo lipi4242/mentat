@@ -30,14 +30,14 @@ def code_of(out):
 
 def run(root, *args):
     return subprocess.run([sys.executable, "-I", str(TOOL), "--repo", str(root), *args],
-                          capture_output=True, text=True, timeout=30)
+                          capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace")
 
 
 class Final(unittest.TestCase):
     def setUp(self):
         self.root = pathlib.Path(tempfile.mkdtemp())
         self.pay = self.root / "szamla.json"
-        self.pay.write_text(json.dumps({"vevo": "Kovács Kft.", "osszeg": 12000, "megjegyzes": ""}))
+        self.pay.write_text(json.dumps({"vevo": "Kovács Kft.", "osszeg": 12000, "megjegyzes": ""}), encoding="utf-8")
 
     def test_preview_reads_back_and_approval_binds_to_the_exact_payload(self):
         r = run(self.root, "preview", "szamla-7", "--what", "számla a Kovács Kft.-nek", "--to", "https://api.example.com/i", "--file", "szamla.json",
@@ -56,7 +56,7 @@ class Final(unittest.TestCase):
         self.assertEqual(run(self.root, "approve", "szamla-7").returncode, 0)
         self.assertEqual(run(self.root, "approve", "szamla-7").returncode, 1, "single use")
         self.assertEqual(run(self.root, "check", "szamla-7").returncode, 0)
-        self.pay.write_text(json.dumps({"vevo": "Kovács Kft.", "osszeg": 21000}))
+        self.pay.write_text(json.dumps({"vevo": "Kovács Kft.", "osszeg": 21000}), encoding="utf-8")
         r = run(self.root, "check", "szamla-7")
         self.assertEqual(r.returncode, 1)
         self.assertIn("changed since", r.stdout)
@@ -80,7 +80,7 @@ class Final(unittest.TestCase):
 
     def test_every_recipient_is_listed_and_an_excluded_one_stops_it(self):
         (self.root / "level.json").write_text(json.dumps({"to": ["anna@example.com", "bela@example.com"],
-                                                         "cc": "csaba@example.com", "subject": "Értesítés"}))
+                                                         "cc": "csaba@example.com", "subject": "Értesítés"}), encoding="utf-8")
         r = run(self.root, "preview", "m1", "--what", "értesítés", "--to", "smtp", "--file", "level.json")
         self.assertIn("Recipients (3):", r.stdout)
         self.assertIn("  - csaba@example.com", r.stdout)

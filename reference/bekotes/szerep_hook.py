@@ -4,6 +4,9 @@ import json
 import os
 import pathlib
 import re
+import sys
+for _s in (sys.stdin, sys.stdout, sys.stderr):  # Windows: a pipe is the ANSI code page, not UTF-8
+    getattr(_s, "reconfigure", lambda **k: None)(encoding="utf-8", errors="replace")
 
 TIMEOUT = 10  # seconds
 GUARD = 'python3 -I "$CLAUDE_PROJECT_DIR"/.mentat/bin/bekotes/szerep_guard.py'  # -I: no PYTHONPATH, no user site
@@ -67,7 +70,7 @@ def install(repo):
             kept.append(e)
         s["hooks"][event] = kept + [entry]
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(s, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    path.write_bytes((json.dumps(s, indent=2, ensure_ascii=False) + "\n").encode("utf-8"))
 
 
 # The 0.3.0 PreToolUse line: `[ -f …szerep_guard.py ] || { echo "…" >&2; exit 0; }` — a fresh
@@ -102,7 +105,7 @@ def _atomic_write(path, text):
     """tmp in the same folder + os.replace: a crash leaves the old file or the new one, never half."""
     tmp = path.with_name(".%s.tmp-%d" % (path.name, os.getpid()))
     try:
-        tmp.write_text(text, encoding="utf-8")
+        tmp.write_bytes(text.encode("utf-8"))
         os.replace(tmp, path)
     finally:
         if tmp.exists():

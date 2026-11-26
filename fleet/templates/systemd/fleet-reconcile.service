@@ -7,4 +7,8 @@ Description=Mentat fleet reconcile — a registry kívánt állapotának érvén
 Type=oneshot
 WorkingDirectory=@@FLEET_ROOT@@
 Environment=PATH=%h/.bun/bin:%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+# A kör (benne a prompt-hash az ágensek repóiból) nem akadhat a következő
+# timer-periódusba (5 perc), és nem ehet memóriát egy elszabadult fán.
+TimeoutStartSec=4min
+MemoryMax=256M
 ExecStart=@@FLEET_ROOT@@/bin/fleet reconcile

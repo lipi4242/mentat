@@ -35,7 +35,7 @@ def save_settings(root, data):
     p = settings_path(root)
     p.parent.mkdir(parents=True, exist_ok=True)
     fd = os.open(str(p), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w", encoding="utf-8") as f:
+    with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as f:
         f.write(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
     os.chmod(str(p), 0o600)
 
@@ -53,7 +53,7 @@ def ensure_ignored(root):
     for line in IGNORE_LINES:  # add a line only where git does not ignore the path already
         if subprocess.run(["git", "-C", str(root), "check-ignore", "-q", line]).returncode != 0:
             text = gi.read_text(encoding="utf-8") if gi.exists() else ""
-            gi.write_text(text + ("" if not text or text.endswith("\n") else "\n") + line + "\n")
+            gi.write_bytes((text + ("" if not text or text.endswith("\n") else "\n") + line + "\n").encode("utf-8"))
             print("added   %s to .gitignore" % line)
     if subprocess.run(["git", "-C", str(root), "check-ignore", "-q", rel]).returncode != 0:
         return "git would not ignore %s - fix .gitignore first" % rel
@@ -73,7 +73,7 @@ def read_key():
 
 def write_key(clipboard):
     if clipboard:
-        raw = subprocess.run(["pbpaste"], capture_output=True, text=True).stdout
+        raw = subprocess.run(["pbpaste"], capture_output=True, text=True, encoding="utf-8", errors="replace").stdout
     else:
         raw = sys.stdin.readline()
     key = "".join(raw.split())
@@ -82,7 +82,7 @@ def write_key(clipboard):
         return 2
     KEY_FILE.parent.mkdir(parents=True, exist_ok=True)
     fd = os.open(str(KEY_FILE), os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(fd, "w") as f:
+    with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as f:
         f.write("OPENROUTER_API_KEY=%s\n" % key)
     os.chmod(str(KEY_FILE), 0o600)
     print("OK    key saved to %s (%d characters, 0600) - it is not printed anywhere" % (KEY_FILE, len(key)))
@@ -99,7 +99,7 @@ def schedule_restart(agent, delay=20):
                 "deploys %s to restart it (fleet restart %s)" % (agent, agent))
     unit = "mentat-model-restart-%s-%d" % (re.sub(r"[^A-Za-z0-9_-]", "-", agent), int(time.time()))
     r = subprocess.run(["systemd-run", "--user", "--on-active=%d" % delay, "--unit", unit, fleet,
-                        "restart", agent], capture_output=True, text=True)
+                        "restart", agent], capture_output=True, text=True, encoding="utf-8", errors="replace")
     if r.returncode != 0:
         return "NEXT  the restart could not be scheduled (%s)" % r.stderr.strip()[:200]
     return ("RESTART in %d s, out-of-band (%s) - tell the USER now; the new session runs on the "

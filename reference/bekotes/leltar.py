@@ -34,7 +34,7 @@ NO_LAZY = dict(os.environ, GIT_NO_LAZY_FETCH="1")
 
 
 def _git(p, *args):
-    r = subprocess.run(["git", "-C", str(p), *args], capture_output=True, text=True, env=NO_LAZY)
+    r = subprocess.run(["git", "-C", str(p), *args], capture_output=True, text=True, env=NO_LAZY, encoding="utf-8", errors="replace")
     return r.stdout if r.returncode == 0 else None
 
 

@@ -14,7 +14,7 @@ import leltar
 
 
 def git(*a, cwd=None, env=None):
-    return subprocess.run(["git", *a], cwd=cwd, env=env, capture_output=True, text=True)
+    return subprocess.run(["git", *a], cwd=cwd, env=env, capture_output=True, text=True, encoding="utf-8", errors="replace")
 
 
 class LeltarLazyFetch(unittest.TestCase):
@@ -23,8 +23,8 @@ class LeltarLazyFetch(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.tmp, True)
         src = self.tmp / "src"
         (src / "ugyfelek").mkdir(parents=True)
-        (src / "ugyfelek" / "private.json").write_text('{"x": 1}\n')
-        (src / "README.md").write_text("# web\n")
+        (src / "ugyfelek" / "private.json").write_text('{"x": 1}\n', encoding="utf-8")
+        (src / "README.md").write_text("# web\n", encoding="utf-8")
         git("init", "-q", str(src))
         git("-c", "user.name=T", "-c", "user.email=t@example.com", "add", "-A", cwd=src)
         git("-c", "user.name=T", "-c", "user.email=t@example.com", "commit", "-qm", "i", cwd=src)

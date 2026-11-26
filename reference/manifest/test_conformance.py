@@ -20,12 +20,12 @@ FIXTURES = sorted((HERE / "conformance").glob("*.json"))
 def _write_repo(case):
     root = pathlib.Path(tempfile.mkdtemp())
     if case.get("manifest_raw") is not None:
-        (root / "mentat.json").write_text(case["manifest_raw"])
+        (root / "mentat.json").write_text(case["manifest_raw"], encoding="utf-8")
     elif case["manifest"] is not None:
-        (root / "mentat.json").write_text(json.dumps(case["manifest"]))
+        (root / "mentat.json").write_text(json.dumps(case["manifest"]), encoding="utf-8")
     if case["local"] is not None:
         (root / ".mentat").mkdir()
-        (root / ".mentat" / "local.json").write_text(json.dumps(case["local"]))
+        (root / ".mentat" / "local.json").write_text(json.dumps(case["local"]), encoding="utf-8")
     return root
 
 
@@ -35,14 +35,14 @@ class Conformance(unittest.TestCase):
 
     def test_fixtures(self):
         for path in FIXTURES:
-            case = json.loads(path.read_text())
+            case = json.loads(path.read_text(encoding="utf-8"))
             with self.subTest(fixture=path.name):
                 got = mm.evaluate_root(_write_repo(case))
                 self.assertEqual(got, case["expect"], case["description"])
 
     def test_present_matches_fixture(self):
         for path in FIXTURES:
-            case = json.loads(path.read_text())
+            case = json.loads(path.read_text(encoding="utf-8"))
             root = _write_repo(case)
             for elem, want in case["expect"]["present"].items():
                 with self.subTest(fixture=path.name, elem=elem):

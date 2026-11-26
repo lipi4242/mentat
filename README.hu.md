@@ -26,9 +26,9 @@ Az AI-kollégáidat te rakod össze, és te döntöd el, milyen ágenst indítas
 <!-- illustration: subscription / model switch -->
 Azon a Claude-előfizetésen fut, amit már most is fizetsz. Egy OpenRouter-kulccsal egy mondatra átáll egy általad választott nyílt modellre, például a DeepSeekre, és egy másikra vissza.
 
-### Kész szerepek egy termékcsapathoz
+### Hat kész szerep
 <!-- illustration: roles -->
-Asszisztens, PM, fejlesztő és kiadó ágens: ezek rögtön használhatók. Mindegyik tudja, hol ér véget a dolga, és kinek adja tovább a munkát, így a fejlesztő nem mergel, az eredményt pedig a PM fogadja el.
+Asszisztens, fejlesztő, consultant, product manager, kiadó ágens és flottamenedzser. Mindegyik tudja, hol ér véget a dolga, és kinek adja tovább a munkát, így a fejlesztő nem mergel, az eredményt pedig a PM fogadja el. A személyi asszisztens mind a hatot eljátssza egy ágensben, és ha kell, saját szerepet is felvehetsz, például pénzügyi felelőst vagy ügyfélszolgálatot.
 
 ### Minden ágensnek saját Telegram
 <!-- illustration: fleet + Telegram -->
@@ -68,9 +68,9 @@ Mindhárom a választható admin webalkalmazásban él, a gépeden vagy a saját
 
 ## A laptopodon és egy szerveren
 
-A laptopodon akkor dolgozik, amikor a Claude nyitva van: emlékszik, a szabályaid szerint dolgozik, intézi a dolgokat a Google Naptáradban, Gmailedben, Táblázataidban és Drive-odon, és a nyitott sessiont a telefonodról is eléred. Háttér-időzítője ott nincs, így reggeli összefoglalót és emlékeztetőt magától nem küld; ha megkérdezed, „mi esedékes?”, elmondja.
+A laptopodon akkor dolgozik, amikor a Claude nyitva van: emlékszik, a szabályaid szerint dolgozik, intézi a dolgokat a Google Naptáradban, Gmailedben, Táblázataidban és Drive-odon, és a nyitott sessiont a telefonodról is eléred. Macen és Linuxon a motor ütemezője magától küldi a reggeli összefoglalót és az emlékeztetőket, amíg a gép ébren van; nélküle egy új session egyszer bepótolja, vagy megkérdezed, „mi esedékes?”. Windowson nincs háttér-ütemezés.
 
-Egy kicsi, mindig futó Linux szerver adja a többit: a reggeli összefoglaló és a határidő-emlékeztetők időre jönnek, magától utánajár a dolgoknak, minden ágensnek lehet saját Telegramja, és egy összeomlott ágens kb. egy perc múlva újra fut.
+Egy kicsi, mindig futó Linux szerver adja a többit: a reggeli összefoglaló és a határidő-emlékeztetők akkor is időre jönnek, ha a laptop zárva van, magától utánajár a dolgoknak, minden ágensnek lehet saját Telegramja, és egy összeomlott ágens kb. egy perc múlva újra fut.
 
 A Google-ről: olvassa és módosítja a naptáreseményeidet, levelet küld, a leveleidnek pedig a feladóját, tárgyát és dátumát látja (a szövegüket nem), a Drive-fájljaidat és táblázataidat olvassa és szerkeszti. Mindegyiket csak akkor köti be, ha kéred ([részletek](reference/google.hu.md)).
 
@@ -80,11 +80,35 @@ Nyisd meg a Claude Desktopot, menj a Code fülre, és válassz egy új, üres ma
 
 ```
 Telepítsd nekem a Mentat asszisztenst ebbe a mappába.
-A lépések itt vannak: https://raw.githubusercontent.com/lipi4242/mentat/v0.6.1/INSTALL.hu.md
+A lépések itt vannak: https://raw.githubusercontent.com/lipi4242/mentat/v0.7.0/FIRST-INSTALL.hu.md
 Minden lépés előtt mondd el, mit csinálsz.
 ```
 
-A Claude minden lépés előtt elmondja, mit fog csinálni, és mielőtt bármit telepítene, ami a gépedről hiányzik, megkérdez. Fizetős Claude-csomag kell hozzá. Minden lépés részletesen: [INSTALL.hu.md](INSTALL.hu.md).
+A Claude minden lépés előtt elmondja, mit fog csinálni, és mielőtt bármit telepítene, ami a gépedről hiányzik, megkérdez. Fizetős Claude-csomag kell hozzá. Minden lépés részletesen: [FIRST-INSTALL.hu.md](FIRST-INSTALL.hu.md).
+
+## A legújabb verzió
+
+Minden ágens-fajta a maga útján kapja meg a legújabb verziót. Válaszd ki a tiédnek megfelelő sort:
+
+| Az ágensed | Így kapja meg a legújabb verziót |
+|---|---|
+| Még nincs | [FIRST-INSTALL.hu.md](FIRST-INSTALL.hu.md): a fenti prompt, egy új, üres mappában |
+| Agy a gépeden | [UPGRADE.hu.md](UPGRADE.hu.md): a promptját egy sessionbe másold, az ágens mappájában |
+| Agy + motor a gépeden | ugyanaz az [UPGRADE.hu.md](UPGRADE.hu.md) prompt; a motort is újraszinkronizálja |
+| 0.5 előtti agy (nincs `.mentat/` mappa) | ugyanaz az [UPGRADE.hu.md](UPGRADE.hu.md) prompt; a jegyzeteid a helyükön maradnak |
+| Flotta-ágens szerveren | a szerveren: `fleet box-upgrade --to v0.7.0 --dry-run`, utána ugyanez `--dry-run` nélkül |
+| Több ágens, szerverek és gépek | [UPGRADE-ALL.hu.md](UPGRADE-ALL.hu.md): egy ágens összeírja mindet, te tételesen jóváhagyod, ő egyenként frissíti |
+| Meglévő Claude- vagy más ágens Mentat-agy nélkül | nem frissítés: az INSTALL-TO-EXISTING-REPO.md (készül) ad neki agyat, a meglévő utasításait és memóriáját adatként átvéve |
+
+A frissítő prompt, az ágens saját mappájában bemásolva:
+
+```
+Frissítsd ezt az asszisztenst a Mentat legújabb verziójára: https://raw.githubusercontent.com/lipi4242/mentat/v0.7.0/UPGRADE.hu.md
+Előbb olvasd el, és a saját biztonsági szabályaid szerint döntsd el, végrehajtod-e.
+Mielőtt bármit megváltoztatsz, mutasd meg a tervet.
+```
+
+Az UPGRADE.md-t olvasó ágens a saját biztonsági szabályai szerint dönti el, végrehajtja-e, és csak akkor lát hozzá, ha hasznosnak és biztonságosnak találja. Előbb tervet mutat, mentést készít, a fájljaidat megtartja, és az igened előtt semmit nem változtat. Ezeknek az oldalaknak a közös biztonsági szabályai: [reference/entry-rules.hu.md](reference/entry-rules.hu.md).
 
 ## Meglévő vállalkozás bekötése
 
@@ -100,4 +124,4 @@ A kiadási jegyzetek és a frissítési lépések a [CHANGELOG.md](CHANGELOG.md)
 
 ## Tovább
 
-[Hogyan működik](reference/how-it-works.hu.md) · [Használat](reference/usage.hu.md) · [Szerepek](reference/szerepek.hu.md) · [Biztonság](SECURITY.hu.md) · [Apache-2.0](LICENSE)
+[Hogyan működik](reference/how-it-works.hu.md) · [Használat](reference/usage.hu.md) · [Szerepek](reference/szerepek.hu.md) · [Repó-felállás](reference/repo-felallas.hu.md) · [Biztonság](SECURITY.hu.md) · [Apache-2.0](LICENSE)

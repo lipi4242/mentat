@@ -47,7 +47,7 @@ class GuardAtInit(unittest.TestCase):
         for _ in range(2):
             r = subprocess.run([sys.executable, str(HERE / "mentat_scaffold.py"), "--lang", "hu",
                                 "--repo", str(root), "--base", "https://example.com/kit/v9.9.9/"],
-                               capture_output=True, text=True, env=env)
+                               capture_output=True, text=True, env=env, encoding="utf-8", errors="replace")
             self.assertEqual(r.returncode, 0, r.stderr)
         s = json.loads((root / ".claude" / "settings.json").read_text(encoding="utf-8"))
         for event in ("PreToolUse", "PostToolUse", "SessionStart"):

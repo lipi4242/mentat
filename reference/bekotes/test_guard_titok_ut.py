@@ -88,15 +88,15 @@ class AsInstalled(unittest.TestCase):
         for dest, src in mv.listing((tree / "reference" / "initialization.md").read_text(encoding="utf-8")):
             (root / ".mentat/bin" / dest).parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(tree / src, root / ".mentat/bin" / dest)
-        (root / "mentat.json").write_text(json.dumps({"schema": 1, "components": {"brain": {"root": "brain"}}}))
+        (root / "mentat.json").write_text(json.dumps({"schema": 1, "components": {"brain": {"root": "brain"}}}), encoding="utf-8")
         szerep_hook.install(root)
-        hook = json.loads((root / ".claude/settings.json").read_text())["hooks"]["PreToolUse"][-1]["hooks"][0]
+        hook = json.loads((root / ".claude/settings.json").read_text(encoding="utf-8"))["hooks"]["PreToolUse"][-1]["hooks"][0]
         env = dict(os.environ, CLAUDE_PROJECT_DIR=str(root), HOME=home)
         for cmd in OPEN[:5] + READS[:1]:
             payload = {"tool_name": "Bash", "tool_input": {"command": cmd}, "cwd": str(root),
                        "permission_mode": "bypassPermissions", "session_id": "s1"}
             r = subprocess.run(["bash", "-c", hook["command"]], input=json.dumps(payload), env=env,
-                               capture_output=True, text=True, timeout=30)
+                               capture_output=True, text=True, timeout=30, encoding="utf-8", errors="replace")
             out = json.loads(r.stdout)["hookSpecificOutput"] if r.stdout.strip() else {}
             want = "deny" if cmd in READS else "allow"
             self.assertEqual(out.get("permissionDecision", "allow"), want, (cmd, r.stdout, r.stderr))

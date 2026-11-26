@@ -29,7 +29,7 @@ class BekotesDiscoverable(unittest.TestCase):
                    GIT_CONFIG_GLOBAL=os.path.join(home, "gitconfig"))
         r = subprocess.run([sys.executable, str(HERE / "mentat_scaffold.py"), "--lang", lang,
                             "--repo", str(root), "--base", "https://example.com/kit/v9.9.9/"],
-                           capture_output=True, text=True, env=env)
+                           capture_output=True, text=True, env=env, encoding="utf-8", errors="replace")
         self.assertEqual(r.returncode, 0, r.stderr)
         text = (root / "AGENTS.md").read_text(encoding="utf-8")
         return text[text.find("<!-- mentat:managed:start intake -->"):
